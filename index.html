@@ -426,6 +426,11 @@ body.obs #ogoal{display:block;position:fixed;left:50%;top:22px;transform:transla
         <button type="button" class="btn-g whitespace-nowrap" id="bCopyUrl">COPY</button></div>
        <p class="f-tech text-[.5rem] tracking-[.1em] text-steel mt-1.5 leading-relaxed">
         URL นี้มี SECRET KEY อยู่ข้างใน — อย่าแชร์ให้ใคร ใครมี key จะยิง alert เข้าจอคุณได้</p></div>
+      <div><div class="lbl-f">DONATE LINK (แชร์ให้ผู้บริจาค)</div>
+       <div class="flex gap-2"><input id="donUrl" class="inp f-tech !text-[.66rem]" readonly>
+        <button type="button" class="btn-g whitespace-nowrap" id="bCopyDon">COPY</button></div>
+       <p class="f-tech text-[.5rem] tracking-[.1em] text-steel mt-1.5 leading-relaxed">
+        ลิงก์นี้ฝังเบอร์พร้อมเพย์ + เป้าหมายมาให้แล้ว — แชร์ในสตรีม/แชท ผู้บริจาคเปิดปุ๊บใช้ได้ทันที ไม่ต้องรอ admin ออนไลน์</p></div>
       <div class="grid grid-cols-2 gap-2">
        <button type="button" class="btn-g" id="bPrev">PREVIEW ALERT</button>
        <button type="button" class="btn-g" id="bNewKey">ROTATE KEY</button></div>
@@ -568,6 +573,9 @@ var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://dona
 var CFG=(function(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(K_CFG))||{})}catch(e){return Object.assign({},DEF)}})();
 if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
+(function(){var u={};['pp','payee','goal','min','reqSlip'].forEach(function(k){var v=P(k);if(v===null)return;
+ u[k]=k==='reqSlip'?(v==='1'||v==='true'):(k==='goal'||k==='min')?(Number(v)||0):v});
+ if(Object.keys(u).length){Object.assign(CFG,u);saveCfg()}})();
 
 var TIERS=[{m:0,n:'RECRUIT',p:20,h:5000,s:26,hd:false},{m:100,n:'SOLDIER',p:40,h:5600,s:44,hd:false},
  {m:500,n:'ELITE',p:62,h:6300,s:66,hd:true},{m:1000,n:'LEGEND',p:84,h:7200,s:92,hd:true},
@@ -695,6 +703,7 @@ function onMsg(m){if(!m||!m.t)return;
  else if(m.t==='resolved'&&m.d&&m.d.id){
   var rd=DONS.find(function(x){return x.id===m.d.id});
   if(rd){rd.status=m.d.status;rd.decided=Date.now();ST.put('don',rd).then(function(){if(location.hash.indexOf('#admin')===0)adminRefresh();if(IS_OBS)reload().then(renderOGoal)})}}
+ else if(m.t==='cfg'&&m.d){Object.assign(CFG,m.d);saveCfg();renderGoal();if($('#sPP'))ppHint();toast('▸ อัปเดตการตั้งค่าแล้ว',1)}
  else if(m.t==='sync'){if(IS_OBS)reload().then(renderOGoal);else refreshPublic()}}
 window.addEventListener('storage',function(e){if(e.key!==K_BUS||!e.newValue)return;try{onMsg(JSON.parse(e.newValue))}catch(x){}});
 if(bc)bc.onmessage=function(e){onMsg(e.data)};
@@ -955,7 +964,7 @@ $('#bOut').addEventListener('click',function(){AUTH.close();$('#adm').style.disp
 /* ═══════════ ADMIN ═══════════ */
 var sTimer=null;
 function enterAdmin(){$('#gate').style.display='none';$('#adm').style.display='';
- fillSettings();buildObs();adminRefresh();
+ fillSettings();buildObs();buildDon();adminRefresh();
  clearInterval(sTimer);sTimer=setInterval(function(){
   var e=AUTH.valid();if(!e){clearInterval(sTimer);$('#adm').style.display='none';$('#gate').style.display='';gateUI();toast('!! SESSION EXPIRED');return}
   var l=Math.max(0,Math.floor((e-Date.now())/1000));
@@ -1037,7 +1046,9 @@ $('#bSaveS').addEventListener('click',function(){
  CFG.pp=$('#sPP').value.trim();CFG.payee=$('#sName').value.trim()||'RZ CLAN';
  CFG.goal=Math.max(1,Number($('#sGoal').value)||50000);CFG.min=Math.max(1,Number($('#sMin').value)||20);
  CFG.logo=$('#sImg').value.trim();CFG.video=$('#sVid').value.trim();CFG.ws=$('#sWs').value.trim();
- CFG.reqSlip=$('#sSlip').checked;saveCfg();buildObs();renderGoal();btnFx(this);toast('✓ SETTINGS SAVED',1)});
+ CFG.reqSlip=$('#sSlip').checked;saveCfg();buildObs();buildDon();renderGoal();
+ emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip});
+ btnFx(this);toast('✓ SETTINGS SAVED',1)});
 
 /* SYSTEM */
 function buildObs(){var u=location.href.split('#')[0]+'#overlay?k='+encodeURIComponent(CFG.key);
@@ -1046,6 +1057,11 @@ function buildObs(){var u=location.href.split('#')[0]+'#overlay?k='+encodeURICom
  if(CFG.ws)u+='&ws='+encodeURIComponent(CFG.ws);
  u+='&goal='+encodeURIComponent(CFG.goal||50000);
  $('#obsUrl').value=u}
+function buildDon(){var u=location.href.split('#')[0]+'#?pp='+encodeURIComponent(CFG.pp||'')
+ +'&goal='+encodeURIComponent(CFG.goal||50000)+'&payee='+encodeURIComponent(CFG.payee||'RZ CLAN')
+ +'&min='+encodeURIComponent(CFG.min||20)+'&reqSlip='+(CFG.reqSlip?1:0)+'&k='+encodeURIComponent(CFG.key);
+ $('#donUrl').value=u}
+$('#bCopyDon').addEventListener('click',function(){copy($('#donUrl').value,'✓ COPIED')});
 $('#bCopyUrl').addEventListener('click',function(){copy($('#obsUrl').value,'✓ COPIED')});
 $('#bPrev').addEventListener('click',function(){
  emit('alert',{name:'PREVIEW',amount:1234,message:'ทดสอบระบบแจ้งเตือนขึ้นจอ'});toast('▸ PREVIEW SENT',1)});
@@ -1067,7 +1083,7 @@ $('#bSim').addEventListener('click',function(){
   },3000)})});
 $('#bNewKey').addEventListener('click',function(){
  if(!confirm('สร้าง KEY ใหม่? OBS ต้องเปลี่ยน URL ตาม'))return;
- CFG.key=rnd(12);saveCfg();buildObs();toast('✓ KEY ROTATED — อัปเดต OBS ด้วย',1)});
+ CFG.key=rnd(12);saveCfg();buildObs();buildDon();toast('✓ KEY ROTATED — อัปเดต OBS ด้วย',1)});
 $('#bManual').addEventListener('click',function(){
  var n=$('#mName').value.trim(),a=Math.floor(Number($('#mAmt').value)||0);
  if(!n||!(a>0))return toast('!! กรอกชื่อและจำนวนเงิน');
