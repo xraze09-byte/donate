@@ -827,10 +827,6 @@ function renderOGoal(){var e=$('#ogFill');if(!e||!IS_OBS)return;
  $('#ogNow').textContent='฿'+fmt(tot);$('#ogMax').textContent='฿'+fmt(goal);
  $('#ogFill').style.width=pct+'%';$('#ogPct').textContent=pct.toFixed(1)+'%';
  $('#ogLeft').textContent=left>0?' · ยังขาดอีก ฿'+fmt(left):' · GOAL REACHED ★'}
- var tot=approved().reduce(function(s,d){return s+(Number(d.amount)||0)},0),pct=cl(tot/(CFG.goal||1)*100,0,100);
- roll(e,gShown,tot,900);gShown=tot;$('#gMax').textContent=fmt(CFG.goal);
- $('#gFill').style.width=pct+'%';$('#gPct').textContent=pct.toFixed(1)+'% COMPLETE';
- $('#gCnt').textContent=agg().length+' SUPPORTERS'}
 
 /* ═══════════ DONOR FORM ═══════════ */
 var dForm=$('#dForm'),dName=$('#dName'),dAmt=$('#dAmt'),dMsg=$('#dMsg');
