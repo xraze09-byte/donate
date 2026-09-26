@@ -640,8 +640,9 @@ var PP={f:function(i,v){return i+pad(v.length,2)+v},
  tgt:function(raw){var d=String(raw||'').replace(/\D/g,'');if(!d)return null;
   if(d.length===13)return {t:'02',v:d,y:'NATIONAL ID / TAX ID'};
   if(d.length===15)return {t:'03',v:d,y:'E-WALLET'};
-  var m=d.replace(/^0+/,'');if(m.length<9)return null;
-  return {t:'01',v:pad('66'+m,13),y:'MOBILE'}},
+  if(/^66\d{9}$/.test(d))return {t:'01',v:d,y:'MOBILE'};
+  var m=d.replace(/^0+/,'');if(m.length<9||m.length>10)return null;
+  return {t:'01',v:'66'+m,y:'MOBILE'}},
  crc:function(s){var c=0xFFFF;for(var i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;
   for(var j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}
   return c.toString(16).toUpperCase().padStart(4,'0')},
