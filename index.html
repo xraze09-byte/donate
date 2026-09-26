@@ -954,7 +954,8 @@ gForm.addEventListener('submit',function(e){e.preventDefault();gErr.classList.re
    toast('✓ ตั้งรหัสผ่านสำเร็จ',1);enterAdmin()});return}
  gBtn.disabled=true;
  AUTH.check(pw).then(function(ok){gBtn.disabled=false;gPw.value='';
-  if(ok){AUTH.pass();AUTH.open();enterAdmin()}
+  if(ok){AUTH.pass();AUTH.open();enterAdmin();
+   emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})}
   else{var l=AUTH.fail();
    gErr.textContent=l.u&&l.u>Date.now()?'!! ใส่ผิดหลายครั้ง ระบบล็อกชั่วคราว':'!! รหัสผ่านไม่ถูกต้อง ('+(5-l.n)+' ครั้งก่อนถูกล็อก)';
    gErr.classList.add('on');gateUI()}})});
