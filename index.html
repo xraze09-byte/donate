@@ -547,7 +547,7 @@ function P(k){var h=location.hash||'',i=h.indexOf('?'),
  return hp.get(k)!==null?hp.get(k):sp.get(k)}
 
 /* ═══════════ CONFIG ═══════════ */
-var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://YOUR-RELAY-SERVER.example.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true};
+var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://donate-backend-60hc.onrender.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true};
 var CFG=(function(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(K_CFG))||{})}catch(e){return Object.assign({},DEF)}})();
 if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
