@@ -429,6 +429,8 @@ body.obs #ogoal{display:block;position:fixed;left:50%;top:22px;transform:transla
       <div class="grid grid-cols-2 gap-2">
        <button type="button" class="btn-g" id="bPrev">PREVIEW ALERT</button>
        <button type="button" class="btn-g" id="bNewKey">ROTATE KEY</button></div>
+      <button type="button" class="btn-g w-full" id="bSim">SIMULATE TEST DONATION</button>
+      <p class="f-tech text-[.5rem] tracking-[.1em] text-steel leading-relaxed">ส่งโดเนททดสอบ 1 รายการ เข้าคิวแล้วอนุมัติอัตโนมัติใน 3 วิ — ทดสอบ alert ขึ้นจอ + หลอด goal ในคลิกเดียว</p>
       <hr style="border-color:rgba(255,0,51,.2)">
       <div><div class="lbl-f">MANUAL ENTRY (โอนตรง / เงินสด)</div>
        <div class="grid grid-cols-2 gap-2 mt-1">
@@ -1044,6 +1046,22 @@ function buildObs(){var u=location.href.split('#')[0]+'#overlay?k='+encodeURICom
 $('#bCopyUrl').addEventListener('click',function(){copy($('#obsUrl').value,'✓ COPIED')});
 $('#bPrev').addEventListener('click',function(){
  emit('alert',{name:'PREVIEW',amount:1234,message:'ทดสอบระบบแจ้งเตือนขึ้นจอ'});toast('▸ PREVIEW SENT',1)});
+$('#bSim').addEventListener('click',function(){
+ btnFx(this);
+ var amt=[100,200,500,1000][Math.floor(Math.random()*4)],
+  rec={id:uid(),name:'TEST DONATION',amount:amt,message:'ทดสอบระบบอัตโนมัติ',ts:Date.now(),status:'pending',
+   ref:'RZ-'+Date.now().toString(36).toUpperCase().slice(-6),slip:false};
+ ST.put('don',rec).then(function(){
+  emit('donation',{rec:rec,slip:null});emit('sync',{});adminRefresh();
+  toast('▸ คำขอทดสอบเข้าคิว — อนุมัติอัตโนมัติใน 3 วิ',1);
+  setTimeout(function(){
+   rec.status='approved';rec.decided=Date.now();
+   ST.put('don',rec).then(function(){
+    emit('resolved',{id:rec.id,status:'approved'});
+    emit('alert',{name:rec.name,amount:rec.amount,message:rec.message});
+    emit('sync',{});adminRefresh();
+    toast('✓ อนุมัติทดสอบ + ยิงขึ้นจอแล้ว',1)})
+  },3000)})});
 $('#bNewKey').addEventListener('click',function(){
  if(!confirm('สร้าง KEY ใหม่? OBS ต้องเปลี่ยน URL ตาม'))return;
  CFG.key=rnd(12);saveCfg();buildObs();toast('✓ KEY ROTATED — อัปเดต OBS ด้วย',1)});
