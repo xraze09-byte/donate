@@ -2349,6 +2349,28 @@ function settle(cb){
   sMax=setTimeout(finish,SETTLE_MAX);      /* เซฟตี้ */
 }
 
+/* แปลงยอดเป็นคำอ่านไทย — ส่ง "หนึ่งพันสองร้อยห้าสิบบาท" แทน "1250 บาท"
+   เพื่อไม่ต้องพึ่งให้ TTS ตีความตัวเลข (บางเครื่องอ่าน "ห้า ห้า ห้า") */
+var D_=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+function _three(v){
+  var o='',h=Math.floor(v/100),t=Math.floor(v%100/10),u=v%10;
+  if(h)o+=D_[h]+'ร้อย';
+  if(t===1)o+='สิบ'; else if(t===2)o+='ยี่สิบ'; else if(t>2)o+=D_[t]+'สิบ';
+  if(u===1&&t>=1)o+='เอ็ด'; else if(u)o+=D_[u];
+  return o;
+}
+function _block(v){
+  var o='',m=Math.floor(v/100000),t=Math.floor(v%100000/10000),s=Math.floor(v%10000/1000);
+  if(m)o+=D_[m]+'แสน'; if(t)o+=D_[t]+'หมื่น'; if(s)o+=D_[s]+'พัน';
+  return o+_three(v%1000);
+}
+function bahtText(n){
+  n=Math.round(num(n)); if(!isFinite(n)||n<0)n=0;
+  if(n===0)return 'ศูนย์บาท';
+  var mil=Math.floor(n/1000000);
+  return ((mil?_block(mil)+'ล้าน':'')+_block(n%1000000))+'บาท';
+}
+
 /* ดึงเฉพาะตัวเลขออกจาก "฿1,250.00" → 1250 */
 function num(s){
   var n=parseFloat(String(s||'').replace(/,/g,'').replace(/[^\d.]/g,''));
@@ -2383,7 +2405,7 @@ function fire(){
     /* ticker ใช้ค่าที่ถูกต้องแล้ว */
     push(name,'฿'+amt.toLocaleString('th-TH'));
 
-    var line = name + ' บริจาค ' + amt + ' บาท';
+    var line = name + ' บริจาค ' + bahtText(amt);
     if(msg) line += ' ข้อความว่า ' + msg;
     TTS.say(line);
   });
