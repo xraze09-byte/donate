@@ -2296,30 +2296,27 @@ function watchAlert(){
     else if(!now) on=false;
   }).observe(card,{attributes:true,attributeFilter:['class']});
 }
-/* data capture — wrap the app's global bus handler (add-on, logic untouched).
-   Why: play() is a staged animation — card pops at t≈780ms but the amount
-   rolls up from 0 during t≈1150-2100ms and the message types in from t≈1480ms.
-   Reading the DOM at card-pop returned "0" and an empty message. */
-var QX=[], _om=(typeof window.onMsg==='function')?window.onMsg:null;
-if(_om) window.onMsg=function(m){
-  try{ if(m&&m.t==='alert'&&m.d) QX.push(m.d); }catch(e){}
-  return _om.apply(this,arguments); };
+/* Resolve the REAL amount + message by watching play()'s staged animation:
+   the amount rolls up from 0 (t≈1150-2100ms) and the message types in char
+   by char (t≈1480ms+) while the card pops at t≈780ms — a one-shot DOM read
+   returns "0"/"99"/"775" instead of the final value. Poll until both settle.
+   (The app script is an IIFE, so its bus handler cannot be wrapped from here.) */
+var gen=0;
 function fire(){
+  var my=++gen;
   var nm=(T('.ac-n')||'').trim().replace(/^-+$/,'').toUpperCase()||'ANONYMOUS';
   SFX.impact(); shake(); burst(120); hype();
   setTimeout(function(){ burst(70,innerWidth*.5,innerHeight*.34); },220);
-  var d=null;
-  if(QX.length){ var x=QX.shift();
-    if(String(x.name||'ANONYMOUS').toUpperCase().trim()===nm) d=x; else QX.unshift(x); }
-  var speak=function(aDisp,aSay,m){
-    push(nm,aDisp);
-    TTS.say(nm+' บริจาค '+aSay+' บาท'+(m?' บอกว่า '+m:''));
-  };
-  if(d){ speak('฿'+d.amount, d.amount, String(d.message||'').trim()); }
-  else setTimeout(function(){ /* fallback: read after the roll-up animation finishes */
-    var a=T('.ac-a')||'฿0';
-    speak(a, a.replace(/[฿,\s]/g,''), (T('.ac-m')||'').trim());
-  },1450);
+  var el=document.getElementById('aAmt'), aPrev='', mPrev='', tries=0;
+  (function p(){
+    if(my!==gen)return;                    /* a newer alert superseded this one */
+    var a=(el&&el.textContent)||'0', m=(T('.ac-m')||'').trim();
+    tries++;
+    if((a===aPrev&&a!=='0'&&m===mPrev&&tries>4)||tries>44){  /* settle or ~6.6s cap */
+      push(nm,'฿'+a);
+      TTS.say(nm+' บริจาค '+a.replace(/,/g,'')+' บาท'+(m?' บอกว่า '+m:''));
+    }else{ aPrev=a; mPrev=m; setTimeout(p,150); }
+  })();
 }
 
 /* ───── 09 · FX CONSOLE ──────────────────────────────────────── */
