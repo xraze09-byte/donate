@@ -672,6 +672,212 @@ textarea.inp{line-height:1.7;min-height:88px}
   body{background:#fff!important;color:#000!important}
   .panel>.panel-in{background:#fff!important}
 }
+
+/* ══ NEON-FORGE VISUAL PATCH v2 (decor only) — patched: pl keyframes, magnetic hover transform, QR ticks on uncut corners, OBS hash guard ══ */
+/* ══════════════════════════════════════════════════════════════
+   NEON-FORGE VISUAL PATCH v2  ·  CSS ONLY · ไม่แตะ logic/backend
+   วางต่อท้ายใน <style> เดิม (ก่อน </style>) จะ override ของเดิมเอง
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── 0. TOKENS เพิ่ม ─────────────────────────────────────── */
+:root{
+  --ember:#ff7a1a;
+  --cyan:#22d3ee;
+  --ease-o:cubic-bezier(.16,1,.3,1);
+  --ease-s:cubic-bezier(.34,1.56,.64,1);
+}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--ember),var(--red),var(--red-d));border-radius:8px}
+
+/* ─── 1. BACKGROUND: grain + ลำแสงสแกน + เถ้าลอย ──────────── */
+#bgfx::before{content:'';position:absolute;inset:-60%;pointer-events:none;opacity:.045;
+  background-image:repeating-conic-gradient(#fff 0% 25%,transparent 0% 50%);
+  background-size:3px 3px;animation:grain 1.1s steps(6) infinite}
+@keyframes grain{
+  0%{transform:translate(0,0)}20%{transform:translate(-2%,1%)}40%{transform:translate(1%,-2%)}
+  60%{transform:translate(-1%,2%)}80%{transform:translate(2%,1%)}100%{transform:translate(0,0)}}
+
+#bgfx::after{content:'';position:absolute;left:0;right:0;height:170px;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(255,35,64,.07) 44%,rgba(255,255,255,.05) 50%,rgba(255,35,64,.07) 56%,transparent);
+  animation:beam 8s linear infinite}
+@keyframes beam{0%{top:-190px}100%{top:100%}}
+
+.fx-v::before,.fx-v::after{content:'';position:absolute;inset:-25% 0;pointer-events:none;
+  background-image:
+    radial-gradient(1.7px 1.7px at 11% 92%,#ff5a78,transparent 62%),
+    radial-gradient(1.3px 1.3px at 27% 74%,#ff9a3c,transparent 62%),
+    radial-gradient(2px 2px   at 45% 97%,#ff2f52,transparent 62%),
+    radial-gradient(1.2px 1.2px at 61% 80%,#ffd6dd,transparent 62%),
+    radial-gradient(1.8px 1.8px at 79% 90%,#ff5a78,transparent 62%),
+    radial-gradient(1.4px 1.4px at 93% 70%,#ff9a3c,transparent 62%);
+  animation:emb 15s linear infinite}
+.fx-v::after{animation-duration:22s;animation-delay:-8s;filter:blur(.6px);opacity:.6}
+@keyframes emb{0%{transform:translateY(0);opacity:0}12%{opacity:.85}88%{opacity:.85}100%{transform:translateY(-78vh);opacity:0}}
+.fx-s{opacity:.32;animation:sdrift 9s linear infinite}
+@keyframes sdrift{to{background-position:0 3px}}
+.fx-g{opacity:.38}
+
+/* spotlight ตามเมาส์ (เปิดใช้ได้ด้วย JS ขั้นที่ 2) */
+#spot{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .5s;
+  background:radial-gradient(280px circle at var(--x,50%) var(--y,50%),rgba(255,35,64,.10),transparent 66%)}
+body.obs #spot,body.obs .btn-x::after{display:none}
+
+/* ─── 2. PANEL: ขอบไหล + เข้าแบบ stagger + ยกตัว ──────────── */
+.panel{
+  background:linear-gradient(150deg,rgba(255,35,64,.9),rgba(255,122,26,.35) 26%,rgba(255,35,64,.08) 56%,rgba(242,245,247,.38));
+  background-size:230% 230%;
+  box-shadow:0 0 40px rgba(255,35,64,.12),0 24px 60px rgba(0,0,0,.88);
+  animation:brdr 9s ease-in-out infinite}
+@keyframes brdr{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+
+.panel:not(.modal-box){animation:pIn .8s var(--ease-o) backwards,brdr 9s ease-in-out infinite;
+  transition:transform .45s var(--ease-o),box-shadow .45s}
+.panel:not(.modal-box):nth-of-type(2){animation-delay:.1s,0s}
+.panel:not(.modal-box):nth-of-type(3){animation-delay:.2s,0s}
+.panel:not(.modal-box):nth-of-type(4){animation-delay:.3s,0s}
+@keyframes pIn{from{opacity:0;transform:translateY(28px) scale(.985)}to{opacity:1;transform:none}}
+@media(hover:hover) and (pointer:fine){
+  .panel:not(.modal-box):hover{transform:translateY(-5px);
+    box-shadow:0 0 60px rgba(255,35,64,.22),0 34px 78px rgba(0,0,0,.92)}}
+
+.panel>.panel-in{background:linear-gradient(150deg,#101014,#07070a 52%,#0d0d11)}
+
+/* ─── 3. HEADER: แสงกวาด ─────────────────────────────────── */
+.hdr{position:relative;overflow:hidden;padding:.62rem .95rem}
+.hdr::after{content:'';position:absolute;top:0;bottom:0;width:32%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.15),transparent);
+  transform:skewX(-20deg);animation:hsw 6s ease-in-out infinite}
+@keyframes hsw{0%{left:-38%}45%,100%{left:125%}}
+.hdr h3{letter-spacing:.16em}
+.dot{border-radius:1px;box-shadow:0 0 14px var(--red),0 0 28px rgba(255,35,64,.5)}
+
+/* ─── 4. BUTTON: ขอบพลังงาน + magnetic (เอา jitter ออก) ──── */
+.btn-x{
+  background:linear-gradient(180deg,#ff2f55,#d3001f 46%,#5c000d);
+  box-shadow:0 0 26px rgba(255,35,64,.42),inset 0 1px 0 rgba(255,255,255,.42),
+             inset 0 0 0 1px rgba(255,255,255,.14),inset 0 -8px 18px rgba(0,0,0,.62);
+  transform:translate(var(--tx,0),var(--ty,0));
+  transition:transform .25s var(--ease-o),box-shadow .3s,filter .3s}
+.btn-x::after{content:'';position:absolute;inset:-50%;z-index:1;pointer-events:none;
+  background:conic-gradient(from 0deg,transparent,var(--red),var(--ember),#fff,var(--red),transparent);
+  filter:blur(14px);mix-blend-mode:screen;opacity:.32;
+  animation:spinE 4.5s linear infinite,glowE 2.8s ease-in-out infinite}
+@keyframes spinE{to{transform:rotate(360deg)}}
+@keyframes glowE{0%,100%{opacity:.22}50%{opacity:.55}}
+.btn-x .lbl{z-index:3}
+@media(hover:hover) and (pointer:fine){
+  .btn-x:hover{animation:none;filter:brightness(1.14);transform:translate(var(--tx,0),var(--ty,0));
+    box-shadow:0 0 46px rgba(255,35,64,.8),inset 0 1px 0 rgba(255,255,255,.6),inset 0 0 0 1px rgba(255,255,255,.35)}
+  .btn-x:hover .lbl{animation:none;text-shadow:0 0 14px rgba(255,255,255,.75),0 2px 0 rgba(0,0,0,.5)}
+  .btn-x:hover::before{opacity:.32}}
+.btn-x:active{transform:translate(var(--tx,0),var(--ty,0)) translateY(2px) scale(.97);filter:brightness(1.35)}
+.btn-x.go{background:linear-gradient(180deg,#39ffb0,#0aa865 50%,#02613a)}
+.btn-x.go::after{background:conic-gradient(from 0deg,transparent,var(--ok),#fff,var(--ok),transparent)}
+.btn-x.alt::after{opacity:0}
+
+.btn-g{position:relative;overflow:hidden;transition:.25s var(--ease-o)}
+.btn-g::after{content:'';position:absolute;inset:0;z-index:-1;transform:scaleX(0);transform-origin:left;
+  transition:transform .3s var(--ease-o);background:linear-gradient(90deg,rgba(255,35,64,.3),rgba(255,122,26,.18))}
+@media(hover:hover){.btn-g:hover::after{transform:scaleX(1)}
+  .btn-g:hover{transform:translateY(-1px)}}
+
+/* ─── 5. FORM ────────────────────────────────────────────── */
+.lbl-f{color:#a9b6c1;font-size:.66rem;letter-spacing:.2em;transition:color .25s}
+.inp{background:rgba(255,255,255,.045);border-color:rgba(154,167,177,.3);caret-color:var(--red);
+  transition:border-color .25s,background .25s,box-shadow .35s,transform .25s var(--ease-o)}
+.inp:hover{border-color:rgba(255,35,64,.4)}
+.inp:focus{transform:translateY(-1px);
+  box-shadow:0 0 0 1px var(--red),0 0 26px rgba(255,35,64,.32),0 10px 26px rgba(0,0,0,.55)}
+.chip{transition:transform .25s var(--ease-s),background .2s,color .2s,border-color .2s}
+.chip:active{transform:scale(.9)}
+.chip.on{animation:chipPop .42s var(--ease-s);
+  background:linear-gradient(180deg,#ff3357,var(--red-d));box-shadow:0 0 22px rgba(255,35,64,.6)}
+@keyframes chipPop{0%{transform:scale(.84)}55%{transform:scale(1.14)}100%{transform:scale(1)}}
+.drop{transition:.25s var(--ease-o)}
+@media(hover:hover){.drop:hover{background:rgba(255,35,64,.1);border-color:var(--red);transform:translateY(-2px)}}
+
+/* ─── 6. LEADERBOARD ─────────────────────────────────────── */
+.rk{padding:.56rem .72rem;animation:rkIn .5s var(--ease-o) backwards}
+.rk:nth-child(1){animation-delay:.03s}.rk:nth-child(2){animation-delay:.08s}
+.rk:nth-child(3){animation-delay:.13s}.rk:nth-child(4){animation-delay:.18s}
+.rk:nth-child(5){animation-delay:.23s}.rk:nth-child(6){animation-delay:.28s}
+.rk:nth-child(7){animation-delay:.33s}.rk:nth-child(8){animation-delay:.38s}
+@keyframes rkIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:none}}
+.rk.t1::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(100deg,transparent 22%,rgba(255,255,255,.28) 46%,transparent 70%);
+  animation:rkSh 3.6s ease-in-out infinite}
+@keyframes rkSh{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}
+.rk-a{letter-spacing:.02em}
+
+/* ─── 7. GOAL BAR ────────────────────────────────────────── */
+.goal-t{height:22px;border-color:rgba(255,35,64,.45)}
+.goal-f::before,#ogoal .og-f::before{content:'';position:absolute;right:0;top:0;bottom:0;width:16px;z-index:2;
+  background:linear-gradient(90deg,transparent,#fff);
+  box-shadow:0 0 24px 7px rgba(255,255,255,.5);animation:gHead 1.5s ease-in-out infinite}
+@keyframes gHead{0%,100%{opacity:.5}50%{opacity:1}}
+#ogoal .og-t{height:11px}
+
+/* ─── 8. TABS / ADMIN ────────────────────────────────────── */
+.tab{overflow:hidden;transition:background .25s,color .25s}
+.tab.on::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--red),#fff,var(--red),transparent);
+  animation:tabIn .42s var(--ease-o)}
+@keyframes tabIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.tab .cnt{border-radius:3px;animation:pl 1.6s ease-in-out infinite;box-shadow:0 0 10px rgba(255,35,64,.8)}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.5}}
+.qcard{transition:transform .3s var(--ease-o),filter .3s;animation:pIn .5s var(--ease-o) backwards}
+@media(hover:hover){.qcard:hover{transform:translateY(-3px);filter:brightness(1.08)}}
+.slip-th{transition:transform .25s var(--ease-o),box-shadow .25s}
+@media(hover:hover){.slip-th:hover{transform:scale(1.12);box-shadow:0 0 22px rgba(255,35,64,.6)}}
+.stat{transition:transform .28s var(--ease-o),background .28s,box-shadow .28s}
+.stat b{background:linear-gradient(180deg,#fff,#93a1ac);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media(hover:hover){.stat:hover{transform:translateY(-3px);background:rgba(255,35,64,.1);
+  border-left-color:var(--ember);box-shadow:0 10px 26px rgba(0,0,0,.6)}}
+.pwbar i{background:linear-gradient(90deg,var(--red),var(--ember))}
+
+/* ─── 9. MODAL / QR ──────────────────────────────────────── */
+.modal{background:rgba(2,2,3,.92)}
+.modal-box{animation:pu2 .58s var(--ease-s)}
+@keyframes pu2{0%{opacity:0;transform:translateY(42px) scale(.9)}62%{opacity:1}100%{opacity:1;transform:none}}
+.qr-frame{animation:qrPulse 3.2s ease-in-out infinite}
+@keyframes qrPulse{
+  0%,100%{box-shadow:0 0 34px rgba(255,35,64,.45),0 0 0 1px rgba(255,35,64,.5)}
+  50%{box-shadow:0 0 64px rgba(255,35,64,.85),0 0 0 1px rgba(255,255,255,.75)}}
+.qr-frame::before{display:none} /* v5 bracket superseded by focus ticks */
+.qr-frame::after{content:'';position:absolute;inset:6px;z-index:2;pointer-events:none;border:0;
+  background:
+    linear-gradient(var(--red),var(--red)) right top/20px 2px no-repeat,
+    linear-gradient(var(--red),var(--red)) right top/2px 20px no-repeat,
+    linear-gradient(var(--red),var(--red)) left bottom/20px 2px no-repeat,
+    linear-gradient(var(--red),var(--red)) left bottom/2px 20px no-repeat}
+#lb.on img{animation:pu2 .45s var(--ease-o)}
+
+/* ─── 10. ALERT CARD (OBS) ───────────────────────────────── */
+#card{background:linear-gradient(135deg,#fff,var(--red) 26%,var(--ember) 44%,var(--red-dd) 68%,#fff);
+  background-size:230% 230%}
+#card.in{animation:si .5s cubic-bezier(.16,1,.3,1) forwards,brdr 6s ease-in-out infinite}
+.ac-n{animation:nameIn .62s var(--ease-o) .1s backwards}
+@keyframes nameIn{from{opacity:0;transform:translateY(18px) scale(.92);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+.ac-a{animation:amtP 1.7s ease-in-out infinite}
+@keyframes amtP{
+  0%,100%{text-shadow:0 0 28px rgba(255,35,64,1),0 0 60px rgba(255,35,64,.6)}
+  50%{text-shadow:0 0 46px #fff,0 0 95px rgba(255,35,64,.95)}}
+.ac-tier{background:linear-gradient(90deg,#fff,var(--ember) 40%,var(--red) 70%,#fff);
+  background-size:220% 100%;animation:tierSh 2.6s linear infinite}
+@keyframes tierSh{to{background-position:-220% 0}}
+.ac-b{animation:barIn .7s var(--ease-o) .25s backwards}
+@keyframes barIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ─── 11. TOAST ──────────────────────────────────────────── */
+.toast{padding-left:2.1rem;transition:transform .52s var(--ease-s);
+  box-shadow:0 0 32px rgba(255,35,64,.7),0 12px 30px rgba(0,0,0,.6)}
+.toast::before{content:'';position:absolute;left:.85rem;top:50%;width:9px;height:9px;margin-top:-4.5px;
+  background:#fff;transform:rotate(45deg);box-shadow:0 0 12px #fff}
+
+/* ─── 12. REDUCED MOTION ─────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  #bgfx::before,#bgfx::after,.fx-v::before,.fx-v::after,.btn-x::after{display:none!important}}
 </style>
 </head>
 <body>
@@ -1571,6 +1777,40 @@ window.addEventListener('hashchange',function(){location.reload()});
 
 /* ═══════════ BOOT ═══════════ */
 ST.open().then(function(){route();if(!IS_OBS)refreshPublic();else reload().then(renderOGoal)});
+})();
+</script>
+<script>
+/* ── FX LAYER (decor only) — ไม่แตะ logic เดิม ── */
+(function(){
+  var hh=(location.hash||'').split('?')[0].toLowerCase();
+  if(hh==='#overlay'||hh==='#obs'||document.body.classList.contains('obs'))return;
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
+
+  /* 1) Spotlight ตามเมาส์ */
+  var spot=document.createElement('div');spot.id='spot';document.body.appendChild(spot);
+  var rx=0,ry=0,tick=false;
+  addEventListener('pointermove',function(e){
+    rx=e.clientX;ry=e.clientY;
+    if(!tick){tick=true;requestAnimationFrame(function(){
+      spot.style.setProperty('--x',rx+'px');
+      spot.style.setProperty('--y',ry+'px');
+      spot.style.opacity='1';tick=false;});}
+  },{passive:true});
+
+  /* 2) Magnetic buttons */
+  var cur=null;
+  document.addEventListener('pointermove',function(e){
+    var b=e.target.closest?e.target.closest('.btn-x'):null;
+    if(cur&&cur!==b){cur.style.setProperty('--tx','0px');cur.style.setProperty('--ty','0px');cur=null;}
+    if(!b)return;
+    cur=b;var r=b.getBoundingClientRect();
+    b.style.setProperty('--tx',((e.clientX-r.left-r.width/2)*0.14).toFixed(1)+'px');
+    b.style.setProperty('--ty',((e.clientY-r.top-r.height/2)*0.22).toFixed(1)+'px');
+  },{passive:true});
+  document.addEventListener('pointerleave',function(){
+    if(cur){cur.style.setProperty('--tx','0px');cur.style.setProperty('--ty','0px');cur=null;}
+  },true);
 })();
 </script>
 </body>
