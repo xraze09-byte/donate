@@ -2229,7 +2229,7 @@ function mkCanvas(){
 function fit(){ if(!cv)return; cv.width=innerWidth; cv.height=innerHeight; }
 function burst(n,x,y){
   if(!cfg.burst||!cv)return;
-  if(MOB)n=Math.ceil(n*.45);
+  if(MOB)n=Math.ceil(n*.25);   /* มือถือ: พาร์ติเคิลเหลือ 1/4 */
   x=(x==null)?innerWidth/2:x; y=(y==null)?innerHeight*.42:y;
   for(var i=0;i<n;i++){
     var a=Math.random()*Math.PI*2, sp=2+Math.random()*12;
@@ -2258,6 +2258,7 @@ function loop(){
 var shkT=0;
 function shake(){
   if(!cfg.shake)return;
+  if(MOB)return;   /* มือถือ: ตัดจอสั่น — ประหยัด repaint ทั้งหน้า */
   var h=document.documentElement;
   h.classList.remove('nf-shk'); void h.offsetWidth; h.classList.add('nf-shk');
   clearTimeout(shkT); shkT=setTimeout(function(){ h.classList.remove('nf-shk'); },780);
