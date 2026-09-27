@@ -2287,36 +2287,80 @@ function mile(m){
 }
 
 /* ───── 08 · ALERT HOOK (MutationObserver — ไม่แตะ play()) ───── */
+/* ═══════════════════════════════════════════════════════════════════
+   08 · ALERT HOOK  v2  —  HOTFIX
+   แก้: อ่านยอด 0 / ไม่อ่านข้อความ  →  รอ count-up + typewriter จบก่อน
+   ═══════════════════════════════════════════════════════════════════ */
+
+var SETTLE_MS  = 420;    /* นิ่งกี่ ms ถึงถือว่าจบ (ลด=ไวขึ้น เสี่ยงอ่านกลางคัน) */
+var SETTLE_MAX = 6000;   /* กันค้าง — เกินนี้อ่านเลยไม่ว่าจะนิ่งหรือไม่ */
+
+var sOb=null, sT=0, sMax=0;
+
+function stopSettle(){
+  if(sOb){ sOb.disconnect(); sOb=null; }
+  clearTimeout(sT); clearTimeout(sMax);
+}
+
+/* เฝ้าดูจน DOM หยุดเปลี่ยนแปลง แล้วค่อย callback */
+function settle(cb){
+  stopSettle();
+  var amt = document.getElementById('aAmt') || document.querySelector('.ac-a');
+  var msg = document.getElementById('aMsg') || document.querySelector('.ac-m');
+  var fired=false;
+
+  var finish=function(){
+    if(fired) return; fired=true; stopSettle(); cb();
+  };
+  var kick=function(){ clearTimeout(sT); sT=setTimeout(finish,SETTLE_MS); };
+
+  sOb=new MutationObserver(kick);
+  [amt,msg].forEach(function(el){
+    if(el) sOb.observe(el,{childList:true,characterData:true,subtree:true});
+  });
+
+  kick();                                  /* เผื่อการ์ดไม่มีแอนิเมชันเลย */
+  sMax=setTimeout(finish,SETTLE_MAX);      /* เซฟตี้ */
+}
+
+/* ดึงเฉพาะตัวเลขออกจาก "฿1,250.00" → 1250 */
+function num(s){
+  var n=parseFloat(String(s||'').replace(/,/g,'').replace(/[^\d.]/g,''));
+  return isFinite(n)?n:0;
+}
+
 function watchAlert(){
   var card=document.getElementById('card'); if(!card)return;
   var on=false;
   new MutationObserver(function(){
     var now=card.classList.contains('in');
-    if(now&&!on){ on=true; fire(); }
-    else if(!now) on=false;
+    if(now && !on){ on=true; fire(); }
+    else if(!now){ on=false; stopSettle(); }
   }).observe(card,{attributes:true,attributeFilter:['class']});
 }
-/* Resolve the REAL amount + message by watching play()'s staged animation:
-   the amount rolls up from 0 (t≈1150-2100ms) and the message types in char
-   by char (t≈1480ms+) while the card pops at t≈780ms — a one-shot DOM read
-   returns "0"/"99"/"775" instead of the final value. Poll until both settle.
-   (The app script is an IIFE, so its bus handler cannot be wrapped from here.) */
-var gen=0;
+
 function fire(){
-  var my=++gen;
-  var nm=(T('.ac-n')||'').trim().replace(/^-+$/,'').toUpperCase()||'ANONYMOUS';
+  /* ── เอฟเฟกต์ยิงทันที ไม่ต้องรอ ── */
   SFX.impact(); shake(); burst(120); hype();
   setTimeout(function(){ burst(70,innerWidth*.5,innerHeight*.34); },220);
-  var el=document.getElementById('aAmt'), aPrev='', mPrev='', tries=0;
-  (function p(){
-    if(my!==gen)return;                    /* a newer alert superseded this one */
-    var a=(el&&el.textContent)||'0', m=(T('.ac-m')||'').trim();
-    tries++;
-    if((a===aPrev&&a!=='0'&&m===mPrev&&tries>4)||tries>44){  /* settle or ~6.6s cap */
-      push(nm,'฿'+a);
-      TTS.say(nm+' บริจาค '+a.replace(/,/g,'')+' บาท'+(m?' บอกว่า '+m:''));
-    }else{ aPrev=a; mPrev=m; setTimeout(p,150); }
-  })();
+
+  /* ── ข้อความ/เสียง รอจนข้อมูลนิ่งก่อน ── */
+  settle(function(){
+    var nEl=document.getElementById('aName')||document.querySelector('.ac-n');
+    var aEl=document.getElementById('aAmt') ||document.querySelector('.ac-a');
+    var mEl=document.getElementById('aMsg') ||document.querySelector('.ac-m');
+
+    var name = (nEl?nEl.textContent:'').trim() || 'ผู้ไม่ประสงค์ออกนาม';
+    var amt  = num(aEl?aEl.textContent:0);
+    var msg  = (mEl?mEl.textContent:'').trim();
+
+    /* ticker ใช้ค่าที่ถูกต้องแล้ว */
+    push(name,'฿'+amt.toLocaleString('th-TH'));
+
+    var line = name + ' บริจาค ' + amt + ' บาท';
+    if(msg) line += ' ข้อความว่า ' + msg;
+    TTS.say(line);
+  });
 }
 
 /* ───── 09 · FX CONSOLE ──────────────────────────────────────── */
