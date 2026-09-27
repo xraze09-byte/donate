@@ -2352,6 +2352,41 @@ function rawConnect(){
   }catch(e){setTimeout(rawConnect,5000)}
 }
 
+/* แปลงยอดเป็นคำอ่านไทย — ส่ง "หนึ่งพันสองร้อยห้าสิบบาท" แทน "1250 บาท"
+   เพื่อไม่ต้องพึ่งให้ TTS ตีความตัวเลข (บางเครื่องอ่าน "ห้า ห้า ห้า") */
+var D_=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+function _three(v){
+  var o='',h=Math.floor(v/100),t=Math.floor(v%100/10),u=v%10;
+  if(h)o+=D_[h]+'ร้อย';
+  if(t===1)o+='สิบ'; else if(t===2)o+='ยี่สิบ'; else if(t>2)o+=D_[t]+'สิบ';
+  if(u===1&&t>=1)o+='เอ็ด'; else if(u)o+=D_[u];
+  return o;
+}
+function _block(v){
+  var o='',m=Math.floor(v/100000),t=Math.floor(v%100000/10000),s=Math.floor(v%10000/1000);
+  if(m)o+=D_[m]+'แสน'; if(t)o+=D_[t]+'หมื่น'; if(s)o+=D_[s]+'พัน';
+  return o+_three(v%1000);
+}
+function bahtText(n){
+  n=Math.round(num(n)); if(!isFinite(n)||n<0)n=0;
+  if(n===0)return 'ศูนย์บาท';
+  var mil=Math.floor(n/1000000);
+  return ((mil?_block(mil)+'ล้าน':'')+_block(n%1000000))+'บาท';
+}
+
+/* ชื่อสำหรับการอ่าน: ตัดสัญลักษณ์ตกแต่ง (♛ ⚡ ฯลฯ) คั่นขอบตัวอักษร|ตัวเลข
+   แล้วแปลงเลขในชื่อเป็นคำอ่านไทยทีละหลัก — "GAME555" → "GAME ห้า ห้า ห้า" */
+var D2W=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+function nameSpeak(s){
+  s=String(s||'')
+   .replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ')   /* \p{M} = สระ/วรรณยุกต์ไทย */
+   .replace(/(\p{L})(\p{N})/gu,'$1 $2')
+   .replace(/(\p{N})(\p{L})/gu,'$1 $2')
+   .replace(/\p{N}+/gu,function(m){return m.split('').map(function(c){return D2W[+c];}).join(' ');})
+   .replace(/\s+/g,' ').trim();
+  return s||'ผู้ไม่ประสงค์ออกนาม';
+}
+
 /* ได้ข้อมูลดิบ: ชื่อ/ยอด/ข้อความ ตรง ๆ — คำนวณคำอ่านทันที แล้วหน่วงเวลาคงที่ */
 function onRawAlert(d){
   var name=String(d.name||'').trim()||'ผู้ไม่ประสงค์ออกนาม';
