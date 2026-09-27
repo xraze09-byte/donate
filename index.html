@@ -572,9 +572,11 @@ textarea.inp{line-height:1.7;min-height:88px}
 @media(min-width:1024px){#lList{max-height:520px}}
 /* settings 2 คอลัมน์ */
 @media(min-width:840px){
-  #pS{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.1rem;align-items:start}
-  #pS>*+*{margin-top:0}
-  #pS>div:nth-child(n+5):nth-child(-n+8),#pS>button{grid-column:1/-1}
+  /* BUGFIX: guard with .on — #pS display override was defeating the
+     .pane/.pane.on tab show/hide mechanism, so Settings stacked under Queue */
+  #pS.on{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.1rem;align-items:start}
+  #pS.on>*+*{margin-top:0}
+  #pS.on>div:nth-child(n+5):nth-child(-n+8),#pS.on>button{grid-column:1/-1}
 }
 @media(min-width:840px){#pY{max-width:760px;margin-inline:auto}}
 #pY hr{border-color:rgba(255,35,64,.18);margin-block:.3rem}
