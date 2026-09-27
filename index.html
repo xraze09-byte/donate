@@ -2194,13 +2194,25 @@ var TTS={
   },
   voice:function(){
     var v=TTS.voices;
-    return v.filter(function(x){return /^th/i.test(x.lang);})[0] ||
-           v.filter(function(x){return /^en/i.test(x.lang);})[0] || v[0] || null;
+    /* จับเสียงไทยให้ครอบคลุมขึ้น: ทั้ง lang code (th, th-TH, tha-...) และเสียงที่ตั้งชื่อว่า
+       Thai/ไทย โดยไม่มี lang code ขึ้นต้นด้วย th (บางเสียงของ OS/เบราว์เซอร์ตั้งไม่ตรงมาตรฐาน)
+       แล้วเลือกเสียงที่ติดตั้งในเครื่อง (localService) ก่อน เพราะเสถียรกว่าเสียงที่โหลดจากเน็ต */
+    var th=v.filter(function(x){return /^th(-|_|$)/i.test(x.lang)||/thai|ไทย/i.test(x.name);});
+    if(th.length){
+      th.sort(function(a,b){return (b.localService?1:0)-(a.localService?1:0);});
+      return th[0];
+    }
+    /* ไม่มีเสียงไทยเลยในเครื่อง/เบราว์เซอร์นี้ — เป็นข้อจำกัดของ OS ไม่ใช่ของหน้าเว็บ
+       ยังพยายามใช้เสียงที่มีอยู่ (ดีกว่าไม่พูดเลย) แต่จะออกเสียงเพี้ยนเพราะไม่ใช่เสียงไทยจริง */
+    return v.filter(function(x){return /^en/i.test(x.lang);})[0] || v[0] || null;
   },
   clean:function(t){
     return String(t||'')
       .replace(/https?:\/\/\S+/g,' ')
       .replace(/[<>{}\[\]|\\^~`*_#@]/g,' ')
+      /* ตัดอีโมจิ/สัญลักษณ์ตกแต่งทิ้ง — บางเสียง TTS จะพยายามอ่านชื่อยูนิโค้ดของอีโมจิออกมา
+         ("หน้ายิ้ม", "หัวใจสีแดง" ฯลฯ) ทำให้ฟังดูเพี้ยน/ปนภาษาแปลก ๆ */
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu,' ')
       .replace(/(.)\1{4,}/g,'$1$1$1')
       .replace(/\s+/g,' ').slice(0,200).trim();
   },
@@ -2405,15 +2417,32 @@ function bahtText(n){
   return line;
 }
 
+/* เลขล้วน ๆ (ไม่มีเลข 0 นำหน้า ไม่เกิน 6 หลัก) อ่านเป็นจำนวนธรรมชาติปกติ เช่น "555" → "ห้าร้อยห้าสิบห้า"
+   ใช้ตรรกะเดียวกับ bahtText (รวมบัคแก้ "เอ็ด" ด้วย) แต่ไม่มีคำว่า "บาท" ต่อท้าย */
+function numberWords(n){
+  n=Math.floor(Math.abs(n)); if(!isFinite(n))return '';
+  if(n===0)return 'ศูนย์';
+  var mil=Math.floor(n/1000000);
+  var tail=_blockCore(n%1000000);
+  if(n%10===1 && n>1) tail=tail.replace(/หนึ่ง$/,'เอ็ด');
+  return (mil?_block(mil)+'ล้าน':'')+tail;
+}
+
 /* ชื่อสำหรับการอ่าน: ตัดสัญลักษณ์ตกแต่ง (♛ ⚡ ฯลฯ) คั่นขอบตัวอักษร|ตัวเลข
-   แล้วแปลงเลขในชื่อเป็นคำอ่านไทยทีละหลัก — "GAME555" → "GAME ห้า ห้า ห้า" */
+   แก้บัคอ่านเพี้ยน: เดิมแปลงเลขในชื่อเป็นคำอ่านทีละหลักเสมอ ("GAME555" → "GAME ห้า ห้า ห้า")
+   ฟังดูแปลก/ไม่เป็นธรรมชาติ — ตอนนี้เลขสั้น ๆ ที่ไม่มี 0 นำหน้าจะอ่านเป็นจำนวนเต็มปกติ
+   ("GAME555" → "GAME ห้าร้อยห้าสิบห้า") ส่วนเลขที่มี 0 นำหน้าหรือยาวเกิน 6 หลัก (เบอร์โทร/รหัส
+   สมาชิก ที่การอ่านเป็นจำนวนจะทำให้ 0 นำหน้าหายไปและความหมายเปลี่ยน) ยังอ่านทีละหลักแบบเดิม */
 var D2W=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
 function nameSpeak(s){
   s=String(s||'')
    .replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ')   /* \p{M} = สระ/วรรณยุกต์ไทย */
    .replace(/(\p{L})(\p{N})/gu,'$1 $2')
    .replace(/(\p{N})(\p{L})/gu,'$1 $2')
-   .replace(/\p{N}+/gu,function(m){return m.split('').map(function(c){return D2W[+c];}).join(' ');})
+   .replace(/\p{N}+/gu,function(m){
+     if(m.length<=6 && m[0]!=='0') return numberWords(parseInt(m,10));
+     return m.split('').map(function(c){return D2W[+c];}).join(' ');
+   })
    .replace(/\s+/g,' ').trim();
   return s||'ผู้ไม่ประสงค์ออกนาม';
 }
@@ -2428,8 +2457,10 @@ function onRawAlert(d){
   push(name,'฿'+amt.toLocaleString('th-TH'));
 
   /* เสียง: หน่วงคงที่ แล้วเข้าคิว TTS (คิวพูดทีละลำดับเสมอ) */
-  var line=nameSpeak(name)+' บริจาค '+bahtText(amt);
-  if(msg) line+=' ข้อความว่า '+msg;
+  /* เพิ่มจุดหยุดพัก (,) ระหว่างประโยคย่อย — แก้บัคอ่านวรรคตอนเพี้ยน/อ่านรวดเดียวไม่มีจังหวะหยุด
+     ซึ่งเครื่องอ่านเสียงสังเคราะห์มักอ่านลื่นไถลผิดจังหวะถ้าไม่มีเครื่องหมายคั่นให้หยุดหายใจ */
+  var line=nameSpeak(name)+', บริจาค '+bahtText(amt)+',';
+  if(msg) line+=' ข้อความว่า, '+msg;
   setTimeout(function(){ TTS.say(line); }, SPEAK_DELAY);
 }
 rawConnect();
