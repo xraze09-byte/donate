@@ -1086,9 +1086,8 @@ body.obs #nf-hype{top:auto;bottom:16px}
 #nf-ticker{
   position:fixed;left:0;right:0;bottom:0;z-index:9992;height:30px;overflow:hidden;
   display:flex;align-items:center;opacity:0;transform:translateY(100%);
-  background:linear-gradient(90deg,rgba(255,31,71,.22),rgba(5,6,9,.94) 18%,rgba(5,6,9,.94) 82%,rgba(255,31,71,.22));
+  background:linear-gradient(90deg,rgba(255,31,71,.22),rgba(5,6,9,.97) 18%,rgba(5,6,9,.97) 82%,rgba(255,31,71,.22));
   border-top:1px solid rgba(255,31,71,.4);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   transition:transform .6s cubic-bezier(.16,1,.3,1),opacity .4s}
 #nf-ticker.on{opacity:1;transform:none}
 .nf-tk-in{display:flex;white-space:nowrap;animation:nf-tk 34s linear infinite;will-change:transform}
@@ -2412,10 +2411,11 @@ function add(id,html){
 function init(){
   mkCanvas();
   add('nf-hype'); add('nf-mile');
+  var ADM=(location.hash||'').split('?')[0].toLowerCase()==='#admin';
   if(!OBS){
     add('nf-ticker','<div class="nf-tk-in"></div>');
     add('nf-tts','<i></i><i></i><i></i><i></i><i></i>');
-    dock();
+    if(ADM) dock();   /* FX console: admin เท่านั้น (มือถือแขกไม่ต้องมีปุ่มตั้งค่า) */
   }
   TTS.boot(); watchAlert(); watchGoal();
   window.NFX={cfg:cfg,say:function(t){TTS.say(t);},burst:burst,sfx:SFX,
