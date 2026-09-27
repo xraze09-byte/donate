@@ -2364,6 +2364,19 @@ function _block(v){
   if(m)o+=D_[m]+'แสน'; if(t)o+=D_[t]+'หมื่น'; if(s)o+=D_[s]+'พัน';
   return o+_three(v%1000);
 }
+/* ชื่อสำหรับการอ่าน: ตัดสัญลักษณ์ตกแต่ง (♛ ⚡ ฯลฯ) คั่นขอบตัวอักษร|ตัวเลข
+   แล้วแปลงเลขในชื่อเป็นคำอ่านไทยทีละหลัก — "GAME555" → "GAME ห้า ห้า ห้า" */
+var D2W=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+function nameSpeak(s){
+  s=String(s||'')
+   .replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ')   /* \p{M} = สระ/วรรณยุกต์ไทย */
+   .replace(/(\p{L})(\p{N})/gu,'$1 $2')
+   .replace(/(\p{N})(\p{L})/gu,'$1 $2')
+   .replace(/\p{N}+/gu,function(m){return m.split('').map(function(c){return D2W[+c];}).join(' ');})
+   .replace(/\s+/g,' ').trim();
+  return s||'ผู้ไม่ประสงค์ออกนาม';
+}
+
 function bahtText(n){
   n=Math.round(num(n)); if(!isFinite(n)||n<0)n=0;
   if(n===0)return 'ศูนย์บาท';
@@ -2405,7 +2418,7 @@ function fire(){
     /* ticker ใช้ค่าที่ถูกต้องแล้ว */
     push(name,'฿'+amt.toLocaleString('th-TH'));
 
-    var line = name + ' บริจาค ' + bahtText(amt);
+    var line = nameSpeak(name) + ' บริจาค ' + bahtText(amt);
     if(msg) line += ' ข้อความว่า ' + msg;
     TTS.say(line);
   });
