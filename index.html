@@ -9,6 +9,8 @@
 <title>RZ CLAN // DONATION TERMINAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://donate-backend-60hc.onrender.com">
+<link rel="dns-prefetch" href="https://donate-backend-60hc.onrender.com">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&family=Teko:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -1163,6 +1165,11 @@ html.nf-mob{-webkit-tap-highlight-color:transparent}
 html.nf-mob body{padding-bottom:calc(env(safe-area-inset-bottom) + 44px)}   /* เผื่อแถบ ticker ไม่บังเนื้อหาท้ายหน้า */
 html.nf-mob #aud{bottom:calc(46px + env(safe-area-inset-bottom))}           /* ENABLE AUDIO ไม่ทับ ticker */
 html.nf-mob .chip{min-height:44px;display:inline-flex;align-items:center}  /* ชิปเลือกยอด ใหญ่พอสำหรับนิ้ว */
+html.nf-mob{touch-action:manipulation}                                        /* ปุ่มแตะรัวได้ไว ไม่โดน double-tap zoom */
+html.nf-mob #vDonor>header{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  background:linear-gradient(180deg,rgba(6,6,10,.99),rgba(6,6,10,.93))!important} /* ตัด blur หัวเว็บ */
+html.nf-mob .panel>*,html.nf-mob .panel>.panel-in{-webkit-backdrop-filter:none;backdrop-filter:none} /* ตัด blur ทุก panel */
+html.nf-mob .modal{-webkit-backdrop-filter:none;backdrop-filter:none}        /* ตัด blur ฉากหลังโมดัล */
 @media(prefers-reduced-motion:reduce){
   html.nf-shk{animation:none!important}
   #nf-fxc{display:none!important}}
