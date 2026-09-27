@@ -1022,6 +1022,138 @@ body.obs #nf-spot,body.obs .btn-x::after{display:none}
     transition-duration:.01ms!important}
   #bgfx::before,#bgfx::after,.fx-v::before,.fx-v::after,.btn-x::after{display:none!important}
 }
+
+/* ══ NEON FORGE SYSTEM PACK v1 (add-on) — clean copy from css fence; OBS hash guard added ══ */
+/* ═══════════════════════════════════════════════════════════════════
+   NEON FORGE · SYSTEM PACK v1  —  CSS
+   วางต่อจาก DESIGN OVERHAUL v3 · ไม่ทับ class เดิมใด ๆ (prefix nf-)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ───── 01 · PARTICLE CANVAS ─────────────────────────────────── */
+#nf-fxc{position:fixed;inset:0;z-index:9990;pointer-events:none;mix-blend-mode:screen}
+
+/* ───── 02 · SCREEN SHAKE ────────────────────────────────────── */
+@keyframes nf-shk{
+  0%{transform:translate(0,0) rotate(0)}
+  7%{transform:translate(-11px,6px) rotate(-.55deg)}
+  15%{transform:translate(9px,-8px) rotate(.5deg)}
+  24%{transform:translate(-8px,-5px) rotate(-.4deg)}
+  34%{transform:translate(7px,7px) rotate(.35deg)}
+  45%{transform:translate(-6px,3px) rotate(-.28deg)}
+  56%{transform:translate(5px,-4px) rotate(.22deg)}
+  68%{transform:translate(-3px,2px) rotate(-.14deg)}
+  80%{transform:translate(2px,-2px) rotate(.08deg)}
+  100%{transform:translate(0,0) rotate(0)}}
+html.nf-shk{animation:nf-shk .72s cubic-bezier(.36,.07,.19,.97) both;overflow-x:clip}
+
+/* ───── 03 · HYPE COMBO BADGE ────────────────────────────────── */
+#nf-hype{
+  position:fixed;top:14px;left:50%;z-index:9994;pointer-events:none;
+  transform:translate(-50%,-140%) scale(.8);opacity:0;
+  padding:.42rem 1.15rem;font-weight:900;font-size:1.02rem;letter-spacing:.2em;
+  color:#fff;white-space:nowrap;
+  background:linear-gradient(135deg,#ff4d6d,#a3001f);
+  clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);
+  box-shadow:0 0 34px rgba(255,31,71,.8),0 10px 28px rgba(0,0,0,.7);
+  transition:transform .55s cubic-bezier(.34,1.56,.64,1),opacity .35s}
+#nf-hype.on{transform:translate(-50%,0) scale(1);opacity:1}
+#nf-hype b{font-size:.68rem;opacity:.75;margin-right:.35rem;letter-spacing:.3em}
+#nf-hype[data-t="2"]{background:linear-gradient(135deg,#ffc861,#ff8a2b);color:#2e0009;
+  box-shadow:0 0 44px rgba(255,200,97,.9),0 10px 28px rgba(0,0,0,.7)}
+#nf-hype[data-t="3"]{background:linear-gradient(135deg,#fff,#2dd4ee 45%,#ff1f47);color:#04060a;
+  animation:nf-hypeX .55s ease-in-out infinite alternate}
+@keyframes nf-hypeX{from{filter:brightness(1)}to{filter:brightness(1.45) saturate(1.4)}}
+body.obs #nf-hype{top:auto;bottom:16px}
+
+/* ───── 04 · MILESTONE BANNER ────────────────────────────────── */
+#nf-mile{
+  position:fixed;left:50%;top:38%;z-index:9995;pointer-events:none;opacity:0;
+  transform:translate(-50%,-50%) scale(.6);
+  font-weight:900;font-size:clamp(1.6rem,5.5vw,3.4rem);letter-spacing:.14em;
+  text-transform:uppercase;white-space:nowrap;
+  background:linear-gradient(180deg,#fff,#ffc861 46%,#ff1f47);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 26px rgba(255,31,71,.9))}
+#nf-mile.on{animation:nf-mileIn 3.2s cubic-bezier(.16,1,.3,1) both}
+@keyframes nf-mileIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.55);filter:blur(16px)}
+  14%{opacity:1;transform:translate(-50%,-50%) scale(1.06);filter:blur(0)}
+  22%{transform:translate(-50%,-50%) scale(1)}
+  78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-58%) scale(1.1);filter:blur(6px)}}
+
+/* ───── 05 · LIVE TICKER ─────────────────────────────────────── */
+#nf-ticker{
+  position:fixed;left:0;right:0;bottom:0;z-index:9992;height:30px;overflow:hidden;
+  display:flex;align-items:center;opacity:0;transform:translateY(100%);
+  background:linear-gradient(90deg,rgba(255,31,71,.22),rgba(5,6,9,.94) 18%,rgba(5,6,9,.94) 82%,rgba(255,31,71,.22));
+  border-top:1px solid rgba(255,31,71,.4);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:transform .6s cubic-bezier(.16,1,.3,1),opacity .4s}
+#nf-ticker.on{opacity:1;transform:none}
+.nf-tk-in{display:flex;white-space:nowrap;animation:nf-tk 34s linear infinite;will-change:transform}
+@keyframes nf-tk{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.nf-tk-in i{font-style:normal;font-weight:700;font-size:.74rem;letter-spacing:.11em;
+  color:#b9c4cf;padding:0 .2rem;text-transform:uppercase}
+.nf-tk-in s{text-decoration:none;color:#ff1f47;padding:0 .85rem;font-size:.6rem;
+  text-shadow:0 0 10px rgba(255,31,71,.9)}
+#nf-ticker:hover .nf-tk-in{animation-play-state:paused}
+body.obs #nf-ticker{display:none}
+
+/* ───── 06 · TTS INDICATOR (แท่งเสียง) ───────────────────────── */
+#nf-tts{position:fixed;right:18px;bottom:46px;z-index:9993;display:flex;gap:3px;
+  align-items:flex-end;height:22px;opacity:0;transition:opacity .3s;pointer-events:none}
+#nf-tts.on{opacity:1}
+#nf-tts i{width:3px;height:5px;background:linear-gradient(180deg,#fff,#ff1f47);
+  box-shadow:0 0 8px rgba(255,31,71,.9);animation:nf-eq .55s ease-in-out infinite alternate}
+#nf-tts i:nth-child(2){animation-delay:.09s}#nf-tts i:nth-child(3){animation-delay:.18s}
+#nf-tts i:nth-child(4){animation-delay:.27s}#nf-tts i:nth-child(5){animation-delay:.36s}
+@keyframes nf-eq{from{height:4px}to{height:22px}}
+body.obs #nf-tts{display:none}
+
+/* ───── 07 · FX CONSOLE (ปุ่มเฟือง) ──────────────────────────── */
+#nf-dock{position:fixed;right:16px;bottom:82px;z-index:9996;font-size:.7rem}
+#nf-gear{width:42px;height:42px;display:grid;place-items:center;cursor:pointer;
+  font-size:1.05rem;color:#fff;border:1px solid rgba(255,31,71,.55);
+  background:linear-gradient(180deg,#171a22,#0a0b10);
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+  box-shadow:0 0 22px rgba(255,31,71,.35),0 8px 22px rgba(0,0,0,.6);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .3s}
+#nf-gear:hover{transform:rotate(90deg) scale(1.08);box-shadow:0 0 40px rgba(255,31,71,.75)}
+.nf-pop{position:absolute;right:0;bottom:52px;width:222px;padding:.7rem;
+  display:flex;flex-direction:column;gap:.42rem;
+  background:linear-gradient(155deg,rgba(23,26,34,.97),rgba(6,7,10,.98));
+  border:1px solid rgba(255,31,71,.4);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+  box-shadow:0 0 46px rgba(255,31,71,.28),0 22px 56px rgba(0,0,0,.85);
+  opacity:0;transform:translateY(12px) scale(.95);pointer-events:none;
+  transition:.34s cubic-bezier(.16,1,.3,1)}
+#nf-dock.open .nf-pop{opacity:1;transform:none;pointer-events:auto}
+.nf-row{display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  padding:.3rem .42rem;color:#7d8b98;font-weight:700;letter-spacing:.11em;
+  border-left:2px solid transparent;transition:.2s}
+.nf-row:hover{color:#f4f7fa;background:rgba(255,31,71,.1);border-left-color:#ff1f47}
+.nf-sw{width:32px;height:15px;flex:none;position:relative;background:rgba(255,255,255,.12);
+  border-radius:99px;transition:background .25s}
+.nf-sw::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;
+  background:#7d8b98;border-radius:50%;transition:.28s cubic-bezier(.34,1.56,.64,1)}
+.nf-row.on .nf-sw{background:linear-gradient(90deg,#a3001f,#ff1f47)}
+.nf-row.on .nf-sw::after{left:19px;background:#fff;box-shadow:0 0 10px #fff}
+.nf-sl{display:flex;flex-direction:column;gap:.24rem;color:#4d5865;
+  font-weight:700;letter-spacing:.11em;padding:.2rem .42rem;font-size:.6rem}
+.nf-sl input{width:100%;height:3px;accent-color:#ff1f47;cursor:pointer}
+.nf-test{margin-top:.2rem;padding:.44rem;cursor:pointer;color:#fff;font-weight:900;
+  letter-spacing:.16em;border:0;background:linear-gradient(180deg,#ff4d6d,#a3001f);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+  transition:filter .25s,transform .2s}
+.nf-test:hover{filter:brightness(1.2)}
+.nf-test:active{transform:scale(.96)}
+body.obs #nf-dock{display:none}
+
+@media(max-width:640px){#nf-dock{right:10px;bottom:70px}#nf-ticker{height:26px}}
+@media(prefers-reduced-motion:reduce){
+  html.nf-shk{animation:none!important}
+  #nf-fxc{display:none!important}}
 </style>
 </head>
 <body>
@@ -1951,6 +2083,290 @@ ST.open().then(function(){route();if(!IS_OBS)refreshPublic();else reload().then(
     if(cur){cur.style.setProperty('--tx','0px');cur.style.setProperty('--ty','0px');cur=null;}
   },true);
 })();
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   NEON FORGE · SYSTEM PACK v1  —  ADD-ON ONLY
+   ดักการ์ดเด้งด้วย MutationObserver → ไม่ต้องแก้ play() หรือ logic ใด ๆ
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+if(window.__NFX)return; window.__NFX=1;
+
+var OBS = document.body.classList.contains('obs') || ['#overlay','#obs'].indexOf((location.hash||'').split('?')[0].toLowerCase())>=0;
+var KEY = 'nfx.cfg.v1';
+var cfg = {tts:1,sfx:1,shake:1,burst:1,ticker:1,vol:.7,rate:.9,pitch:.4};
+try{ var s=JSON.parse(localStorage.getItem(KEY)||'{}');
+     for(var k in s) if(k in cfg) cfg[k]=s[k]; }catch(e){}
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(e){} }
+function $(s,r){return (r||document).querySelector(s);}
+function T(s){var e=$(s);return e?e.textContent.trim():'';}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+/* ───── 01 · AUDIO ENGINE — สังเคราะห์สด ไม่ต้องมีไฟล์เสียง ───── */
+var AC=null,MG=null;
+function ctx(){
+  if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)();
+      MG=AC.createGain(); MG.gain.value=cfg.vol; MG.connect(AC.destination);
+    }catch(e){return null;} }
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+function tone(f0,f1,dur,type,g,dly){
+  var a=ctx(); if(!a)return; var t=a.currentTime+(dly||0);
+  var o=a.createOscillator(), v=a.createGain();
+  o.type=type||'sine';
+  o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+  v.gain.setValueAtTime(.0001,t);
+  v.gain.linearRampToValueAtTime(g,t+.012);
+  v.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(v); v.connect(MG); o.start(t); o.stop(t+dur+.06);
+}
+function noise(dur,g,dly){
+  var a=ctx(); if(!a)return; var t=a.currentTime+(dly||0);
+  var n=Math.floor(a.sampleRate*dur), b=a.createBuffer(1,n,a.sampleRate), d=b.getChannelData(0);
+  for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+  var src=a.createBufferSource(); src.buffer=b;
+  var f=a.createBiquadFilter(); f.type='lowpass';
+  f.frequency.setValueAtTime(2600,t); f.frequency.exponentialRampToValueAtTime(220,t+dur);
+  var v=a.createGain(); v.gain.setValueAtTime(g,t);
+  v.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  src.connect(f); f.connect(v); v.connect(MG); src.start(t);
+}
+var SFX={
+  impact:function(){ if(!cfg.sfx)return;
+    tone(195,32,.62,'sine',.95,0); noise(.32,.42,0); tone(820,150,.34,'square',.13,.015); },
+  riser :function(){ if(!cfg.sfx)return; tone(130,1550,.78,'sawtooth',.09,0); noise(.78,.05,0); },
+  mile  :function(){ if(!cfg.sfx)return;
+    [523,659,784,1047].forEach(function(f,i){ tone(f,f,.3,'triangle',.17,i*.085); });
+    noise(.5,.18,0); },
+  blip  :function(){ if(!cfg.sfx)return; tone(900,1420,.08,'square',.08,0); }
+};
+
+/* ───── 02 · TTS — เสียงหุ่นยนต์ไซไฟ ─────────────────────────── */
+var TTS={
+  ok:('speechSynthesis' in window), voices:[], q:[], busy:false,
+  boot:function(){
+    if(!TTS.ok)return;
+    var L=function(){ TTS.voices=window.speechSynthesis.getVoices()||[]; };
+    L(); try{ window.speechSynthesis.onvoiceschanged=L; }catch(e){}
+    ['pointerdown','keydown','touchstart'].forEach(function(ev){
+      addEventListener(ev,TTS.unlock,{once:true,passive:true}); });
+  },
+  unlock:function(){
+    ctx();
+    if(!TTS.ok)return;
+    try{ var u=new SpeechSynthesisUtterance(' '); u.volume=0;
+         window.speechSynthesis.speak(u); }catch(e){}
+  },
+  voice:function(){
+    var v=TTS.voices;
+    return v.filter(function(x){return /^th/i.test(x.lang);})[0] ||
+           v.filter(function(x){return /^en/i.test(x.lang);})[0] || v[0] || null;
+  },
+  clean:function(t){
+    return String(t||'')
+      .replace(/https?:\/\/\S+/g,' ')
+      .replace(/[<>{}\[\]|\\^~`*_#@]/g,' ')
+      .replace(/(.)\1{4,}/g,'$1$1$1')
+      .replace(/\s+/g,' ').slice(0,200).trim();
+  },
+  say:function(t){
+    if(!cfg.tts||!TTS.ok)return;
+    t=TTS.clean(t); if(!t)return;
+    if(TTS.q.length>4) TTS.q.shift();
+    TTS.q.push(t); TTS.run();
+  },
+  run:function(){
+    if(TTS.busy||!TTS.q.length)return;
+    TTS.busy=true;
+    var u=new SpeechSynthesisUtterance(TTS.q.shift()), v=TTS.voice();
+    if(v){ u.voice=v; u.lang=v.lang; } else u.lang='th-TH';
+    u.rate=cfg.rate; u.pitch=cfg.pitch; u.volume=1;
+    var done=function(){ TTS.busy=false; eq(false); setTimeout(TTS.run,260); };
+    u.onend=done; u.onerror=done;
+    eq(true); SFX.blip();
+    try{ window.speechSynthesis.speak(u); }catch(e){ done(); }
+  }
+};
+function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
+
+/* ───── 03 · PARTICLE BURST ──────────────────────────────────── */
+var cv,cx,P=[],raf=0;
+var PAL=['#ff1f47','#ff4d6d','#ff8a2b','#ffc861','#ffffff'];
+function mkCanvas(){
+  cv=document.createElement('canvas'); cv.id='nf-fxc';
+  document.body.appendChild(cv); cx=cv.getContext('2d');
+  fit(); addEventListener('resize',fit,{passive:true});
+}
+function fit(){ if(!cv)return; cv.width=innerWidth; cv.height=innerHeight; }
+function burst(n,x,y){
+  if(!cfg.burst||!cv)return;
+  x=(x==null)?innerWidth/2:x; y=(y==null)?innerHeight*.42:y;
+  for(var i=0;i<n;i++){
+    var a=Math.random()*Math.PI*2, sp=2+Math.random()*12;
+    P.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3.4,
+      r:1+Math.random()*3.2,life:1,dec:.008+Math.random()*.015,
+      c:PAL[(Math.random()*PAL.length)|0]});
+  }
+  if(P.length>900) P.splice(0,P.length-900);
+  if(!raf) raf=requestAnimationFrame(loop);
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.globalCompositeOperation='lighter';
+  for(var i=P.length-1;i>=0;i--){
+    var p=P[i];
+    p.vy+=.17; p.vx*=.985; p.vy*=.985; p.x+=p.vx; p.y+=p.vy; p.life-=p.dec;
+    if(p.life<=0||p.y>cv.height+50){ P.splice(i,1); continue; }
+    cx.globalAlpha=Math.max(p.life,0); cx.fillStyle=p.c;
+    cx.beginPath(); cx.arc(p.x,p.y,p.r,0,6.2832); cx.fill();
+  }
+  cx.globalAlpha=1; cx.globalCompositeOperation='source-over';
+  raf = P.length ? requestAnimationFrame(loop) : (cx.clearRect(0,0,cv.width,cv.height),0);
+}
+
+/* ───── 04 · SCREEN SHAKE ────────────────────────────────────── */
+var shkT=0;
+function shake(){
+  if(!cfg.shake)return;
+  var h=document.documentElement;
+  h.classList.remove('nf-shk'); void h.offsetWidth; h.classList.add('nf-shk');
+  clearTimeout(shkT); shkT=setTimeout(function(){ h.classList.remove('nf-shk'); },780);
+}
+
+/* ───── 05 · HYPE COMBO ──────────────────────────────────────── */
+var hits=[];
+function hype(){
+  var el=document.getElementById('nf-hype'); if(!el)return;
+  var now=Date.now();
+  hits=hits.filter(function(t){return now-t<75000;}); hits.push(now);
+  var n=hits.length; if(n<2)return;
+  el.innerHTML='<b>HYPE</b>×'+n;
+  el.setAttribute('data-t', n>=10?'3':(n>=5?'2':'1'));
+  el.classList.add('on');
+  clearTimeout(el.__t);
+  el.__t=setTimeout(function(){ el.classList.remove('on'); },9000);
+  if(n===3||n===5||n===10){ SFX.riser(); burst(55); }
+}
+
+/* ───── 06 · LIVE TICKER ─────────────────────────────────────── */
+var feed=[];
+function push(name,amt){
+  var el=document.getElementById('nf-ticker'); if(!el||!cfg.ticker)return;
+  feed.unshift((name||'ANONYMOUS')+' · '+(amt||''));
+  if(feed.length>12) feed.pop();
+  var row=feed.map(function(s){return '<i>'+esc(s)+'</i>';}).join('<s>&#9670;</s>');
+  el.firstChild.innerHTML=row+'<s>&#9670;</s>'+row;
+  el.classList.add('on');
+}
+
+/* ───── 07 · MILESTONE ───────────────────────────────────────── */
+var lastPct=0;
+function watchGoal(){
+  var g=$('.goal-f')||$('#ogoal .og-f'); if(!g)return;
+  var read=function(){ return parseFloat(g.style.width)||0; };
+  lastPct=read();
+  new MutationObserver(function(){
+    var p=read();
+    [25,50,75,100].forEach(function(m){ if(lastPct<m&&p>=m) mile(m); });
+    lastPct=p;
+  }).observe(g,{attributes:true,attributeFilter:['style','class']});
+}
+function mile(m){
+  SFX.mile(); burst(150);
+  setTimeout(function(){ burst(90,innerWidth*.28,innerHeight*.5); },170);
+  setTimeout(function(){ burst(90,innerWidth*.72,innerHeight*.5); },320);
+  var el=document.getElementById('nf-mile'); if(!el)return;
+  el.textContent = (m>=100 ? 'GOAL COMPLETE' : 'MILESTONE '+m+'%');
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  setTimeout(function(){ el.classList.remove('on'); },3300);
+}
+
+/* ───── 08 · ALERT HOOK (MutationObserver — ไม่แตะ play()) ───── */
+function watchAlert(){
+  var card=document.getElementById('card'); if(!card)return;
+  var on=false;
+  new MutationObserver(function(){
+    var now=card.classList.contains('in');
+    if(now&&!on){ on=true; fire(); }
+    else if(!now) on=false;
+  }).observe(card,{attributes:true,attributeFilter:['class']});
+}
+function fire(){
+  var n=T('.ac-n')||'ANONYMOUS', a=T('.ac-a'), m=T('.ac-m');
+  SFX.impact(); shake(); burst(120); hype(); push(n,a);
+  setTimeout(function(){ burst(70,innerWidth*.5,innerHeight*.34); },220);
+  setTimeout(function(){
+    TTS.say(n+' บริจาค '+a+(m?' บอกว่า '+m:''));
+  },780);
+}
+
+/* ───── 09 · FX CONSOLE ──────────────────────────────────────── */
+function row(k,label){
+  return '<div class="nf-row'+(cfg[k]?' on':'')+'" data-k="'+k+'">'+
+         '<span>'+label+'</span><span class="nf-sw"></span></div>';
+}
+function dock(){
+  var d=document.createElement('div'); d.id='nf-dock';
+  d.innerHTML='<button id="nf-gear" aria-label="FX Console">&#9881;</button>'+
+    '<div class="nf-pop">'+
+      row('tts','ROBOT VOICE')+row('sfx','SOUND FX')+row('shake','SCREEN SHAKE')+
+      row('burst','PARTICLES')+row('ticker','LIVE TICKER')+
+      '<label class="nf-sl">MASTER VOLUME<input type="range" id="nf-vol" min="0" max="100" value="'+Math.round(cfg.vol*100)+'"></label>'+
+      '<label class="nf-sl">VOICE PITCH<input type="range" id="nf-pit" min="0" max="100" value="'+Math.round(cfg.pitch*50)+'"></label>'+
+      '<label class="nf-sl">VOICE SPEED<input type="range" id="nf-rat" min="40" max="160" value="'+Math.round(cfg.rate*100)+'"></label>'+
+      '<button class="nf-test">TEST ALERT</button>'+
+    '</div>';
+  document.body.appendChild(d);
+
+  d.querySelector('#nf-gear').addEventListener('click',function(){
+    d.classList.toggle('open'); SFX.blip(); ctx(); });
+  d.addEventListener('click',function(e){
+    var r=e.target.closest('.nf-row');
+    if(r){ var k=r.dataset.k; cfg[k]=cfg[k]?0:1; r.classList.toggle('on',!!cfg[k]);
+           save(); SFX.blip();
+           if(k==='tts'&&!cfg.tts&&TTS.ok){ try{speechSynthesis.cancel();}catch(x){} TTS.q=[]; }
+           if(k==='ticker'&&!cfg.ticker){ var t=document.getElementById('nf-ticker'); if(t)t.classList.remove('on'); }
+           return; }
+    if(e.target.classList.contains('nf-test')){
+      SFX.impact(); shake(); burst(130); hype();
+      push('TEST OPERATOR','฿999');
+      TTS.say('เทส โอเปอเรเตอร์ บริจาค 999 บาท บอกว่า ระบบพร้อมรบแล้ว');
+    }
+  });
+  var v=d.querySelector('#nf-vol'); v.addEventListener('input',function(){
+    cfg.vol=+this.value/100; if(MG)MG.gain.value=cfg.vol; save(); });
+  var p=d.querySelector('#nf-pit'); p.addEventListener('change',function(){
+    cfg.pitch=+this.value/50; save(); TTS.say('ทดสอบระดับเสียง'); });
+  var rt=d.querySelector('#nf-rat'); rt.addEventListener('change',function(){
+    cfg.rate=+this.value/100; save(); TTS.say('ทดสอบความเร็วเสียง'); });
+}
+
+/* ───── 10 · MOUNT ───────────────────────────────────────────── */
+function add(id,html){
+  var e=document.createElement('div'); e.id=id;
+  if(html)e.innerHTML=html; document.body.appendChild(e); return e;
+}
+function init(){
+  mkCanvas();
+  add('nf-hype'); add('nf-mile');
+  if(!OBS){
+    add('nf-ticker','<div class="nf-tk-in"></div>');
+    add('nf-tts','<i></i><i></i><i></i><i></i><i></i>');
+    dock();
+  }
+  TTS.boot(); watchAlert(); watchGoal();
+  window.NFX={cfg:cfg,say:function(t){TTS.say(t);},burst:burst,sfx:SFX,
+              test:fire,shake:shake,milestone:mile};
+}
+if(document.readyState!=='loading') init();
+else addEventListener('DOMContentLoaded',init);
+})();
+
 </script>
 </body>
 </html
