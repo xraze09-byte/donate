@@ -2317,81 +2317,9 @@ function mile(m){
   setTimeout(function(){ el.classList.remove('on'); },3300);
 }
 
-/* ───── 08 · ALERT HOOK (MutationObserver — ไม่แตะ play()) ───── */
-/* ═══════════════════════════════════════════════════════════════════
-   08 · ALERT HOOK  v2  —  HOTFIX
-   แก้: อ่านยอด 0 / ไม่อ่านข้อความ  →  รอ count-up + typewriter จบก่อน
-   ═══════════════════════════════════════════════════════════════════ */
-
-var SETTLE_MS  = 420;    /* นิ่งกี่ ms ถึงถือว่าจบ (ลด=ไวขึ้น เสี่ยงอ่านกลางคัน) */
-var SETTLE_MAX = 6000;   /* กันค้าง — เกินนี้อ่านเลยไม่ว่าจะนิ่งหรือไม่ */
-
-var sOb=null, sT=0, sMax=0;
-
-function stopSettle(){
-  if(sOb){ sOb.disconnect(); sOb=null; }
-  clearTimeout(sT); clearTimeout(sMax);
-}
-
-/* เฝ้าดูจน DOM หยุดเปลี่ยนแปลง แล้วค่อย callback */
-function settle(cb){
-  stopSettle();
-  var amt = document.getElementById('aAmt') || document.querySelector('.ac-a');
-  var msg = document.getElementById('aMsg') || document.querySelector('.ac-m');
-  var fired=false;
-
-  var finish=function(){
-    if(fired) return;
-    /* ยอด 0 = การ์ดกำลังเคลียร์/กลางอนิเมชัน — ห้ามอ่าน รอต่อจนกว่าจบจริง */
-    var a=document.getElementById('aAmt')||document.querySelector('.ac-a');
-    if(a && num(a.textContent)<=0){ kick(); return; }
-    fired=true; stopSettle(); cb();
-  };
-  var kick=function(){ clearTimeout(sT); sT=setTimeout(finish,SETTLE_MS); };
-
-  sOb=new MutationObserver(kick);
-  [amt,msg].forEach(function(el){
-    if(el) sOb.observe(el,{childList:true,characterData:true,subtree:true});
-  });
-
-  kick();                                  /* เผื่อการ์ดไม่มีแอนิเมชันเลย */
-  sMax=setTimeout(finish,SETTLE_MAX);      /* เซฟตี้ */
-}
-
-/* แปลงยอดเป็นคำอ่านไทย — ส่ง "หนึ่งพันสองร้อยห้าสิบบาท" แทน "1250 บาท"
-   เพื่อไม่ต้องพึ่งให้ TTS ตีความตัวเลข (บางเครื่องอ่าน "ห้า ห้า ห้า") */
-var D_=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
-function _three(v){
-  var o='',h=Math.floor(v/100),t=Math.floor(v%100/10),u=v%10;
-  if(h)o+=D_[h]+'ร้อย';
-  if(t===1)o+='สิบ'; else if(t===2)o+='ยี่สิบ'; else if(t>2)o+=D_[t]+'สิบ';
-  if(u===1&&t>=1)o+='เอ็ด'; else if(u)o+=D_[u];
-  return o;
-}
-function _block(v){
-  var o='',m=Math.floor(v/100000),t=Math.floor(v%100000/10000),s=Math.floor(v%10000/1000);
-  if(m)o+=D_[m]+'แสน'; if(t)o+=D_[t]+'หมื่น'; if(s)o+=D_[s]+'พัน';
-  return o+_three(v%1000);
-}
-/* ชื่อสำหรับการอ่าน: ตัดสัญลักษณ์ตกแต่ง (♛ ⚡ ฯลฯ) คั่นขอบตัวอักษร|ตัวเลข
-   แล้วแปลงเลขในชื่อเป็นคำอ่านไทยทีละหลัก — "GAME555" → "GAME ห้า ห้า ห้า" */
-var D2W=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
-function nameSpeak(s){
-  s=String(s||'')
-   .replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ')   /* \p{M} = สระ/วรรณยุกต์ไทย */
-   .replace(/(\p{L})(\p{N})/gu,'$1 $2')
-   .replace(/(\p{N})(\p{L})/gu,'$1 $2')
-   .replace(/\p{N}+/gu,function(m){return m.split('').map(function(c){return D2W[+c];}).join(' ');})
-   .replace(/\s+/g,' ').trim();
-  return s||'ผู้ไม่ประสงค์ออกนาม';
-}
-
-function bahtText(n){
-  n=Math.round(num(n)); if(!isFinite(n)||n<0)n=0;
-  if(n===0)return 'ศูนย์บาท';
-  var mil=Math.floor(n/1000000);
-  return ((mil?_block(mil)+'ล้าน':'')+_block(n%1000000))+'บาท';
-}
+/* ───── 08 · RAW ALERT FEED v3 — เสียงอ่านจากข้อมูลดิบจาก relay ตรง ๆ ─────
+   ไม่แตะ DOM/animation เลย · หน่วงเวลาคงที่ก่อนพูด · คิวพูดเรียงลำดับเสมอ */
+var SPEAK_DELAY = 2200;   /* หน่วงก่อนพูด — ให้การ์ดขึ้นจอ + เอฟเฟกต์เปิดหมวกก่อน */
 
 /* ดึงเฉพาะตัวเลขออกจาก "฿1,250.00" → 1250 */
 function num(s){
@@ -2399,45 +2327,66 @@ function num(s){
   return isFinite(n)?n:0;
 }
 
+/* WebSocket ของแพ็กเอง — ฟัง alert จาก relay โดยตรง */
+function pParam(k){
+  var h=location.hash||'', i=h.indexOf('?'),
+      hp=new URLSearchParams(i>=0?h.slice(i+1):''), sp=new URLSearchParams(location.search);
+  return hp.get(k)!==null?hp.get(k):sp.get(k);
+}
+var RAW={ws:null,up:false,tryN:0};
+function rawConnect(){
+  try{
+    var base='wss://donate-backend-60hc.onrender.com/ws';
+    var ch='rzc_'+(pParam('k')||'fce4afe701527d17fbef394d');
+    RAW.ws=new WebSocket(base+'?ch='+encodeURIComponent(ch));
+    RAW.ws.onopen=function(){RAW.up=true;RAW.tryN=0};
+    RAW.ws.onmessage=function(e){
+      try{
+        var m=JSON.parse(e.data);
+        if(m&&m.t==='alert'&&m.d) onRawAlert(m.d);
+      }catch(x){}
+    };
+    RAW.ws.onclose=function(){RAW.up=false;RAW.tryN++;
+      setTimeout(rawConnect,Math.min(30000,2000*RAW.tryN))};
+    RAW.ws.onerror=function(){try{RAW.ws.close()}catch(x){}};
+  }catch(e){setTimeout(rawConnect,5000)}
+}
+
+/* ได้ข้อมูลดิบ: ชื่อ/ยอด/ข้อความ ตรง ๆ — คำนวณคำอ่านทันที แล้วหน่วงเวลาคงที่ */
+function onRawAlert(d){
+  var name=String(d.name||'').trim()||'ผู้ไม่ประสงค์ออกนาม';
+  var amt=num(d.amount);
+  var msg=String(d.message||'').trim();
+
+  /* ticker ใช้ค่าดิบทันที ไม่ต้องรออนิเมชัน */
+  push(name,'฿'+amt.toLocaleString('th-TH'));
+
+  /* เสียง: หน่วงคงที่ แล้วเข้าคิว TTS (คิวพูดทีละลำดับเสมอ) */
+  var line=nameSpeak(name)+' บริจาค '+bahtText(amt);
+  if(msg) line+=' ข้อความว่า '+msg;
+  setTimeout(function(){ TTS.say(line); }, SPEAK_DELAY);
+}
+rawConnect();
+
+/* เอฟเฟกต์ภาพยังผูกกับการ์ดจริง (ไม่เกี่ยวกับเสียง/ยอด) */
 function watchAlert(){
   var card=document.getElementById('card'); if(!card)return;
   var on=false;
   new MutationObserver(function(){
     var now=card.classList.contains('in');
-    if(now && !on){ on=true; fire(); }
-    else if(!now){ on=false; stopSettle(); }
+    if(now && !on){ on=true; SFX.impact(); shake(); burst(120); hype();
+      setTimeout(function(){ burst(70,innerWidth*.5,innerHeight*.34); },220); }
+    else if(!now){ on=false; }
   }).observe(card,{attributes:true,attributeFilter:['class']});
 }
 
-function fire(){
-  /* ── เอฟเฟกต์ยิงทันที ไม่ต้องรอ ── */
-  SFX.impact(); shake(); burst(120); hype();
-  setTimeout(function(){ burst(70,innerWidth*.5,innerHeight*.34); },220);
-
-  /* ── ข้อความ/เสียง รอจนข้อมูลนิ่งก่อน ── */
-  settle(function(){
-    var nEl=document.getElementById('aName')||document.querySelector('.ac-n');
-    var aEl=document.getElementById('aAmt') ||document.querySelector('.ac-a');
-    var mEl=document.getElementById('aMsg') ||document.querySelector('.ac-m');
-
-    var name = (nEl?nEl.textContent:'').trim() || 'ผู้ไม่ประสงค์ออกนาม';
-    var amt  = num(aEl?aEl.textContent:0);
-    var msg  = (mEl?mEl.textContent:'').trim();
-
-    /* ticker ใช้ค่าที่ถูกต้องแล้ว */
-    push(name,'฿'+amt.toLocaleString('th-TH'));
-
-    var line = nameSpeak(name) + ' บริจาค ' + bahtText(amt);
-    if(msg) line += ' ข้อความว่า ' + msg;
-    TTS.say(line);
-  });
+/* ปุ่มทดสอบ (NFX.test) — จำลองเต็มเส้นทางเหมือนโดเนทจริง */
+function fire(d){
+  d=d||{name:'TEST OPERATOR',amount:999,message:'ระบบพร้อมรบ'};
+  SFX.impact(); shake(); burst(130); hype();
+  onRawAlert(d);
 }
 
-/* ───── 09 · FX CONSOLE ──────────────────────────────────────── */
-function row(k,label){
-  return '<div class="nf-row'+(cfg[k]?' on':'')+'" data-k="'+k+'">'+
-         '<span>'+label+'</span><span class="nf-sw"></span></div>';
-}
 function dock(){
   var d=document.createElement('div'); d.id='nf-dock';
   d.innerHTML='<button id="nf-gear" aria-label="FX Console">&#9881;</button>'+
@@ -2463,7 +2412,7 @@ function dock(){
     if(e.target.classList.contains('nf-test')){
       SFX.impact(); shake(); burst(130); hype();
       push('TEST OPERATOR','฿999');
-      TTS.say('เทส โอเปอเรเตอร์ บริจาค 999 บาท บอกว่า ระบบพร้อมรบแล้ว');
+      TTS.say('เทส โอเปอเรเตอร์ บริจาค '+bahtText(999)+' บอกว่า ระบบพร้อมรบแล้ว');
     }
   });
   var v=d.querySelector('#nf-vol'); v.addEventListener('input',function(){
