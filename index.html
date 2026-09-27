@@ -2172,13 +2172,19 @@ var SFX={
 
 /* ───── 02 · TTS — เสียงหุ่นยนต์ไซไฟ ─────────────────────────── */
 var TTS={
-  ok:('speechSynthesis' in window), voices:[], q:[], busy:false,
+  ok:('speechSynthesis' in window), voices:[], q:[], busy:false, timer:null,
   boot:function(){
     if(!TTS.ok)return;
     var L=function(){ TTS.voices=window.speechSynthesis.getVoices()||[]; };
     L(); try{ window.speechSynthesis.onvoiceschanged=L; }catch(e){}
     ['pointerdown','keydown','touchstart'].forEach(function(ev){
       addEventListener(ev,TTS.unlock,{once:true,passive:true}); });
+    /* กัน Chrome ค้าง speechSynthesis ไว้ (paused) ตอนแท็บอยู่หลังฉาก/พื้นหลังนาน ๆ
+       ซึ่งเป็นสาเหตุหลักที่คิวเสียงค้างสะสมแล้วปล่อยพูดทับกันทีเดียวตอนกลับมา */
+    setInterval(function(){
+      if(!TTS.ok)return;
+      try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){}
+    },4000);
   },
   unlock:function(){
     ctx();
@@ -2207,18 +2213,23 @@ var TTS={
   run:function(){
     if(TTS.busy||!TTS.q.length)return;
     TTS.busy=true;
-    var u=new SpeechSynthesisUtterance(TTS.q.shift()), v=TTS.voice();
+    var text=TTS.q.shift(), u=new SpeechSynthesisUtterance(text), v=TTS.voice();
     if(v){ u.voice=v; u.lang=v.lang; } else u.lang='th-TH';
     u.rate=cfg.rate; u.pitch=cfg.pitch; u.volume=1;
     var fin=false;   /* กัน onend+onerror ยิงซ้อน (บัค Chrome) ที่ทำให้เสียงทับกัน */
     var done=function(){
       if(fin)return; fin=true;
+      clearTimeout(TTS.timer);
       TTS.busy=false; eq(false);
       setTimeout(function(){ TTS.run(); },260);
     };
     u.onend=done; u.onerror=function(){ try{speechSynthesis.cancel();}catch(x){} done(); };
+    /* สำรอง: ถ้า onend/onerror ไม่ยิงเลย (บัค Chrome ตอนแท็บอยู่หลังฉาก) ให้ปลดคิวเองตามเวลาประมาณ
+       ของความยาวข้อความ — กันไม่ให้คิวค้างจนพูดทับกันตอนหลุดค้าง */
+    clearTimeout(TTS.timer);
+    TTS.timer=setTimeout(done, 1500+text.length*140);
     eq(true); SFX.blip();
-    try{ window.speechSynthesis.speak(u); }catch(e){ done(); }
+    try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){ done(); }
   }
 };
 function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
@@ -2362,16 +2373,36 @@ function _three(v){
   if(u===1&&t>=1)o+='เอ็ด'; else if(u)o+=D_[u];
   return o;
 }
-function _block(v){
+function _blockCore(v){
   var o='',m=Math.floor(v/100000),t=Math.floor(v%100000/10000),s=Math.floor(v%10000/1000);
   if(m)o+=D_[m]+'แสน'; if(t)o+=D_[t]+'หมื่น'; if(s)o+=D_[s]+'พัน';
   return o+_three(v%1000);
 }
+/* บล็อกเดี่ยวสมบูรณ์ในตัวเอง (ใช้กับ "จำนวนล้าน" หรือ "จำนวนสตางค์" ที่อ่านแบบสแตนด์อโลน) —
+   แก้บัคอ่านยอดผิด: ตัวเลขแบบ 11 / 101 / 1001 ฯลฯ (หลักหน่วย=1 มีหลักอื่นนำหน้า) เดิมบางกรณี
+   จะอ่านลงท้าย "...หนึ่ง" ทั้งที่ต้องอ่าน "...เอ็ด" */
+function _block(v){
+  var o=_blockCore(v);
+  if(v%10===1 && v>1) o=o.replace(/หนึ่ง$/,'เอ็ด');
+  return o;
+}
 function bahtText(n){
-  n=Math.round(num(n)); if(!isFinite(n)||n<0)n=0;
-  if(n===0)return 'ศูนย์บาท';
-  var mil=Math.floor(n/1000000);
-  return ((mil?_block(mil)+'ล้าน':'')+_block(n%1000000))+'บาท';
+  n=num(n); if(!isFinite(n)||n<0)n=0;
+  /* แก้บัคอ่านยอดผิด: เดิม Math.round ปัดเศษสตางค์แล้วทิ้งไปเงียบ ๆ ทำให้บางยอด
+     (เช่น 300.30 → ปัดเป็น 300 หรือ 999.60 → ปัดเป็น 1000) อ่านเป็นยอดที่ไม่ตรงกับที่โดเนทจริง
+     ตอนนี้แยกบาท/สตางค์ให้ถูกต้อง แล้วอ่านสตางค์ต่อเมื่อมีจริง */
+  var baht=Math.floor(n+1e-6), satang=Math.round((n-baht)*100);
+  if(satang>=100){ baht+=1; satang=0; }
+  if(baht===0 && satang===0)return 'ศูนย์บาท';
+  var mil=Math.floor(baht/1000000);
+  /* ส่วนท้ายสุด (ก้อนหลักบาทสุดท้ายก่อนคำว่า "บาท") ต้องดูเลข "เอ็ด" จากยอดบาทเต็มจำนวน
+     ไม่ใช่แค่ค่าในก้อนนี้เอง เพราะถ้ามีหลักล้านนำหน้า (เช่น 1,000,001) ก้อนท้ายจะเหลือแค่ 1
+     ซึ่งดูโดดเดี่ยวเหมือนไม่ต้องใช้ "เอ็ด" ทั้งที่ต้องอ่านต่อเนื่องจากหลักล้าน */
+  var tail=_blockCore(baht%1000000);
+  if(baht%10===1 && baht>1) tail=tail.replace(/หนึ่ง$/,'เอ็ด');
+  var line = baht===0 ? 'ศูนย์บาท' : ((mil?_block(mil)+'ล้าน':'')+tail)+'บาท';
+  if(satang>0) line+=_block(satang)+'สตางค์';
+  return line;
 }
 
 /* ชื่อสำหรับการอ่าน: ตัดสัญลักษณ์ตกแต่ง (♛ ⚡ ฯลฯ) คั่นขอบตัวอักษร|ตัวเลข
