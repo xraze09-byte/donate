@@ -1158,6 +1158,11 @@ body.obs #nf-tts{display:none}
 body.obs #nf-dock{display:none}
 
 @media(max-width:640px){#nf-dock{right:10px;bottom:70px}#nf-ticker{height:26px}}
+/* ── MOBILE LAYOUT POLISH (พ่วงอัตโนมัติเมื่อ html.nf-mob) ── */
+html.nf-mob{-webkit-tap-highlight-color:transparent}
+html.nf-mob body{padding-bottom:calc(env(safe-area-inset-bottom) + 44px)}   /* เผื่อแถบ ticker ไม่บังเนื้อหาท้ายหน้า */
+html.nf-mob #aud{bottom:calc(46px + env(safe-area-inset-bottom))}           /* ENABLE AUDIO ไม่ทับ ticker */
+html.nf-mob .chip{min-height:44px;display:inline-flex;align-items:center}  /* ชิปเลือกยอด ใหญ่พอสำหรับนิ้ว */
 @media(prefers-reduced-motion:reduce){
   html.nf-shk{animation:none!important}
   #nf-fxc{display:none!important}}
