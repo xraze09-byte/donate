@@ -2210,8 +2210,13 @@ var TTS={
     var u=new SpeechSynthesisUtterance(TTS.q.shift()), v=TTS.voice();
     if(v){ u.voice=v; u.lang=v.lang; } else u.lang='th-TH';
     u.rate=cfg.rate; u.pitch=cfg.pitch; u.volume=1;
-    var done=function(){ TTS.busy=false; eq(false); setTimeout(TTS.run,260); };
-    u.onend=done; u.onerror=done;
+    var fin=false;   /* กัน onend+onerror ยิงซ้อน (บัค Chrome) ที่ทำให้เสียงทับกัน */
+    var done=function(){
+      if(fin)return; fin=true;
+      TTS.busy=false; eq(false);
+      setTimeout(function(){ TTS.run(); },260);
+    };
+    u.onend=done; u.onerror=function(){ try{speechSynthesis.cancel();}catch(x){} done(); };
     eq(true); SFX.blip();
     try{ window.speechSynthesis.speak(u); }catch(e){ done(); }
   }
@@ -2336,7 +2341,11 @@ function settle(cb){
   var fired=false;
 
   var finish=function(){
-    if(fired) return; fired=true; stopSettle(); cb();
+    if(fired) return;
+    /* ยอด 0 = การ์ดกำลังเคลียร์/กลางอนิเมชัน — ห้ามอ่าน รอต่อจนกว่าจบจริง */
+    var a=document.getElementById('aAmt')||document.querySelector('.ac-a');
+    if(a && num(a.textContent)<=0){ kick(); return; }
+    fired=true; stopSettle(); cb();
   };
   var kick=function(){ clearTimeout(sT); sT=setTimeout(finish,SETTLE_MS); };
 
