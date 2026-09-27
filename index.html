@@ -1154,6 +1154,7 @@ body.obs #nf-tts{display:none}
 .nf-sl{display:flex;flex-direction:column;gap:.24rem;color:#4d5865;
   font-weight:700;letter-spacing:.11em;padding:.2rem .42rem;font-size:.6rem}
 .nf-sl input{width:100%;height:3px;accent-color:#ff1f47;cursor:pointer}
+.nf-sl select{width:100%;background:#151a20;color:#e7edf1;border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:.28rem .32rem;font-size:.62rem;font-weight:700;letter-spacing:.03em;cursor:pointer}
 .nf-test{margin-top:.2rem;padding:.44rem;cursor:pointer;color:#fff;font-weight:900;
   letter-spacing:.16em;border:0;background:linear-gradient(180deg,#ff4d6d,#a3001f);
   clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
@@ -2123,6 +2124,10 @@ if (MOB) document.documentElement.classList.add('nf-mob');
 var cfg = {tts:1,sfx:1,shake:1,burst:1,ticker:1,vol:.7,rate:.9,pitch:.4};
 try{ var s=JSON.parse(localStorage.getItem(KEY)||'{}');
      for(var k in s) if(k in cfg) cfg[k]=s[k]; }catch(e){}
+cfg.rate  = clampN(cfg.rate , 0.5, 2, 1);
+cfg.pitch = clampN(cfg.pitch, 0,   2, 1);
+cfg.vol   = clampN(cfg.vol  , 0,   1, 1);
+if(cfg.bilingual===undefined) cfg.bilingual=true;
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(e){} }
 function $(s,r){return (r||document).querySelector(s);}
 function T(s){var e=$(s);return e?e.textContent.trim():'';}
@@ -2172,77 +2177,206 @@ var SFX={
 
 /* ───── 02 · TTS — เสียงหุ่นยนต์ไซไฟ ─────────────────────────── */
 var TTS={
-  ok:('speechSynthesis' in window), voices:[], q:[], busy:false, timer:null,
+  ok:('speechSynthesis' in window) && typeof SpeechSynthesisUtterance==='function',
+  voices:[], q:[], cur:[], busy:false, poll:null,
+  unlocked:false, ready:false, hasTH:false, MAXCHUNK:160,
+
   boot:function(){
-    if(!TTS.ok)return;
-    var L=function(){ TTS.voices=window.speechSynthesis.getVoices()||[]; };
-    L(); try{ window.speechSynthesis.onvoiceschanged=L; }catch(e){}
-    ['pointerdown','keydown','touchstart'].forEach(function(ev){
-      addEventListener(ev,TTS.unlock,{once:true,passive:true}); });
-    /* กัน Chrome ค้าง speechSynthesis ไว้ (paused) ตอนแท็บอยู่หลังฉาก/พื้นหลังนาน ๆ
-       ซึ่งเป็นสาเหตุหลักที่คิวเสียงค้างสะสมแล้วปล่อยพูดทับกันทีเดียวตอนกลับมา */
-    setInterval(function(){
-      if(!TTS.ok)return;
-      try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){}
-    },4000);
-  },
-  unlock:function(){
-    ctx();
-    if(!TTS.ok)return;
-    try{ var u=new SpeechSynthesisUtterance(' '); u.volume=0;
-         window.speechSynthesis.speak(u); }catch(e){}
-  },
-  voice:function(){
-    var v=TTS.voices;
-    /* จับเสียงไทยให้ครอบคลุมขึ้น: ทั้ง lang code (th, th-TH, tha-...) และเสียงที่ตั้งชื่อว่า
-       Thai/ไทย โดยไม่มี lang code ขึ้นต้นด้วย th (บางเสียงของ OS/เบราว์เซอร์ตั้งไม่ตรงมาตรฐาน)
-       แล้วเลือกเสียงที่ติดตั้งในเครื่อง (localService) ก่อน เพราะเสถียรกว่าเสียงที่โหลดจากเน็ต */
-    var th=v.filter(function(x){return /^th(-|_|$)/i.test(x.lang)||/thai|ไทย/i.test(x.name);});
-    if(th.length){
-      th.sort(function(a,b){return (b.localService?1:0)-(a.localService?1:0);});
-      return th[0];
-    }
-    /* ไม่มีเสียงไทยเลยในเครื่อง/เบราว์เซอร์นี้ — เป็นข้อจำกัดของ OS ไม่ใช่ของหน้าเว็บ
-       ยังพยายามใช้เสียงที่มีอยู่ (ดีกว่าไม่พูดเลย) แต่จะออกเสียงเพี้ยนเพราะไม่ใช่เสียงไทยจริง */
-    return v.filter(function(x){return /^en/i.test(x.lang);})[0] || v[0] || null;
-  },
-  clean:function(t){
-    return String(t||'')
-      .replace(/https?:\/\/\S+/g,' ')
-      .replace(/[<>{}\[\]|\\^~`*_#@]/g,' ')
-      /* ตัดอีโมจิ/สัญลักษณ์ตกแต่งทิ้ง — บางเสียง TTS จะพยายามอ่านชื่อยูนิโค้ดของอีโมจิออกมา
-         ("หน้ายิ้ม", "หัวใจสีแดง" ฯลฯ) ทำให้ฟังดูเพี้ยน/ปนภาษาแปลก ๆ */
-      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu,' ')
-      .replace(/(.)\1{4,}/g,'$1$1$1')
-      .replace(/\s+/g,' ').slice(0,200).trim();
-  },
-  say:function(t){
-    if(!cfg.tts||!TTS.ok)return;
-    t=TTS.clean(t); if(!t)return;
-    if(TTS.q.length>4) TTS.q.shift();
-    TTS.q.push(t); TTS.run();
-  },
-  run:function(){
-    if(TTS.busy||!TTS.q.length)return;
-    TTS.busy=true;
-    var text=TTS.q.shift(), u=new SpeechSynthesisUtterance(text), v=TTS.voice();
-    if(v){ u.voice=v; u.lang=v.lang; } else u.lang='th-TH';
-    u.rate=cfg.rate; u.pitch=cfg.pitch; u.volume=1;
-    var fin=false;   /* กัน onend+onerror ยิงซ้อน (บัค Chrome) ที่ทำให้เสียงทับกัน */
-    var done=function(){
-      if(fin)return; fin=true;
-      clearTimeout(TTS.timer);
-      TTS.busy=false; eq(false);
-      setTimeout(function(){ TTS.run(); },260);
+    if(!TTS.ok) return;
+    var tries=0;
+    var load=function(){
+      try{ TTS.voices=window.speechSynthesis.getVoices()||[]; }catch(e){ TTS.voices=[]; }
+      if(!TTS.voices.length) return false;
+      TTS.ready=true;
+      TTS.hasTH=!!TTS.voices.filter(function(x){
+        return /^th([-_]|$)/i.test(x.lang||'')||/thai|ไทย/i.test(x.name||'');
+      }).length;
+      if(!TTS.hasTH) console.warn('[TTS] ไม่พบเสียงภาษาไทยในเครื่องนี้ — จะใช้ lang=th-TH ให้ engine เลือกเอง');
+      return true;
     };
-    u.onend=done; u.onerror=function(){ try{speechSynthesis.cancel();}catch(x){} done(); };
-    /* สำรอง: ถ้า onend/onerror ไม่ยิงเลย (บัค Chrome ตอนแท็บอยู่หลังฉาก) ให้ปลดคิวเองตามเวลาประมาณ
-       ของความยาวข้อความ — กันไม่ให้คิวค้างจนพูดทับกันตอนหลุดค้าง */
-    clearTimeout(TTS.timer);
-    TTS.timer=setTimeout(done, 1500+text.length*140);
-    eq(true); SFX.blip();
-    try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){ done(); }
-  }
+    load();
+    try{ window.speechSynthesis.onvoiceschanged=load; }catch(e){}
+    var iv=setInterval(function(){ if(load()||++tries>30) clearInterval(iv); },200);
+
+    ['pointerdown','keydown','touchstart','click'].forEach(function(ev){
+      addEventListener(ev,TTS.unlock,{passive:true});
+    });
+    setInterval(TTS.keepAlive,7000);
+    addEventListener('beforeunload',function(){ try{ speechSynthesis.cancel(); }catch(e){} });
+  },
+
+  keepAlive:function(){
+    if(!TTS.ok) return;
+    var ss=window.speechSynthesis;
+    try{
+      if(ss.paused) ss.resume();
+      else if(ss.speaking && TTS.busy){ ss.pause(); ss.resume(); }
+    }catch(e){}
+  },
+
+  unlock:function(){
+    if(typeof ctx==='function') ctx();
+    if(!TTS.ok||TTS.unlocked) return;
+    TTS.unlocked=true;
+    try{
+      var u=new SpeechSynthesisUtterance('\u0E01');
+      u.volume=0; u.rate=2; u.lang='th-TH';
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  },
+
+  voice:function(thai){
+    var v=TTS.voices||[], list;
+    if(thai) list=v.filter(function(x){ return /^th([-_]|$)/i.test(x.lang||'')||/thai|ไทย/i.test(x.name||''); });
+    else     list=v.filter(function(x){ return /^en/i.test(x.lang||''); });
+    if(!list.length) return null;
+    var pick=localStorage.getItem(thai?'nf_voice_th':'nf_voice_en');
+    if(pick){ var f=list.filter(function(x){return x.name===pick;}); if(f.length) return f[0]; }
+    list.sort(function(a,b){
+      var s=function(x){ var p=0;
+        if(/^(th-TH|en-US|en-GB)$/i.test(x.lang||'')) p+=4;
+        if(x.localService) p+=3;
+        if(/google|premwadee|niwat|natural|neural/i.test(x.name||'')) p+=2;
+        if(x['default']) p+=1; return p; };
+      return s(b)-s(a);
+    });
+    return list[0];
+  },
+
+  clean:function(t){
+    t=String(t==null?'':t)
+      .replace(/https?:\/\/\S+/gi,' ').replace(/\bwww\.\S+/gi,' ')
+      .replace(/%/g,' เปอร์เซ็นต์ ').replace(/&/g,' และ ').replace(/\+/g,' บวก ')
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{2BFF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{200D}\u{20E3}]/gu,' ')
+      .replace(/[<>{}\[\]()|\\^~`*_#@$=\/]/g,' ')
+      .replace(/([\u0E00-\u0E7F])\1{2,}/gu,'$1')
+      .replace(/(.)\1{3,}/g,'$1$1')
+      .replace(/\s+/g,' ').trim();
+    if(t.length>300){
+      t=t.slice(0,300).replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/,'');
+      t=t.replace(/\s\S*$/,'');
+    }
+    return t.trim();
+  },
+
+  segments:function(t){
+    var bi=!(typeof cfg!=='undefined'&&cfg&&cfg.bilingual===false);
+    if(!bi) return [{t:t, th:TH_RE.test(t)}];
+    var out=[],buf='',mode=null,i,ch,k;
+    for(i=0;i<t.length;i++){
+      ch=t.charAt(i);
+      if(TH_RE.test(ch))            k=true;
+      else if(/[A-Za-z]/.test(ch))  k=false;
+      else                          k=null;
+      if(k===null){ buf+=ch; continue; }
+      if(mode===null) mode=k;
+      if(k!==mode){ if(buf.trim()) out.push({t:buf,th:mode}); buf=''; mode=k; }
+      buf+=ch;
+    }
+    if(buf.trim()) out.push({t:buf,th:(mode===null?TH_RE.test(t):mode)});
+    return out.length?out:[{t:t,th:true}];
+  },
+
+  chunk:function(t,max){
+    var out=[],s=String(t),br=[' ','\n','.',',','!','?',';',':','ๆ'];
+    while(s.length>max){
+      var win=s.slice(0,max),cut=-1,i,p;
+      for(i=0;i<br.length;i++){ p=win.lastIndexOf(br[i]); if(p>cut) cut=p; }
+      if(cut<max*0.5) cut=max-1;
+      var piece=s.slice(0,cut+1);
+      while(piece.length>1 && TH_MARK.test(s.charAt(piece.length))) piece=piece.slice(0,-1);
+      out.push(piece); s=s.slice(piece.length);
+    }
+    if(s.trim()) out.push(s);
+    return out;
+  },
+
+  say:function(t){
+    if(!TTS.ok) return;
+    if(typeof cfg==='undefined'||!cfg||!cfg.tts) return;
+    t=TTS.clean(t); if(!t) return;
+    var segs=TTS.segments(t), parts=[], i, j, c;
+    for(i=0;i<segs.length;i++){
+      c=TTS.chunk(segs[i].t,TTS.MAXCHUNK);
+      for(j=0;j<c.length;j++) if(c[j].trim()) parts.push({t:c[j].trim(),th:segs[i].th});
+    }
+    if(!parts.length) return;
+    TTS.q.push(parts);
+    while(TTS.q.length>3) TTS.q.shift();
+    TTS.run();
+  },
+
+  stop:function(){
+    TTS.q=[]; TTS.cur=[]; TTS.busy=false;
+    clearInterval(TTS.poll);
+    try{ speechSynthesis.cancel(); }catch(e){}
+    if(typeof eq==='function') eq(false);
+  },
+
+  run:function(){
+    if(TTS.busy) return;
+    if(!TTS.cur.length){
+      if(!TTS.q.length){ if(typeof eq==='function') eq(false); return; }
+      TTS.cur=TTS.q.shift();
+      if(typeof SFX!=='undefined'&&SFX.blip) SFX.blip();
+    }
+    var seg=TTS.cur.shift();
+    if(!seg||!seg.t){ TTS.run(); return; }
+    TTS.speakSeg(seg);
+  },
+
+  speakSeg:function(seg){
+    var ss=window.speechSynthesis,u;
+    try{ u=new SpeechSynthesisUtterance(seg.t); }
+    catch(e){ TTS.busy=false; return; }
+
+    var v=TTS.voice(seg.th);
+    u.lang = seg.th ? 'th-TH' : 'en-US';
+    if(v){ u.voice=v; if(v.lang) u.lang=v.lang; }
+
+    u.rate   = clampN(typeof cfg!=='undefined'&&cfg?cfg.rate:1, 0.5, 2, 1);
+    u.pitch  = clampN(typeof cfg!=='undefined'&&cfg?cfg.pitch:1, 0, 2, 1);
+    u.volume = clampN(typeof cfg!=='undefined'&&cfg?cfg.vol:1, 0, 1, 1);
+
+    var fin=false, started=false, t0=Date.now(), tStart=t0;
+    var est=800+(seg.t.length*105)/Math.max(0.5,u.rate);
+
+    var done=function(){
+      if(fin) return; fin=true;
+      clearInterval(TTS.poll);
+      TTS.busy=false;
+      var more=TTS.cur.length||TTS.q.length;
+      if(!more && typeof eq==='function') eq(false);
+      setTimeout(function(){ TTS.run(); }, more?90:0);
+    };
+    u.onstart=function(){ started=true; t0=Date.now(); };
+    u.onend=done;
+    u.onerror=function(e){
+      var err=(e&&e.error)||'';
+      if(err==='interrupted'||err==='canceled'){ done(); return; }
+      console.warn('[TTS] error:',err,'lang=',u.lang,'voice=',u.voice&&u.voice.name);
+      done();
+    };
+
+    TTS.busy=true;
+    if(typeof eq==='function') eq(true);
+
+    var fire=function(){
+      try{ if(ss.paused) ss.resume(); ss.speak(u); }catch(e){ done(); return; }
+      clearInterval(TTS.poll);
+      TTS.poll=setInterval(function(){
+        if(fin){ clearInterval(TTS.poll); return; }
+        if(ss.speaking||ss.pending){ started=true; t0=Date.now(); }
+        else if(Date.now()-t0 > (started?800:7000)) done();
+        if(Date.now()-tStart > est+20000) done();
+      },300);
+    };
+
+    if(ss.speaking||ss.pending){ try{ ss.cancel(); }catch(e){} setTimeout(fire,140); }
+    else fire();
+  },
+
+  test:function(){ TTS.say('ทดสอบระบบเสียง ผู้ใจดี บริจาค '+bahtText(1250.50)); }
 };
 function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
 
@@ -2375,79 +2509,88 @@ function rawConnect(){
   }catch(e){setTimeout(rawConnect,5000)}
 }
 
-/* แปลงยอดเป็นคำอ่านไทย — ส่ง "หนึ่งพันสองร้อยห้าสิบบาท" แทน "1250 บาท"
-   เพื่อไม่ต้องพึ่งให้ TTS ตีความตัวเลข (บางเครื่องอ่าน "ห้า ห้า ห้า") */
-var D_=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
-function _three(v){
-  var o='',h=Math.floor(v/100),t=Math.floor(v%100/10),u=v%10;
-  if(h)o+=D_[h]+'ร้อย';
-  if(t===1)o+='สิบ'; else if(t===2)o+='ยี่สิบ'; else if(t>2)o+=D_[t]+'สิบ';
-  if(u===1&&t>=1)o+='เอ็ด'; else if(u)o+=D_[u];
-  return o;
+/* ───── ตัวเลข/ชื่อ/ข้อความภาษาไทย — Fix Pack v2 ───── */
+function clampN(v,lo,hi,dv){ v=parseFloat(v); return isFinite(v)?Math.min(hi,Math.max(lo,v)):dv; }
+var TH_D   = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+var TH_POS = ['','สิบ','ร้อย','พัน','หมื่น','แสน'];
+var TH_RE  = /[\u0E00-\u0E7F]/;
+var TH_MARK= /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
+
+function toArabic(s){
+  return String(s==null?'':s).replace(/[\u0E50-\u0E59]/g,function(c){
+    return String(c.charCodeAt(0)-0x0E50);
+  });
 }
-function _blockCore(v){
-  var o='',m=Math.floor(v/100000),t=Math.floor(v%100000/10000),s=Math.floor(v%10000/1000);
-  if(m)o+=D_[m]+'แสน'; if(t)o+=D_[t]+'หมื่น'; if(s)o+=D_[s]+'พัน';
-  return o+_three(v%1000);
-}
-/* บล็อกเดี่ยวสมบูรณ์ในตัวเอง (ใช้กับ "จำนวนล้าน" หรือ "จำนวนสตางค์" ที่อ่านแบบสแตนด์อโลน) —
-   แก้บัคอ่านยอดผิด: ตัวเลขแบบ 11 / 101 / 1001 ฯลฯ (หลักหน่วย=1 มีหลักอื่นนำหน้า) เดิมบางกรณี
-   จะอ่านลงท้าย "...หนึ่ง" ทั้งที่ต้องอ่าน "...เอ็ด" */
-function _block(v){
-  var o=_blockCore(v);
-  if(v%10===1 && v>1) o=o.replace(/หนึ่ง$/,'เอ็ด');
-  return o;
-}
-function bahtText(n){
-  n=num(n); if(!isFinite(n)||n<0)n=0;
-  /* แก้บัคอ่านยอดผิด: เดิม Math.round ปัดเศษสตางค์แล้วทิ้งไปเงียบ ๆ ทำให้บางยอด
-     (เช่น 300.30 → ปัดเป็น 300 หรือ 999.60 → ปัดเป็น 1000) อ่านเป็นยอดที่ไม่ตรงกับที่โดเนทจริง
-     ตอนนี้แยกบาท/สตางค์ให้ถูกต้อง แล้วอ่านสตางค์ต่อเมื่อมีจริง */
-  var baht=Math.floor(n+1e-6), satang=Math.round((n-baht)*100);
-  if(satang>=100){ baht+=1; satang=0; }
-  if(baht===0 && satang===0)return 'ศูนย์บาท';
-  var mil=Math.floor(baht/1000000);
-  /* ส่วนท้ายสุด (ก้อนหลักบาทสุดท้ายก่อนคำว่า "บาท") ต้องดูเลข "เอ็ด" จากยอดบาทเต็มจำนวน
-     ไม่ใช่แค่ค่าในก้อนนี้เอง เพราะถ้ามีหลักล้านนำหน้า (เช่น 1,000,001) ก้อนท้ายจะเหลือแค่ 1
-     ซึ่งดูโดดเดี่ยวเหมือนไม่ต้องใช้ "เอ็ด" ทั้งที่ต้องอ่านต่อเนื่องจากหลักล้าน */
-  var tail=_blockCore(baht%1000000);
-  if(baht%10===1 && baht>1) tail=tail.replace(/หนึ่ง$/,'เอ็ด');
-  var line = baht===0 ? 'ศูนย์บาท' : ((mil?_block(mil)+'ล้าน':'')+tail)+'บาท';
-  if(satang>0) line+=_block(satang)+'สตางค์';
-  return line;
+function _num(v){
+  if(typeof v==='number') return isFinite(v)?v:0;
+  var n=parseFloat(toArabic(v).replace(/[^\d.\-]/g,''));
+  return isFinite(n)?n:0;
 }
 
-/* เลขล้วน ๆ (ไม่มีเลข 0 นำหน้า ไม่เกิน 6 หลัก) อ่านเป็นจำนวนธรรมชาติปกติ เช่น "555" → "ห้าร้อยห้าสิบห้า"
-   ใช้ตรรกะเดียวกับ bahtText (รวมบัคแก้ "เอ็ด" ด้วย) แต่ไม่มีคำว่า "บาท" ต่อท้าย */
+function thBlock(v){
+  var s=String(Math.floor(v)), out='', len=s.length, i, d, pos;
+  for(i=0;i<len;i++){
+    d=+s.charAt(i); pos=len-i-1;
+    if(!d) continue;
+    if(pos===0 && d===1 && len>1) out+='เอ็ด';
+    else if(pos===1 && d===1)     out+='สิบ';
+    else if(pos===1 && d===2)     out+='ยี่สิบ';
+    else                          out+=TH_D[d]+TH_POS[pos];
+  }
+  return out;
+}
 function numberWords(n){
-  n=Math.floor(Math.abs(n)); if(!isFinite(n))return '';
-  if(n===0)return 'ศูนย์';
-  var mil=Math.floor(n/1000000);
-  var tail=_blockCore(n%1000000);
-  if(n%10===1 && n>1) tail=tail.replace(/หนึ่ง$/,'เอ็ด');
-  return (mil?_block(mil)+'ล้าน':'')+tail;
+  n=Math.floor(Math.abs(_num(n)));
+  if(!isFinite(n)) return '';
+  if(n===0) return 'ศูนย์';
+  if(n>999999){
+    var lo=n%1000000;
+    return numberWords(Math.floor(n/1000000))+'ล้าน'+(lo?thBlock(lo):'');
+  }
+  return thBlock(n);
 }
+function bahtText(n,thuan){
+  var cents=Math.round(_num(n)*100);
+  if(!isFinite(cents)||cents<0) cents=0;
+  var baht=Math.floor(cents/100), st=cents%100, out='';
+  if(!baht && !st) return 'ศูนย์บาท';
+  if(baht) out+=numberWords(baht)+'บาท';
+  if(st)   out+=numberWords(st)+'สตางค์';
+  else if(baht && thuan) out+='ถ้วน';
+  return out;
+}
+function _blockCore(v){ return thBlock(v); }
+function _block(v){ return thBlock(v); }
+function _three(v){ return thBlock(v%1000); }
+var D_=TH_D, D2W=TH_D;
 
-/* ชื่อสำหรับการอ่าน: ตัดสัญลักษณ์ตกแต่ง (♛ ⚡ ฯลฯ) คั่นขอบตัวอักษร|ตัวเลข
-   แก้บัคอ่านเพี้ยน: เดิมแปลงเลขในชื่อเป็นคำอ่านทีละหลักเสมอ ("GAME555" → "GAME ห้า ห้า ห้า")
-   ฟังดูแปลก/ไม่เป็นธรรมชาติ — ตอนนี้เลขสั้น ๆ ที่ไม่มี 0 นำหน้าจะอ่านเป็นจำนวนเต็มปกติ
-   ("GAME555" → "GAME ห้าร้อยห้าสิบห้า") ส่วนเลขที่มี 0 นำหน้าหรือยาวเกิน 6 หลัก (เบอร์โทร/รหัส
-   สมาชิก ที่การอ่านเป็นจำนวนจะทำให้ 0 นำหน้าหายไปและความหมายเปลี่ยน) ยังอ่านทีละหลักแบบเดิม */
-var D2W=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
 function nameSpeak(s){
-  s=String(s||'')
-   .replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ')   /* \p{M} = สระ/วรรณยุกต์ไทย */
-   .replace(/(\p{L})(\p{N})/gu,'$1 $2')
-   .replace(/(\p{N})(\p{L})/gu,'$1 $2')
-   .replace(/\p{N}+/gu,function(m){
-     if(m.length<=6 && m[0]!=='0') return numberWords(parseInt(m,10));
-     return m.split('').map(function(c){return D2W[+c];}).join(' ');
+  s=toArabic(s)
+   .replace(/[_\-.]+/g,' ')
+   .replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ')
+   .replace(/(\p{L})(\d)/gu,'$1 $2')
+   .replace(/(\d)(\p{L})/gu,'$1 $2')
+   .replace(/\d+/g,function(m){
+     if(m.length<=6 && m.charAt(0)!=='0') return numberWords(parseInt(m,10));
+     return m.split('').map(function(c){ return TH_D[+c]; }).join(' ');
    })
    .replace(/\s+/g,' ').trim();
-  return s||'ผู้ไม่ประสงค์ออกนาม';
+  return s || 'ผู้ไม่ประสงค์ออกนาม';
+}
+function msgSpeak(s){
+  return toArabic(s).replace(/\d[\d,]*(?:\.\d+)?/g,function(m){
+    var v=m.replace(/,/g,'');
+    if(/^\d{1,9}$/.test(v) && v.charAt(0)!=='0') return numberWords(parseInt(v,10));
+    if(/^\d+\.\d+$/.test(v)){
+      var p=v.split('.');
+      return numberWords(parseInt(p[0],10))+'จุด'+p[1].split('').map(function(c){return TH_D[+c];}).join('');
+    }
+    return v.split('').map(function(c){ return TH_D[+c]||c; }).join(' ');
+  });
 }
 
 /* ได้ข้อมูลดิบ: ชื่อ/ยอด/ข้อความ ตรง ๆ — คำนวณคำอ่านทันที แล้วหน่วงเวลาคงที่ */
+var _spoken = {};   /* กันอ่านซ้ำตอน WS reconnect replay ข้อความเดิม */
 function onRawAlert(d){
   var name=String(d.name||'').trim()||'ผู้ไม่ประสงค์ออกนาม';
   var amt=num(d.amount);
@@ -2456,11 +2599,15 @@ function onRawAlert(d){
   /* ticker ใช้ค่าดิบทันที ไม่ต้องรออนิเมชัน */
   push(name,'฿'+amt.toLocaleString('th-TH'));
 
-  /* เสียง: หน่วงคงที่ แล้วเข้าคิว TTS (คิวพูดทีละลำดับเสมอ) */
-  /* เพิ่มจุดหยุดพัก (,) ระหว่างประโยคย่อย — แก้บัคอ่านวรรคตอนเพี้ยน/อ่านรวดเดียวไม่มีจังหวะหยุด
-     ซึ่งเครื่องอ่านเสียงสังเคราะห์มักอ่านลื่นไถลผิดจังหวะถ้าไม่มีเครื่องหมายคั่นให้หยุดหายใจ */
+  var key=(d&&(d.id||d.txid))||(name+'|'+amt+'|'+msg);
+  var now=Date.now();
+  if(_spoken[key] && now-_spoken[key]<15000) return;
+  _spoken[key]=now;
+
+  /* เสียง: หน่วงคงที่ แล้วเข้าคิว TTS (คิวพูดทีละลำดับเสมอ)
+     msgSpeak แปลงเลขในข้อความเป็นคำอ่านไทยด้วย ไม่ปล่อยให้เครื่องเดาเอง */
   var line=nameSpeak(name)+', บริจาค '+bahtText(amt)+',';
-  if(msg) line+=' ข้อความว่า, '+msg;
+  if(msg) line+=' ข้อความว่า, '+msgSpeak(msg);
   setTimeout(function(){ TTS.say(line); }, SPEAK_DELAY);
 }
 rawConnect();
@@ -2493,6 +2640,7 @@ function dock(){
       '<label class="nf-sl">MASTER VOLUME<input type="range" id="nf-vol" min="0" max="100" value="'+Math.round(cfg.vol*100)+'"></label>'+
       '<label class="nf-sl">VOICE PITCH<input type="range" id="nf-pit" min="0" max="100" value="'+Math.round(cfg.pitch*50)+'"></label>'+
       '<label class="nf-sl">VOICE SPEED<input type="range" id="nf-rat" min="40" max="160" value="'+Math.round(cfg.rate*100)+'"></label>'+
+      '<label class="nf-sl">THAI VOICE<select id="nf-vth"></select></label>'+
       '<button class="nf-test">TEST ALERT</button>'+
     '</div>';
   document.body.appendChild(d);
@@ -2506,18 +2654,27 @@ function dock(){
            if(k==='tts'&&!cfg.tts&&TTS.ok){ try{speechSynthesis.cancel();}catch(x){} TTS.q=[]; }
            if(k==='ticker'&&!cfg.ticker){ var t=document.getElementById('nf-ticker'); if(t)t.classList.remove('on'); }
            return; }
-    if(e.target.classList.contains('nf-test')){
-      SFX.impact(); shake(); burst(130); hype();
-      push('TEST OPERATOR','฿999');
-      TTS.say('เทส โอเปอเรเตอร์ บริจาค '+bahtText(999)+' บอกว่า ระบบพร้อมรบแล้ว');
-    }
   });
+  d.querySelector('.nf-test').addEventListener('click',function(){ ctx(); TTS.test(); });
   var v=d.querySelector('#nf-vol'); v.addEventListener('input',function(){
     cfg.vol=+this.value/100; if(MG)MG.gain.value=cfg.vol; save(); });
   var p=d.querySelector('#nf-pit'); p.addEventListener('change',function(){
     cfg.pitch=+this.value/50; save(); TTS.say('ทดสอบระดับเสียง'); });
   var rt=d.querySelector('#nf-rat'); rt.addEventListener('change',function(){
     cfg.rate=+this.value/100; save(); TTS.say('ทดสอบความเร็วเสียง'); });
+
+  var sel=d.querySelector('#nf-vth');
+  var fillVoices=function(){
+    var th=(TTS.voices||[]).filter(function(x){
+      return /^th([-_]|$)/i.test(x.lang||'')||/thai|ไทย/i.test(x.name||''); });
+    sel.innerHTML = th.length
+      ? th.map(function(x){ return '<option value="'+x.name+'">'+x.name+'</option>'; }).join('')
+      : '<option value="">— ไม่พบเสียงไทยในเครื่อง —</option>';
+    var saved=localStorage.getItem('nf_voice_th'); if(saved) sel.value=saved;
+  };
+  fillVoices(); setTimeout(fillVoices,1200); setTimeout(fillVoices,3000);
+  sel.addEventListener('change',function(){
+    localStorage.setItem('nf_voice_th',this.value); TTS.say('ทดสอบเสียงภาษาไทย'); });
 }
 
 /* ───── 10 · MOUNT ───────────────────────────────────────────── */
