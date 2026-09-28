@@ -2283,80 +2283,147 @@ var SFX={
   blip  :function(){ if(!cfg.sfx)return; tone(900,1420,.08,'square',.08,0); }
 };
 
-/* ───── 02 · TTS — เสียงหุ่นยนต์ไซไฟ ─────────────────────────── */
-var TTS={
-  ok:('speechSynthesis' in window), voices:[], q:[], busy:false, timer:null,
-  boot:function(){
-    if(!TTS.ok)return;
-    var L=function(){ TTS.voices=window.speechSynthesis.getVoices()||[]; };
-    L(); try{ window.speechSynthesis.onvoiceschanged=L; }catch(e){}
+/* ───── 02 · TTS v2 — server-side proxy (Edge Neural -> Google Translate -> Web Speech) ─────
+   เหตุผลที่เปลี่ยนจาก speechSynthesis เดิมทั้งหมด (F-TTS-01): OBS Browser Source รันบน CEF
+   (Chromium Embedded Framework) ซึ่งไม่ผูกกับ speech engine ของ OS — getVoices() คืน array
+   ว่างเปล่าเสมอ ไม่ใช่บั๊ก race condition/permission ที่แก้ได้ด้วย queue logic เลย เป็นข้อจำกัด
+   ของสภาพแวดล้อมเอง (รายงานในฟอรั่ม OBS ตั้งแต่ปี 2018) — ทางแก้จริงคือสังเคราะห์เสียงที่ฝั่ง
+   เซิร์ฟเวอร์ (เหมือน StreamElements/StreamLabs) แล้วส่ง MP3 มาเล่นผ่าน <audio> ซึ่งผ่าน audio
+   pipeline ปกติ คุมระดับเสียงจาก OBS Audio Mixer ได้ด้วย
+   หมายเหตุจากการทดสอบจริง: Edge TTS (unofficial MS endpoint) ตอบ 403 สม่ำเสมอจาก IP ระดับ
+   cloud/datacenter (ตรงกับความเสี่ยงที่รู้กันอยู่แล้วว่าเป็น endpoint ไม่เป็นทางการ) — ระบบจะ
+   fallback ไป Google Translate TTS แทนโดยอัตโนมัติ (เสียงหุ่นยนต์กว่าแต่ยังพูดได้) เช็คได้จริง
+   หลัง deploy ผ่าน GET /tts/health บน backend */
+var TTS=(function(){
+  var ok=true, queue=[], running=false, el=null, unlocked=false;
+  var cache=new Map(), CACHE_N=20;
+
+  function ep(){
+    // ใช้ host เดียวกับ WSU (WebSocket relay) ที่ตั้งค่าไว้อยู่แล้ว แทนการฝัง URL ใหม่ตายตัว
+    var base=(WSU||'').replace(/^wss:/,'https:').replace(/\/ws\/?$/,'');
+    return base+'/tts';
+  }
+  function boot(){
+    if(el)return;
+    el=new Audio(); el.preload='auto'; el.crossOrigin='anonymous';
+    // OBS ตั้ง autoplay-policy=no-user-gesture-required อยู่แล้ว → ผ่านเงียบๆ
+    // เบราว์เซอร์ปกติต้องรอ user gesture → ดักไว้ทุกทาง
     ['pointerdown','keydown','touchstart'].forEach(function(ev){
-      addEventListener(ev,TTS.unlock,{once:true,passive:true}); });
-    /* กัน Chrome ค้าง speechSynthesis ไว้ (paused) ตอนแท็บอยู่หลังฉาก/พื้นหลังนาน ๆ
-       ซึ่งเป็นสาเหตุหลักที่คิวเสียงค้างสะสมแล้วปล่อยพูดทับกันทีเดียวตอนกลับมา */
-    setInterval(function(){
-      if(!TTS.ok)return;
-      try{ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }catch(e){}
-    },4000);
-  },
-  unlock:function(){
+      addEventListener(ev,unlock,{passive:true});
+    });
+    unlock();
+  }
+  function unlock(){
     ctx();
-    if(!TTS.ok)return;
-    try{ var u=new SpeechSynthesisUtterance(' '); u.volume=0;
-         window.speechSynthesis.speak(u); }catch(e){}
-  },
-  voice:function(){
-    var v=TTS.voices;
-    /* จับเสียงไทยให้ครอบคลุมขึ้น: ทั้ง lang code (th, th-TH, tha-...) และเสียงที่ตั้งชื่อว่า
-       Thai/ไทย โดยไม่มี lang code ขึ้นต้นด้วย th (บางเสียงของ OS/เบราว์เซอร์ตั้งไม่ตรงมาตรฐาน)
-       แล้วเลือกเสียงที่ติดตั้งในเครื่อง (localService) ก่อน เพราะเสถียรกว่าเสียงที่โหลดจากเน็ต */
-    var th=v.filter(function(x){return /^th(-|_|$)/i.test(x.lang)||/thai|ไทย/i.test(x.name);});
-    if(th.length){
-      th.sort(function(a,b){return (b.localService?1:0)-(a.localService?1:0);});
-      return th[0];
-    }
-    /* ไม่มีเสียงไทยเลยในเครื่อง/เบราว์เซอร์นี้ — เป็นข้อจำกัดของ OS ไม่ใช่ของหน้าเว็บ
-       ยังพยายามใช้เสียงที่มีอยู่ (ดีกว่าไม่พูดเลย) แต่จะออกเสียงเพี้ยนเพราะไม่ใช่เสียงไทยจริง */
-    return v.filter(function(x){return /^en/i.test(x.lang);})[0] || v[0] || null;
-  },
-  clean:function(t){
+    if(unlocked||!el)return;
+    el.muted=true;
+    var p=el.play();
+    if(p&&p.then)p.then(function(){ el.pause(); el.currentTime=0; el.muted=false; unlocked=true; })
+      .catch(function(){ el.muted=false; });
+  }
+  function clean(t){
     return String(t||'')
-      .replace(/https?:\/\/\S+/g,' ')
+      .replace(/https?:\/\/\S+/g,' ลิงก์ ')
       .replace(/[<>{}\[\]|\\^~`*_#@]/g,' ')
-      /* ตัดอีโมจิ/สัญลักษณ์ตกแต่งทิ้ง — บางเสียง TTS จะพยายามอ่านชื่อยูนิโค้ดของอีโมจิออกมา
-         ("หน้ายิ้ม", "หัวใจสีแดง" ฯลฯ) ทำให้ฟังดูเพี้ยน/ปนภาษาแปลก ๆ */
       .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu,' ')
       .replace(/(.)\1{4,}/g,'$1$1$1')
       .replace(/\s+/g,' ').slice(0,200).trim();
-  },
-  say:function(t){
-    if(!cfg.tts||!TTS.ok)return;
-    t=TTS.clean(t); if(!t)return;
-    if(TTS.q.length>4) TTS.q.shift();
-    TTS.q.push(t); TTS.run();
-  },
-  run:function(){
-    if(TTS.busy||!TTS.q.length)return;
-    TTS.busy=true;
-    var text=TTS.q.shift(), u=new SpeechSynthesisUtterance(text), v=TTS.voice();
-    if(v){ u.voice=v; u.lang=v.lang; } else u.lang='th-TH';
-    u.rate=cfg.rate; u.pitch=cfg.pitch; u.volume=1;
-    var fin=false;   /* กัน onend+onerror ยิงซ้อน (บัค Chrome) ที่ทำให้เสียงทับกัน */
-    var done=function(){
-      if(fin)return; fin=true;
-      clearTimeout(TTS.timer);
-      TTS.busy=false; eq(false);
-      setTimeout(function(){ TTS.run(); },260);
-    };
-    u.onend=done; u.onerror=function(){ try{speechSynthesis.cancel();}catch(x){} done(); };
-    /* สำรอง: ถ้า onend/onerror ไม่ยิงเลย (บัค Chrome ตอนแท็บอยู่หลังฉาก) ให้ปลดคิวเองตามเวลาประมาณ
-       ของความยาวข้อความ — กันไม่ให้คิวค้างจนพูดทับกันตอนหลุดค้าง */
-    clearTimeout(TTS.timer);
-    TTS.timer=setTimeout(done, 1500+text.length*140);
-    eq(true); SFX.blip();
-    try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){ done(); }
   }
-};
+  function keyOf(seg){ return seg.v+'|'+seg.r+'|'+seg.t; }
+  function putCache(k,url){
+    cache.set(k,url);
+    while(cache.size>CACHE_N){
+      var old=cache.keys().next().value;
+      try{ URL.revokeObjectURL(cache.get(old)); }catch(e){}
+      cache.delete(old);
+    }
+  }
+  function fetchAudio(seg){
+    var k=keyOf(seg);
+    if(cache.has(k))return Promise.resolve(cache.get(k));
+    var url=ep()+'?q='+encodeURIComponent(seg.t)+'&v='+encodeURIComponent(seg.v)+'&r='+encodeURIComponent(seg.r);
+    var ctl=new AbortController(), to=setTimeout(function(){ctl.abort();},20000);
+    return fetch(url,{signal:ctl.signal,mode:'cors'}).then(function(r){
+      clearTimeout(to);
+      if(!r.ok)throw new Error('http '+r.status);
+      return r.blob();
+    }).then(function(b){ var o=URL.createObjectURL(b); putCache(k,o); return o; });
+  }
+  function prefetch(seg){ if(seg)fetchAudio(seg).catch(function(){}); }
+  function playUrl(url){
+    return new Promise(function(res){
+      var done=false,wd;
+      function fin(){ if(done)return; done=true; clearTimeout(wd); el.onended=el.onerror=el.onloadedmetadata=null; res(); }
+      el.onended=fin;
+      el.onerror=fin;
+      el.onloadedmetadata=function(){
+        if(isFinite(el.duration)){ clearTimeout(wd); wd=setTimeout(fin,el.duration*1000+5000); }
+      };
+      el.volume=1; el.src=url;
+      wd=setTimeout(fin,30000); // กันค้างตายตัวถ้า event ไม่ยิงเลย
+      var p=el.play();
+      if(p&&p.catch)p.catch(function(e){ if(e&&e.name==='NotAllowedError'){unlocked=false;unlock();} fin(); });
+    });
+  }
+  // สำรองชั้นสุดท้าย — ใช้ได้เฉพาะเบราว์เซอร์ปกติที่มี Thai voice จริง (ไม่ใช้ใน OBS เพราะไม่มี
+  // voice ให้ใช้อยู่แล้ว) คง pitch/rate slider เดิมไว้ให้มีผลเฉพาะทางนี้
+  function fallbackSpeak(seg){
+    return new Promise(function(res){
+      if(!window.speechSynthesis)return res();
+      var vs=speechSynthesis.getVoices()||[];
+      var th=vs.filter(function(v){return /^th(-|_|$)/i.test(v.lang)||/thai|ไทย/i.test(v.name);})[0];
+      if(!th){ console.warn('[tts] no Thai voice locally (OBS/CEF) — skip'); return res(); }
+      var u=new SpeechSynthesisUtterance(seg.t), fired=false;
+      function fin(){ if(fired)return; fired=true; clearTimeout(g); res(); }
+      var g=setTimeout(fin,Math.max(6000,seg.t.length*220));
+      u.voice=th; u.lang=th.lang; u.rate=cfg.rate; u.pitch=cfg.pitch;
+      u.onend=fin; u.onerror=fin;
+      try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){ fin(); }
+    });
+  }
+  async function loop(){
+    if(running)return;
+    running=true;
+    try{
+      while(queue.length){
+        var seg=queue.shift();
+        prefetch(queue[0]);
+        eq(true); SFX.blip();
+        try{
+          var url=await fetchAudio(seg);
+          await playUrl(url);
+        }catch(e){
+          console.warn('[tts] api fail -> local fallback:',e&&e.message);
+          await fallbackSpeak(seg);
+        }
+        eq(false);
+        await new Promise(function(r){setTimeout(r,180);});
+      }
+    }finally{
+      running=false; // หัวใจของการแก้เดิม (F-14/busy ค้าง): คืนสถานะเสมอไม่ว่าเกิดอะไรขึ้น
+    }
+  }
+  return{
+    ok:ok,
+    boot:boot,
+    say:function(t){
+      if(!cfg.tts)return;
+      t=clean(t); if(!t)return;
+      boot();
+      if(queue.length>4)queue.shift();
+      // แปลง cfg.rate (สเกลเดิม 0.4-1.6 ของ SpeechSynthesisUtterance) เป็น % ที่ backend ใช้
+      var rPct=Math.max(-40,Math.min(60,Math.round(((cfg.rate||1)-1)*100)));
+      queue.push({t:t.slice(0,300),v:'f',r:rPct});
+      loop();
+    },
+    cancel:function(){
+      queue.length=0;
+      try{ el&&el.pause(); }catch(e){}
+      try{ window.speechSynthesis&&speechSynthesis.cancel(); }catch(e){}
+      running=false; eq(false);
+    }
+  };
+})();
 function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
 
 /* ───── 03 · PARTICLE BURST ──────────────────────────────────── */
@@ -2616,7 +2683,7 @@ function dock(){
     var r=e.target.closest('.nf-row');
     if(r){ var k=r.dataset.k; cfg[k]=cfg[k]?0:1; r.classList.toggle('on',!!cfg[k]);
            save(); SFX.blip();
-           if(k==='tts'&&!cfg.tts&&TTS.ok){ try{speechSynthesis.cancel();}catch(x){} TTS.q=[]; }
+           if(k==='tts'&&!cfg.tts&&TTS.ok){ TTS.cancel(); }
            if(k==='ticker'&&!cfg.ticker){ var t=document.getElementById('nf-ticker'); if(t)t.classList.remove('on'); }
            return; }
     if(e.target.classList.contains('nf-test')){
