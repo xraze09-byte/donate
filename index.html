@@ -1714,7 +1714,7 @@ function typeIn(el,tx,sp){if(typer)clearInterval(typer);el.textContent='';el.cla
  if(!tx){el.classList.remove('cr');return}var i=0;
  typer=setInterval(function(){el.textContent=tx.slice(0,++i);if(i%3===0)SFX.tick();
   if(i>=tx.length){clearInterval(typer);typer=null;el.classList.remove('cr')}},sp||26)}
-function play(d,done){clr();var t=tierOf(d.amount),nm=thSlice(String(d.name||'ANONYMOUS'),22);if(!/[\u0E00-\u0E7F]/.test(nm))nm=nm.toUpperCase();
+function play(d,done){clr();var t=tierOf(num(d.amount)),nm=thSlice(String(d.name||'ANONYMOUS'),22);if(!/[\u0E00-\u0E7F]/.test(nm))nm=nm.toUpperCase();
  aName.textContent=nm;aName.setAttribute('data-text',nm);aTier.textContent=t.n;aAmt.textContent='0';aMsg.textContent='';
  card.classList.remove('in','out');card.style.opacity='0';lw.classList.remove('go','dock','out');stage.classList.add('active');
  prep();void lw.offsetWidth;lw.classList.add('go');rs(strk,'go');SFX.whoosh();
