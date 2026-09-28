@@ -1501,7 +1501,7 @@ function P(k){var h=location.hash||'',i=h.indexOf('?'),
  return hp.get(k)!==null?hp.get(k):sp.get(k)}
 
 /* ═══════════ CONFIG ═══════════ */
-var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://donate-backend-60hc.onrender.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true,token:''};
+var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://donate-backend-60hc.onrender.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true};
 var CFG=(function(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(K_CFG))||{})}catch(e){return Object.assign({},DEF)}})();
 if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
@@ -1516,51 +1516,20 @@ function tierOf(a){return TIERS.reduce(function(r,t){return a>=t.m?t:r},TIERS[0]
 
 /* ═══════════ STORE (IndexedDB + fallback) ═══════════ */
 var ST={db:null,mem:null,
- /* แก้บัค: เดิม timer 2.5s เป็น fallback ไม่เคย clearTimeout ในเส้นทาง onsuccess/onerror —
-    ถ้า IndexedDB เปิดสำเร็จช้ากว่า 2.5s (มือถือ/เครื่องช้า) จะเกิดทั้ง self.db และ self.mem
-    ถูกตั้งพร้อมกัน ข้อมูลบางส่วนไปเขียนที่ store หนึ่ง บางส่วนไปอีก store → "ข้อมูลหายเอง"
-    ตอนนี้ใช้ settled flag กันยิง callback ซ้ำ/สาย + เพิ่ม onblocked/onversionchange (แท็บอื่น
-    เปิดพร้อมกันแล้วมีการอัปเกรด schema จะไม่ค้างรอตลอดไป) */
  open:function(){var self=this;return new Promise(function(res){
-  var settled=false,timer=null;
-  function done(ok){
-   if(settled)return; settled=true;
-   if(timer)clearTimeout(timer);
-   if(!ok&&!self.mem)self.mem=self.readLS();
-   res(ok);
-  }
-  if(!window.indexedDB)return done(false);
-  var r;try{r=indexedDB.open('rz_clan_v4',1)}catch(e){return done(false)}
+  if(!window.indexedDB){self.mem=self.readLS();return res(false)}
+  var r;try{r=indexedDB.open('rz_clan_v4',1)}catch(e){self.mem=self.readLS();return res(false)}
   r.onupgradeneeded=function(e){var d=e.target.result;
    if(!d.objectStoreNames.contains('don')){var s=d.createObjectStore('don',{keyPath:'id'});s.createIndex('st','status')}
    if(!d.objectStoreNames.contains('slip'))d.createObjectStore('slip',{keyPath:'id'})};
-  r.onsuccess=function(){self.db=r.result;
-   self.db.onversionchange=function(){try{self.db.close()}catch(e){}self.db=null;self.mem=self.readLS()};
-   done(true)};
-  r.onerror=function(){done(false)};
-  r.onblocked=function(){done(false)};
-  timer=setTimeout(function(){done(false)},2500)})},
+  r.onsuccess=function(){self.db=r.result;res(true)};
+  r.onerror=function(){self.mem=self.readLS();res(false)};
+  setTimeout(function(){if(!self.db&&!self.mem){self.mem=self.readLS();res(false)}},2500)})},
  readLS:function(){try{return JSON.parse(localStorage.getItem('rzc_db_v4'))||{don:[],slip:{}}}catch(e){return {don:[],slip:{}}}},
  writeLS:function(){try{localStorage.setItem('rzc_db_v4',JSON.stringify(this.mem))}catch(e){}},
- /* แก้บัค (F-10): เดิม put() ที่ reject ได้ (เช่น QuotaExceededError ตอนพื้นที่เต็มจากสลิป
-    สะสมเยอะ) ไม่มีจุดไหนใน onMsg/decide/submit ฯลฯ ดัก .catch() ไว้เลย (~10 จุดเรียกใช้)
-    ทำให้ "กดอนุมัติ" ดูสำเร็จบนหน้าจอ แต่ข้อมูลไม่ถูกเขียนจริง แล้วหายไปตอน refresh โดยไม่มี
-    error ให้เห็นเลยสักบรรทัด — แก้จุดเดียวที่นี่: ถ้า IndexedDB เขียนพลาด ลองสำรองลง
-    localStorage แทนกันข้อมูลหายเปล่า ๆ แล้วโชว์ toast เตือนให้รู้ตัวจริง */
  put:function(store,v){var self=this;return new Promise(function(res,rej){
   if(self.mem){if(store==='don'){var i=self.mem.don.findIndex(function(x){return x.id===v.id});i>=0?self.mem.don[i]=v:self.mem.don.push(v)}else self.mem.slip[v.id]=v.data;self.writeLS();return res(v)}
-  var q=self.db.transaction(store,'readwrite').objectStore(store).put(v);
-  q.onsuccess=function(){res(v)};
-  q.onerror=function(){
-   try{
-    if(!self.mem)self.mem=self.readLS();
-    if(store==='don'){var i=self.mem.don.findIndex(function(x){return x.id===v.id});i>=0?self.mem.don[i]=v:self.mem.don.push(v)}
-    else self.mem.slip[v.id]=v.data;
-    self.writeLS();
-    if(typeof toast==='function')toast('!! บันทึกลง IndexedDB ไม่ได้ (พื้นที่อาจเต็ม) — สำรองไว้ชั่วคราวแล้ว');
-    res(v);
-   }catch(e2){rej(q.error)}
-  }})},
+  var q=self.db.transaction(store,'readwrite').objectStore(store).put(v);q.onsuccess=function(){res(v)};q.onerror=function(){rej(q.error)}})},
  get:function(store,k){var self=this;return new Promise(function(res){
   if(self.mem){if(store==='don')return res(self.mem.don.find(function(x){return x.id===k})||null);return res(self.mem.slip[k]?{id:k,data:self.mem.slip[k]}:null)}
   var q=self.db.transaction(store,'readonly').objectStore(store).get(k);q.onsuccess=function(){res(q.result||null)};q.onerror=function(){res(null)}})},
@@ -1582,36 +1551,16 @@ function approved(){return DONS.filter(function(d){return d.status==='approved'}
 var AUTH={
  has:function(){try{return !!JSON.parse(localStorage.getItem(K_AUTH))}catch(e){return false}},
  rec:function(){try{return JSON.parse(localStorage.getItem(K_AUTH))}catch(e){return null}},
- hasSubtle:function(){return !!(window.isSecureContext&&window.crypto&&crypto.subtle&&crypto.subtle.importKey)},
  derive:function(pw,salt,it){
-  if(!this.hasSubtle())return Promise.resolve('W:'+weak(pw+salt));
+  if(!(window.crypto&&crypto.subtle&&crypto.subtle.importKey))return Promise.resolve('W:'+weak(pw+salt));
   var e=new TextEncoder();
   return crypto.subtle.importKey('raw',e.encode(pw),'PBKDF2',false,['deriveBits']).then(function(k){
    return crypto.subtle.deriveBits({name:'PBKDF2',salt:e.encode(salt),iterations:it,hash:'SHA-256'},k,256)}).then(hex)
    .catch(function(){return 'W:'+weak(pw+salt)})},
- /* แก้บัค (F-05): เดิมถ้า crypto.subtle ใช้ไม่ได้ (เปิดผ่าน HTTP/LAN IP ธรรมดา) ตอน "ตั้งรหัส
-    ใหม่" จะร่วงไปใช้ hash อ่อน (weak()) แบบเงียบๆ ไม่มีคำเตือน — รหัสแอดมินแตกง่ายโดยไม่รู้ตัว
-    ตอนนี้ถ้าตั้ง/เปลี่ยนรหัสแล้วไม่มี crypto.subtle จะ reject ชัดเจนแทนที่จะเนียนใช้ของอ่อน */
- set:function(pw){
-  if(!this.hasSubtle())return Promise.reject(new Error('ต้องเปิดหน้านี้ผ่าน HTTPS (หรือ localhost) เพื่อตั้งรหัสผ่านอย่างปลอดภัย'));
-  var salt=rnd(16),it=210000;
+ set:function(pw){var salt=rnd(16),it=210000;
   return this.derive(pw,salt,it).then(function(h){
    localStorage.setItem(K_AUTH,JSON.stringify({s:salt,i:it,h:h,t:Date.now()}));return true})},
- /* แก้บัค (F-05 ต่อ): บัคเดิมอีกจุด — ถ้าตั้งรหัสตอนไม่มี crypto.subtle (ได้ hash อ่อนมา) แล้ว
-    วันหลังมาล็อกอินตอนมี crypto.subtle แล้ว (เช่นย้ายไปเปิดผ่าน HTTPS) derive() จะคำนวณ hash
-    แบบ PBKDF2 ความยาวไม่เท่าของเดิมที่เก็บไว้ → เทียบ length ไม่ตรง → false ทันที ล็อกอินไม่ได้
-    เงียบๆ ทั้งที่รหัสถูก — ตอนนี้เช็คแบบ weak ต่อสำหรับ hash เก่า แล้ว "อัปเกรด" เป็น PBKDF2
-    ให้อัตโนมัติเมื่อมี crypto.subtle แล้ว (ล็อกอินผ่านได้เหมือนเดิม ไม่ล็อกใครออก) */
- check:function(pw){var self=this,r=this.rec();if(!r)return Promise.resolve(false);
-  if(String(r.h||'').indexOf('W:')===0){
-   var ok=('W:'+weak(pw+r.s))===r.h;
-   if(ok&&this.hasSubtle()){
-    var ns=rnd(16),ni=210000;
-    this.derive(pw,ns,ni).then(function(h){
-     if(String(h).indexOf('W:')!==0)localStorage.setItem(K_AUTH,JSON.stringify({s:ns,i:ni,h:h,t:Date.now()}))});
-   }
-   return Promise.resolve(ok);
-  }
+ check:function(pw){var r=this.rec();if(!r)return Promise.resolve(false);
   return this.derive(pw,r.s,r.i).then(function(h){
    if(h.length!==r.h.length)return false;var d=0;for(var i=0;i<h.length;i++)d|=h.charCodeAt(i)^r.h.charCodeAt(i);return d===0})},
  lock:function(){try{return JSON.parse(localStorage.getItem(K_LOCK))||{n:0,u:0}}catch(e){return {n:0,u:0}}},
@@ -1639,16 +1588,10 @@ var PP={f:function(i,v){return i+pad(v.length,2)+v},
  crc:function(s){var c=0xFFFF;for(var i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;
   for(var j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}
   return c.toString(16).toUpperCase().padStart(4,'0')},
- /* แก้บัค (F-17/F-18): EMVCo กำหนดให้ tag ต้องเรียงเลขจากน้อยไปมาก — เดิมใส่ tag 58 (country)
-    มาก่อน tag 53 (currency) ซึ่งผิดลำดับ ทำให้เครื่องสแกน QR ของธนาคารบางเจ้า (SCB/กรุงไทยรุ่นเก่า)
-    ปฏิเสธ payload นี้ — อาการ "QR ใช้ได้กับแอปธนาคารนี้ แต่อีกเจ้าไม่ได้" ตรงนี้เลย
-    และ tag 59 (ชื่อผู้รับ)/60 (เมือง) หายไปทั้งคู่ — เป็น mandatory field ของ merchant-presented QR
-    ตอนนี้เรียง tag ให้ถูกและเติม 59/60 เข้าไป */
  make:function(id,amt){var t=this.tgt(id);if(!t)return '';
   var mm=this.f('00','A000000677010111')+this.f(t.t,t.v);
-  var s=this.f('00','01')+this.f('01',amt>0?'12':'11')+this.f('29',mm)
-   +this.f('53','764')+(amt>0?this.f('54',Number(amt).toFixed(2)):'')+this.f('58','TH')
-   +this.f('59',String(CFG.payee||'RZ CLAN').slice(0,25))+this.f('60','BANGKOK')+'6304';
+  var s=this.f('00','01')+this.f('01',amt>0?'12':'11')+this.f('29',mm)+this.f('58','TH')
+   +this.f('53','764')+(amt>0?this.f('54',Number(amt).toFixed(2)):'')+'6304';
   return s+this.crc(s)},
  nice:function(id){var d=String(id||'').replace(/\D/g,'');
   if(d.length===10)return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
@@ -1683,22 +1626,7 @@ function emit(type,data){var m={t:type,d:data,i:uid()};
  try{localStorage.setItem(K_BUS,JSON.stringify(m))}catch(e){}
  if(bc)try{bc.postMessage(m)}catch(e){}
  if(ws&&ws.readyState===1)try{ws.send(JSON.stringify(m))}catch(e){}}
-/* แก้บัคเสียง/การ์ดซ้อนกัน (F-07): emit() ส่งออกพร้อมกัน 3 ทาง — localStorage,
-   BroadcastChannel, WebSocket — ถ้าเปิดแอดมิน+โอเวอร์เลย์บนเบราว์เซอร์เดียวกัน หรือมีมากกว่า
-   หนึ่งแท็บ ข้อความเดียวกันจะมาถึง onMsg() 2-3 รอบ (ผ่านคนละทาง) เดิมไม่มีการกันซ้ำเลย ทำให้
-   การ์ด/เสียงอ่านโดเนทเดียวกันเด้งซ้อนกัน — นี่คือสาเหตุจริงของ "เสียงทับกัน" ที่น่าจะพบบ่อยกว่า
-   ปัญหา Chrome ค้าง speechSynthesis ที่แก้ไปก่อนหน้า */
-var MSG_SEEN=new Map();
-function msgFresh(k){
-  if(!k)return true;
-  var now=Date.now();
-  MSG_SEEN.forEach(function(t,key){if(now-t>60000)MSG_SEEN.delete(key)});
-  if(MSG_SEEN.has(k))return false;
-  MSG_SEEN.set(k,now); return true;
-}
 function onMsg(m){if(!m||!m.t)return;
- var mid=(m.d&&(m.d.id||(m.d.rec&&m.d.rec.id)))||'';
- if(!msgFresh(m.t+':'+mid+':'+(m._at||'')))return;
  if(m.t==='alert'&&m.d)enqueue(m.d);
  else if(m.t==='donation'&&m.d&&m.d.rec){
   var ops=[ST.put('don',m.d.rec)];
@@ -1714,23 +1642,8 @@ if(bc)bc.onmessage=function(e){onMsg(e.data)};
 var WSU=P('ws')||CFG.ws;
 function wsConnect(){if(!WSU)return;
  var u=WSU+(WSU.indexOf('?')>=0?'&':'?')+'ch='+encodeURIComponent(CH);
- /* เตรียมพื้นฐานไว้เฉย ๆ (ไม่มีผลอะไรถ้ายังไม่ตั้งค่า): ถ้าอนาคตตั้ง CFG.token ไว้ (คู่กับ
-    RELAY_TOKEN บนเซิร์ฟเวอร์) จะแนบ &tok= ไปด้วย — ตอนนี้ CFG.token ว่างเสมอ พฤติกรรมเดิม 100% */
- if(CFG.token)u+='&tok='+encodeURIComponent(CFG.token);
  try{ws=new WebSocket(u);
   ws.onmessage=function(e){try{onMsg(JSON.parse(e.data))}catch(x){}};
-  /* แก้บัค (F-14): เดิมไม่มี onopen เลย — ถ้าเซิร์ฟเวอร์รีสตาร์ท (Render redeploy/spin-down)
-     cfgStore บนเซิร์ฟเวอร์จะว่างเปล่า ไม่มีใคร push cfg ให้ใหม่ โดนัยว่าโดนอร์ที่เปิดหน้าเว็บ
-     พอดีตอนนั้นจะเห็น "PROMPTPAY NOT CONFIGURED" ทั้งที่ทุกอย่างดูปกติ ไม่มี error ให้เห็น —
-     ตอนนี้ถ้าแท็บนี้คือแอดมินที่ล็อกอินอยู่ (มีสิทธิ์ตั้งค่าจริง) จะส่ง cfg ปัจจุบันกลับไปให้
-     เซิร์ฟเวอร์ทุกครั้งที่ (ต่อ)เชื่อมต่อสำเร็จ */
-  ws.onopen=function(){
-   try{
-    if(location.hash.indexOf('#admin')===0&&typeof AUTH!=='undefined'&&AUTH.valid&&AUTH.valid()&&CFG.pp){
-     emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip});
-    }
-   }catch(e){}
-  };
   ws.onclose=function(){ws=null;setTimeout(wsConnect,2000+Math.random()*2000)};
   ws.onerror=function(){try{ws.close()}catch(e){}}}
  catch(e){setTimeout(wsConnect,3000)}}
@@ -1877,22 +1790,15 @@ function bad(el,sel,msg){el.classList.add('bad');var e=$(sel);if(msg)e.textConte
  setTimeout(function(){el.classList.remove('bad')},520);el.focus()}
 dForm.addEventListener('submit',function(e){e.preventDefault();
  $$('.err').forEach(function(x){x.classList.remove('on')});
- var n=dName.value.trim();
- /* แก้บัค (F-16): เดิม Math.floor(Number(v)||0) ตัดสตางค์ทิ้งเงียบ ๆ (โอน 20.50 แต่ QR/บันทึกเป็น 20)
-    และ Number('1e999') ได้ Infinity ทำให้ QR พัง ไม่มีเพดานบน (พิมพ์ยอดหลักล้านเล่น ๆ ก็ผ่าน) —
-    ตอนนี้บังคับรูปแบบเลขจริง ทศนิยมไม่เกิน 2 ตำแหน่ง และมีเพดานสมเหตุผล */
- var raw=String(dAmt.value||'').trim();
- if(!/^\d{1,7}(\.\d{1,2})?$/.test(raw))return bad(dAmt,'#eAmt','จำนวนเงินไม่ถูกต้อง');
- var a=Math.round(parseFloat(raw)*100)/100;
+ var n=dName.value.trim(),a=Math.floor(Number(dAmt.value)||0);
  if(!n)return bad(dName,'#eName','กรุณาระบุชื่อ');
  if(!(a>0))return bad(dAmt,'#eAmt','จำนวนเงินต้องมากกว่า 0');
  if(a<(CFG.min||1))return bad(dAmt,'#eAmt','ขั้นต่ำ '+fmt(CFG.min)+' บาท');
- if(a>1000000)return bad(dAmt,'#eAmt','ยอดสูงสุด 1,000,000 บาท');
  if(!PP.tgt(CFG.pp))return toast('!! ระบบยังไม่พร้อมรับโอน');
  btnFx($('#bGen'));openPay({name:n,amount:a,message:dMsg.value.trim()})});
 
 /* ═══════════ PAY MODAL ═══════════ */
-var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='',slipSha='';
+var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='';
 function openPay(d){
  pend={id:uid(),name:d.name,amount:d.amount,message:d.message,ts:Date.now(),status:'pending',
   ref:'RZ-'+Date.now().toString(36).toUpperCase().slice(-6),slip:false};
@@ -1919,15 +1825,6 @@ $('#bSaveQr').addEventListener('click',function(){if(!qrSrc)return toast('!! NO 
 $('#fSlip').addEventListener('change',function(){var f=this.files&&this.files[0];if(!f)return;
  if(!/^image\//.test(f.type))return toast('!! ต้องเป็นไฟล์รูป');
  if(f.size>12*1024*1024)return toast('!! ไฟล์ใหญ่เกิน 12MB');
- /* F-06: แฮชไฟล์สลิปต้นฉบับด้วย SHA-256 เก็บไว้คู่กับ rec — ใช้เตือนแอดมินตอนอนุมัติถ้ามีคน
-    เอาสลิปใบเดิมมายิงซ้ำ (การโกงที่พบบ่อยสุดของระบบแบบนี้) ไม่ต้องพึ่ง API ธนาคารเลย —
-    เป็นแค่คำเตือน ไม่บล็อกอัตโนมัติ เผื่อกรณี false positive จะได้ไม่ปฏิเสธคนจ่ายจริง */
- slipSha='';
- if(window.crypto&&crypto.subtle&&crypto.subtle.digest){
-  f.arrayBuffer().then(function(buf){return crypto.subtle.digest('SHA-256',buf)})
-   .then(function(h){slipSha=Array.prototype.map.call(new Uint8Array(h),function(b){return b.toString(16).padStart(2,'0')}).join('')})
-   .catch(function(){});
- }
  var fr=new FileReader();fr.onload=function(){var im=new Image();
   im.onload=function(){var mx=1000,r=Math.min(1,mx/Math.max(im.width,im.height));
    var cv=document.createElement('canvas');cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);
@@ -1940,14 +1837,14 @@ $('#bSubmit').addEventListener('click',function(){
  if(!pend)return;
  if(CFG.reqSlip&&!slipData)return toast('!! กรุณาแนบสลิปก่อน');
  var b=this;b.disabled=true;btnFx(b);
- var rec=Object.assign({},pend);rec.slip=!!slipData;rec.sha=slipSha||'';
+ var rec=Object.assign({},pend);rec.slip=!!slipData;
  var ops=[ST.put('don',rec)];
  if(slipData)ops.push(ST.put('slip',{id:rec.id,data:slipData}));
  Promise.all(ops).then(function(){
   emit('donation',{rec:rec,slip:slipData||null});
   emit('sync',{});closePay();dForm.reset();$('#mCnt').textContent='0';
   $$('#chips .chip').forEach(function(x){x.classList.remove('on')});upTier();
-  pend=null;slipData='';slipSha='';b.disabled=false;
+  pend=null;slipData='';b.disabled=false;
   toast('✓ ส่งคำขอแล้ว รอตรวจสอบ',1);refreshPublic()})
  .catch(function(){b.disabled=false;toast('!! บันทึกไม่สำเร็จ')})});
 
@@ -1986,10 +1883,7 @@ gForm.addEventListener('submit',function(e){e.preventDefault();gErr.classList.re
   if(pw.length<10){gErr.textContent='!! รหัสต้องยาวอย่างน้อย 10 ตัวอักษร';return gErr.classList.add('on')}
   if(pw!==gPw2.value){gErr.textContent='!! รหัสผ่านทั้งสองช่องไม่ตรงกัน';return gErr.classList.add('on')}
   gBtn.disabled=true;AUTH.set(pw).then(function(){AUTH.open();gPw.value=gPw2.value='';gBtn.disabled=false;
-   toast('✓ ตั้งรหัสผ่านสำเร็จ',1);enterAdmin()}).catch(function(e){
-   /* F-05: AUTH.set() ตอนนี้ reject ได้ถ้าไม่มี crypto.subtle (ไม่ใช่ HTTPS/localhost) — ต้องจับไว้
-      ไม่งั้นปุ่มจะค้าง disabled ตลอดไปเงียบๆ โดยไม่มี error ให้เห็น */
-   gBtn.disabled=false;gErr.textContent='!! '+(e&&e.message||'ตั้งรหัสผ่านไม่สำเร็จ');gErr.classList.add('on')});return}
+   toast('✓ ตั้งรหัสผ่านสำเร็จ',1);enterAdmin()});return}
  gBtn.disabled=true;
  AUTH.check(pw).then(function(ok){gBtn.disabled=false;gPw.value='';
   if(ok){AUTH.pass();AUTH.open();enterAdmin();
@@ -2042,12 +1936,6 @@ function renderQueue(pd){var h=$('#qList');
  $$('[data-no]',h).forEach(function(b){b.addEventListener('click',function(){
   if(confirm('ปฏิเสธรายการนี้?'))decide(b.dataset.no,'rejected')})})}
 function decide(id,st){var d=DONS.find(function(x){return x.id===id});if(!d)return;
- /* F-06: เตือน (ไม่บล็อก) ถ้าสลิปนี้ตรงกับสลิปที่อนุมัติไปแล้วก่อนหน้า — เคสโกงที่พบบ่อยสุด
-    คือเอาสลิปจริงใบเดียวมายิงซ้ำหลายรอบ */
- if(st==='approved'&&d.sha){
-  var dup=DONS.find(function(x){return x.sha===d.sha&&x.id!==d.id&&x.status==='approved'});
-  if(dup&&!confirm('⚠ สลิปนี้เหมือนกับรายการ '+dup.ref+' ที่อนุมัติไปแล้ว ('+new Date(dup.ts).toLocaleString('th-TH')+') — อนุมัติต่อไหม?'))return;
- }
  d.status=st;d.decided=Date.now();
  ST.put('don',d).then(function(){
   emit('resolved',{id:d.id,status:st});
@@ -2162,8 +2050,7 @@ $('#bChpw').addEventListener('click',function(){
  var o=$('#cpOld').value,n=$('#cpNew').value;
  if(n.length<10)return toast('!! รหัสใหม่ต้องยาว 10+ ตัว');
  AUTH.check(o).then(function(ok){if(!ok)return toast('!! รหัสเดิมไม่ถูกต้อง');
-  AUTH.set(n).then(function(){$('#cpOld').value=$('#cpNew').value='';btnFx($('#bChpw'));toast('✓ เปลี่ยนรหัสแล้ว',1)})
-   .catch(function(e){toast('!! '+(e&&e.message||'เปลี่ยนรหัสไม่สำเร็จ'))})})});
+  AUTH.set(n).then(function(){$('#cpOld').value=$('#cpNew').value='';btnFx($('#bChpw'));toast('✓ เปลี่ยนรหัสแล้ว',1)})})});
 $('#bWipe').addEventListener('click',function(){
  if(!confirm('ลบข้อมูลโดเนททั้งหมดถาวร?'))return;
  if(!confirm('ยืนยันอีกครั้ง — กู้คืนไม่ได้'))return;
@@ -2283,147 +2170,77 @@ var SFX={
   blip  :function(){ if(!cfg.sfx)return; tone(900,1420,.08,'square',.08,0); }
 };
 
-/* ───── 02 · TTS v2 — server-side proxy (Edge Neural -> Google Translate -> Web Speech) ─────
-   เหตุผลที่เปลี่ยนจาก speechSynthesis เดิมทั้งหมด (F-TTS-01): OBS Browser Source รันบน CEF
-   (Chromium Embedded Framework) ซึ่งไม่ผูกกับ speech engine ของ OS — getVoices() คืน array
-   ว่างเปล่าเสมอ ไม่ใช่บั๊ก race condition/permission ที่แก้ได้ด้วย queue logic เลย เป็นข้อจำกัด
-   ของสภาพแวดล้อมเอง (รายงานในฟอรั่ม OBS ตั้งแต่ปี 2018) — ทางแก้จริงคือสังเคราะห์เสียงที่ฝั่ง
-   เซิร์ฟเวอร์ (เหมือน StreamElements/StreamLabs) แล้วส่ง MP3 มาเล่นผ่าน <audio> ซึ่งผ่าน audio
-   pipeline ปกติ คุมระดับเสียงจาก OBS Audio Mixer ได้ด้วย
-   หมายเหตุจากการทดสอบจริง: Edge TTS (unofficial MS endpoint) ตอบ 403 สม่ำเสมอจาก IP ระดับ
-   cloud/datacenter (ตรงกับความเสี่ยงที่รู้กันอยู่แล้วว่าเป็น endpoint ไม่เป็นทางการ) — ระบบจะ
-   fallback ไป Google Translate TTS แทนโดยอัตโนมัติ (เสียงหุ่นยนต์กว่าแต่ยังพูดได้) เช็คได้จริง
-   หลัง deploy ผ่าน GET /tts/health บน backend */
-var TTS=(function(){
-  var ok=true, queue=[], running=false, el=null, unlocked=false;
-  var cache=new Map(), CACHE_N=20;
-
-  function ep(){
-    // ใช้ host เดียวกับ WSU (WebSocket relay) ที่ตั้งค่าไว้อยู่แล้ว แทนการฝัง URL ใหม่ตายตัว
-    var base=(WSU||'').replace(/^wss:/,'https:').replace(/\/ws\/?$/,'');
-    return base+'/tts';
-  }
-  function boot(){
-    if(el)return;
-    el=new Audio(); el.preload='auto'; el.crossOrigin='anonymous';
-    // OBS ตั้ง autoplay-policy=no-user-gesture-required อยู่แล้ว → ผ่านเงียบๆ
-    // เบราว์เซอร์ปกติต้องรอ user gesture → ดักไว้ทุกทาง
+/* ───── 02 · TTS — Cloud Thai TTS (server-synth via donate-backend, Edge/Google) ─
+   เดิม: window.speechSynthesis (เสียงในเครื่อง/เบราว์เซอร์ — OBS/บางเครื่องไม่มีเสียงไทย
+   เลย ทำให้ "พูดไทยไม่ได้"). ตอนนี้: ยิงไป /tts บน backend (Render) ที่สังเคราะห์เสียง
+   ไทยจริงด้วย Edge TTS + Google Translate fallback แล้วส่ง MP3 กลับมาเล่นผ่าน <audio> —
+   เสียงจึงเหมือนกันทุกเครื่อง/เบราว์เซอร์ ไม่ขึ้นกับ voice ที่ติดตั้งไว้ในเครื่องอีกต่อไป */
+var TTS_EP='https://donate-backend-60hc.onrender.com/tts';
+var TTS={
+  ok:true, q:[], busy:false, timer:null, audio:null,
+  boot:function(){
+    TTS.audio=new Audio();
+    TTS.audio.addEventListener('ended',function(){TTS._done&&TTS._done();});
+    TTS.audio.addEventListener('error',function(){TTS._done&&TTS._done();});
+    /* ปลดล็อก autoplay ของเบราว์เซอร์/OBS ด้วย interaction แรกของผู้ใช้ */
     ['pointerdown','keydown','touchstart'].forEach(function(ev){
-      addEventListener(ev,unlock,{passive:true});
-    });
-    unlock();
-  }
-  function unlock(){
+      addEventListener(ev,TTS.unlock,{once:true,passive:true}); });
+  },
+  unlock:function(){
     ctx();
-    if(unlocked||!el)return;
-    el.muted=true;
-    var p=el.play();
-    if(p&&p.then)p.then(function(){ el.pause(); el.currentTime=0; el.muted=false; unlocked=true; })
-      .catch(function(){ el.muted=false; });
-  }
-  function clean(t){
+    try{ TTS.audio.muted=true; TTS.audio.play().catch(function(){}); 
+         setTimeout(function(){ TTS.audio.pause(); TTS.audio.muted=false; },50); }catch(e){}
+  },
+  stop:function(){
+    try{ TTS.audio.pause(); TTS.audio.removeAttribute('src'); }catch(e){}
+    TTS.q=[]; TTS.busy=false; clearTimeout(TTS.timer);
+  },
+  clean:function(t){
     return String(t||'')
-      .replace(/https?:\/\/\S+/g,' ลิงก์ ')
+      .replace(/https?:\/\/\S+/g,' ')
       .replace(/[<>{}\[\]|\\^~`*_#@]/g,' ')
+      /* ตัดอีโมจิ/สัญลักษณ์ตกแต่งทิ้ง — กัน TTS อ่านชื่อยูนิโค้ดของอีโมจิออกมา */
       .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu,' ')
       .replace(/(.)\1{4,}/g,'$1$1$1')
       .replace(/\s+/g,' ').slice(0,200).trim();
-  }
-  function keyOf(seg){ return seg.v+'|'+seg.r+'|'+seg.t; }
-  function putCache(k,url){
-    cache.set(k,url);
-    while(cache.size>CACHE_N){
-      var old=cache.keys().next().value;
-      try{ URL.revokeObjectURL(cache.get(old)); }catch(e){}
-      cache.delete(old);
-    }
-  }
-  function fetchAudio(seg){
-    var k=keyOf(seg);
-    if(cache.has(k))return Promise.resolve(cache.get(k));
-    var url=ep()+'?q='+encodeURIComponent(seg.t)+'&v='+encodeURIComponent(seg.v)+'&r='+encodeURIComponent(seg.r);
-    var ctl=new AbortController(), to=setTimeout(function(){ctl.abort();},20000);
-    return fetch(url,{signal:ctl.signal,mode:'cors'}).then(function(r){
-      clearTimeout(to);
-      if(!r.ok)throw new Error('http '+r.status);
+  },
+  say:function(t){
+    if(!cfg.tts)return;
+    t=TTS.clean(t); if(!t)return;
+    if(TTS.q.length>4) TTS.q.shift();
+    TTS.q.push(t); TTS.run();
+  },
+  run:function(){
+    if(TTS.busy||!TTS.q.length)return;
+    TTS.busy=true;
+    var text=TTS.q.shift();
+    /* cfg.rate 0.4-1.6 (1=ปกติ) → เปอร์เซ็นต์ที่ /tts รับ (r=-40..60) */
+    var rNum=Math.max(-40,Math.min(60,Math.round(((cfg.rate||0.9)-1)*100)));
+    var url=TTS_EP+'?q='+encodeURIComponent(text)+'&v=auto&r='+rNum;
+    var fin=false;
+    var done=function(){
+      if(fin)return; fin=true; clearTimeout(TTS.timer);
+      TTS.busy=false; eq(false);
+      setTimeout(function(){ TTS.run(); },220);
+    };
+    TTS._done=done;
+    clearTimeout(TTS.timer);
+    /* กันค้าง ถ้า backend ไม่ตอบ/audio ไม่ยิง ended เลย */
+    TTS.timer=setTimeout(done, 4000+text.length*140);
+    fetch(url).then(function(r){
+      if(!r.ok) throw new Error('http '+r.status+' '+(r.headers.get('x-tts-error')||''));
+      var ct=r.headers.get('content-type')||'';
+      if(ct.indexOf('audio')<0) throw new Error('ไม่ใช่ไฟล์เสียง: '+ct);
       return r.blob();
-    }).then(function(b){ var o=URL.createObjectURL(b); putCache(k,o); return o; });
+    }).then(function(b){
+      if(!b||b.size<800) throw new Error('audio ว่าง ('+(b&&b.size)+' bytes)');
+      var o=URL.createObjectURL(b);
+      TTS.audio.src=o; TTS.audio.volume=1;
+      eq(true); SFX.blip();
+      TTS.audio.play().catch(function(e){ console.warn('[tts] play blocked',e); done(); });
+    }).catch(function(e){ console.warn('[tts]',e.message); done(); });
   }
-  function prefetch(seg){ if(seg)fetchAudio(seg).catch(function(){}); }
-  function playUrl(url){
-    return new Promise(function(res){
-      var done=false,wd;
-      function fin(){ if(done)return; done=true; clearTimeout(wd); el.onended=el.onerror=el.onloadedmetadata=null; res(); }
-      el.onended=fin;
-      el.onerror=fin;
-      el.onloadedmetadata=function(){
-        if(isFinite(el.duration)){ clearTimeout(wd); wd=setTimeout(fin,el.duration*1000+5000); }
-      };
-      el.volume=1; el.src=url;
-      wd=setTimeout(fin,30000); // กันค้างตายตัวถ้า event ไม่ยิงเลย
-      var p=el.play();
-      if(p&&p.catch)p.catch(function(e){ if(e&&e.name==='NotAllowedError'){unlocked=false;unlock();} fin(); });
-    });
-  }
-  // สำรองชั้นสุดท้าย — ใช้ได้เฉพาะเบราว์เซอร์ปกติที่มี Thai voice จริง (ไม่ใช้ใน OBS เพราะไม่มี
-  // voice ให้ใช้อยู่แล้ว) คง pitch/rate slider เดิมไว้ให้มีผลเฉพาะทางนี้
-  function fallbackSpeak(seg){
-    return new Promise(function(res){
-      if(!window.speechSynthesis)return res();
-      var vs=speechSynthesis.getVoices()||[];
-      var th=vs.filter(function(v){return /^th(-|_|$)/i.test(v.lang)||/thai|ไทย/i.test(v.name);})[0];
-      if(!th){ console.warn('[tts] no Thai voice locally (OBS/CEF) — skip'); return res(); }
-      var u=new SpeechSynthesisUtterance(seg.t), fired=false;
-      function fin(){ if(fired)return; fired=true; clearTimeout(g); res(); }
-      var g=setTimeout(fin,Math.max(6000,seg.t.length*220));
-      u.voice=th; u.lang=th.lang; u.rate=cfg.rate; u.pitch=cfg.pitch;
-      u.onend=fin; u.onerror=fin;
-      try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){ fin(); }
-    });
-  }
-  async function loop(){
-    if(running)return;
-    running=true;
-    try{
-      while(queue.length){
-        var seg=queue.shift();
-        prefetch(queue[0]);
-        eq(true); SFX.blip();
-        try{
-          var url=await fetchAudio(seg);
-          await playUrl(url);
-        }catch(e){
-          console.warn('[tts] api fail -> local fallback:',e&&e.message);
-          await fallbackSpeak(seg);
-        }
-        eq(false);
-        await new Promise(function(r){setTimeout(r,180);});
-      }
-    }finally{
-      running=false; // หัวใจของการแก้เดิม (F-14/busy ค้าง): คืนสถานะเสมอไม่ว่าเกิดอะไรขึ้น
-    }
-  }
-  return{
-    ok:ok,
-    boot:boot,
-    say:function(t){
-      if(!cfg.tts)return;
-      t=clean(t); if(!t)return;
-      boot();
-      if(queue.length>4)queue.shift();
-      // แปลง cfg.rate (สเกลเดิม 0.4-1.6 ของ SpeechSynthesisUtterance) เป็น % ที่ backend ใช้
-      var rPct=Math.max(-40,Math.min(60,Math.round(((cfg.rate||1)-1)*100)));
-      queue.push({t:t.slice(0,300),v:'f',r:rPct});
-      loop();
-    },
-    cancel:function(){
-      queue.length=0;
-      try{ el&&el.pause(); }catch(e){}
-      try{ window.speechSynthesis&&speechSynthesis.cancel(); }catch(e){}
-      running=false; eq(false);
-    }
-  };
-})();
+};
 function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
 
 /* ───── 03 · PARTICLE BURST ──────────────────────────────────── */
@@ -2683,7 +2500,7 @@ function dock(){
     var r=e.target.closest('.nf-row');
     if(r){ var k=r.dataset.k; cfg[k]=cfg[k]?0:1; r.classList.toggle('on',!!cfg[k]);
            save(); SFX.blip();
-           if(k==='tts'&&!cfg.tts&&TTS.ok){ TTS.cancel(); }
+           if(k==='tts'&&!cfg.tts&&TTS.ok){ TTS.stop(); }
            if(k==='ticker'&&!cfg.ticker){ var t=document.getElementById('nf-ticker'); if(t)t.classList.remove('on'); }
            return; }
     if(e.target.classList.contains('nf-test')){
