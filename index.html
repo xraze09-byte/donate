@@ -2252,9 +2252,11 @@ var TTS={
       .replace(/([\u0E00-\u0E7F])\1{2,}/gu,'$1')
       .replace(/(.)\1{3,}/g,'$1$1')
       .replace(/\s+/g,' ').trim();
-    if(t.length>300){
-      t=t.slice(0,300).replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/,'');
-      t=t.replace(/\s\S*$/,'');
+
+    if(t.length > 300){
+      t = t.slice(0, 300);
+      t = t.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/,'');
+      if(/\s/.test(t)) t = t.replace(/\s\S*$/,'');
     }
     return t.trim();
   },
@@ -2377,6 +2379,71 @@ var TTS={
   },
 
   test:function(){ TTS.say('ทดสอบระบบเสียง ผู้ใจดี บริจาค '+bahtText(1250.50)); }
+};
+
+/* ══════════════════════════════════════════════
+   NF TTS · CLOUD FALLBACK  (สำหรับ OBS / เครื่องไม่มีเสียงไทย)
+   ══════════════════════════════════════════════ */
+TTS.CLOUD = {
+  force : false,
+  url   : function(text, th){
+    return 'https://translate.google.com/translate_tts'
+         + '?ie=UTF-8&client=tw-ob&ttsspeed=1'
+         + '&tl=' + (th ? 'th' : 'en')
+         + '&q='  + encodeURIComponent(text.slice(0,190));
+  }
+};
+
+TTS.useCloud = function(th){
+  if(TTS.CLOUD.force) return true;
+  if(!TTS.ok) return true;
+  if(!(TTS.voices||[]).length) return true;
+  if(th && !TTS.hasTH) return true;
+  return false;
+};
+
+TTS._au = null;
+TTS.audioSeg = function(seg, done){
+  try{
+    var a = new Audio();
+    a.src          = TTS.CLOUD.url(seg.t, seg.th);
+    a.volume       = clampN(typeof cfg!=='undefined'&&cfg?cfg.vol:1, 0, 1, 1);
+    a.playbackRate = clampN(typeof cfg!=='undefined'&&cfg?cfg.rate:1, 0.5, 2, 1);
+    a.preload      = 'auto';
+    TTS._au = a;
+
+    var fin=false, end=function(tag){
+      if(fin) return; fin=true;
+      if(tag) console.warn('[TTS cloud]', tag);
+      TTS._au = null; done();
+    };
+    a.onended  = function(){ end(); };
+    a.onerror  = function(){ end('load failed — ตรวจเน็ต/โดนบล็อก'); };
+    a.onstalled= function(){ setTimeout(function(){ if(!fin&&a.readyState<2) end('stalled'); },6000); };
+    setTimeout(function(){ end('timeout 30s'); }, 30000);
+
+    var p = a.play();
+    if(p && p.catch) p.catch(function(e){ end('play blocked: '+(e&&e.name)); });
+  }catch(e){ done(); }
+};
+
+TTS._speakSegNative = TTS.speakSeg;
+TTS.speakSeg = function(seg){
+  if(!TTS.useCloud(seg.th)) return TTS._speakSegNative(seg);
+  TTS.busy = true;
+  if(typeof eq==='function') eq(true);
+  TTS.audioSeg(seg, function(){
+    TTS.busy = false;
+    var more = TTS.cur.length || TTS.q.length;
+    if(!more && typeof eq==='function') eq(false);
+    setTimeout(function(){ TTS.run(); }, more ? 90 : 0);
+  });
+};
+
+TTS._stopNative = TTS.stop;
+TTS.stop = function(){
+  if(TTS._au){ try{ TTS._au.pause(); TTS._au.src=''; }catch(e){} TTS._au=null; }
+  TTS._stopNative();
 };
 function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
 
