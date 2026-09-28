@@ -1330,6 +1330,7 @@ html.nf-mob .modal{-webkit-backdrop-filter:none;backdrop-filter:none}        /* 
        <input id="lSearch" class="inp !py-1.5" placeholder="ค้นหาชื่อ / ref...">
        <select id="lFilter" class="inp !py-1.5 !w-auto f-tech !text-[.7rem]">
         <option value="approved">APPROVED</option><option value="rejected">REJECTED</option><option value="all">ALL</option></select>
+       <button id="bDelAll" class="btn-g !py-1.5 !px-3 !text-[.7rem] whitespace-nowrap" style="color:var(--red);border-color:var(--red)">ลบทั้งหมด</button>
       </div>
       <div id="lList" class="max-h-[420px] overflow-y-auto"></div>
      </div>
@@ -1978,6 +1979,19 @@ function renderLedger(){var h=$('#lList');if(!h)return;
    emit('resolved',{id:b.dataset.dl,status:'deleted'});emit('sync',{});adminRefresh()})})})}
 $('#lSearch').addEventListener('input',renderLedger);
 $('#lFilter').addEventListener('change',renderLedger);
+/* ลบทั้งหมดที่กำลังแสดงอยู่ (ตาม filter/search ปัจจุบัน) ในคลิกเดียว — เดิมต้องกด DEL
+   ทีละใบ ซึ่งช้าเวลามีรายการทดสอบ/manual ค้างอยู่หลายรายการ */
+$('#bDelAll').addEventListener('click',function(){
+ var f=$('#lFilter').value,q=($('#lSearch').value||'').trim().toLowerCase();
+ var r=DONS.filter(function(d){
+  if(f!=='all'&&d.status!==f)return false;
+  if(q&&(d.name+' '+d.ref).toLowerCase().indexOf(q)<0)return false;return true});
+ if(!r.length)return toast('ไม่มีรายการให้ลบ');
+ if(!confirm('ลบ '+r.length+' รายการที่แสดงอยู่ถาวร? กู้คืนไม่ได้'))return;
+ Promise.all(r.map(function(d){return Promise.all([ST.del('don',d.id),ST.del('slip',d.id)])}))
+  .then(function(){
+   r.forEach(function(d){emit('resolved',{id:d.id,status:'deleted'})});
+   emit('sync',{});toast('✓ ลบ '+r.length+' รายการแล้ว',1);adminRefresh()})});
 
 /* SETTINGS */
 function fillSettings(){$('#sPP').value=CFG.pp;$('#sName').value=CFG.payee;$('#sGoal').value=CFG.goal;
