@@ -1501,7 +1501,7 @@ function P(k){var h=location.hash||'',i=h.indexOf('?'),
  return hp.get(k)!==null?hp.get(k):sp.get(k)}
 
 /* ═══════════ CONFIG ═══════════ */
-var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://donate-backend-60hc.onrender.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true};
+var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://donate-backend-60hc.onrender.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true,token:''};
 var CFG=(function(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(K_CFG))||{})}catch(e){return Object.assign({},DEF)}})();
 if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
@@ -1542,9 +1542,25 @@ var ST={db:null,mem:null,
   timer=setTimeout(function(){done(false)},2500)})},
  readLS:function(){try{return JSON.parse(localStorage.getItem('rzc_db_v4'))||{don:[],slip:{}}}catch(e){return {don:[],slip:{}}}},
  writeLS:function(){try{localStorage.setItem('rzc_db_v4',JSON.stringify(this.mem))}catch(e){}},
+ /* แก้บัค (F-10): เดิม put() ที่ reject ได้ (เช่น QuotaExceededError ตอนพื้นที่เต็มจากสลิป
+    สะสมเยอะ) ไม่มีจุดไหนใน onMsg/decide/submit ฯลฯ ดัก .catch() ไว้เลย (~10 จุดเรียกใช้)
+    ทำให้ "กดอนุมัติ" ดูสำเร็จบนหน้าจอ แต่ข้อมูลไม่ถูกเขียนจริง แล้วหายไปตอน refresh โดยไม่มี
+    error ให้เห็นเลยสักบรรทัด — แก้จุดเดียวที่นี่: ถ้า IndexedDB เขียนพลาด ลองสำรองลง
+    localStorage แทนกันข้อมูลหายเปล่า ๆ แล้วโชว์ toast เตือนให้รู้ตัวจริง */
  put:function(store,v){var self=this;return new Promise(function(res,rej){
   if(self.mem){if(store==='don'){var i=self.mem.don.findIndex(function(x){return x.id===v.id});i>=0?self.mem.don[i]=v:self.mem.don.push(v)}else self.mem.slip[v.id]=v.data;self.writeLS();return res(v)}
-  var q=self.db.transaction(store,'readwrite').objectStore(store).put(v);q.onsuccess=function(){res(v)};q.onerror=function(){rej(q.error)}})},
+  var q=self.db.transaction(store,'readwrite').objectStore(store).put(v);
+  q.onsuccess=function(){res(v)};
+  q.onerror=function(){
+   try{
+    if(!self.mem)self.mem=self.readLS();
+    if(store==='don'){var i=self.mem.don.findIndex(function(x){return x.id===v.id});i>=0?self.mem.don[i]=v:self.mem.don.push(v)}
+    else self.mem.slip[v.id]=v.data;
+    self.writeLS();
+    if(typeof toast==='function')toast('!! บันทึกลง IndexedDB ไม่ได้ (พื้นที่อาจเต็ม) — สำรองไว้ชั่วคราวแล้ว');
+    res(v);
+   }catch(e2){rej(q.error)}
+  }})},
  get:function(store,k){var self=this;return new Promise(function(res){
   if(self.mem){if(store==='don')return res(self.mem.don.find(function(x){return x.id===k})||null);return res(self.mem.slip[k]?{id:k,data:self.mem.slip[k]}:null)}
   var q=self.db.transaction(store,'readonly').objectStore(store).get(k);q.onsuccess=function(){res(q.result||null)};q.onerror=function(){res(null)}})},
@@ -1566,16 +1582,36 @@ function approved(){return DONS.filter(function(d){return d.status==='approved'}
 var AUTH={
  has:function(){try{return !!JSON.parse(localStorage.getItem(K_AUTH))}catch(e){return false}},
  rec:function(){try{return JSON.parse(localStorage.getItem(K_AUTH))}catch(e){return null}},
+ hasSubtle:function(){return !!(window.isSecureContext&&window.crypto&&crypto.subtle&&crypto.subtle.importKey)},
  derive:function(pw,salt,it){
-  if(!(window.crypto&&crypto.subtle&&crypto.subtle.importKey))return Promise.resolve('W:'+weak(pw+salt));
+  if(!this.hasSubtle())return Promise.resolve('W:'+weak(pw+salt));
   var e=new TextEncoder();
   return crypto.subtle.importKey('raw',e.encode(pw),'PBKDF2',false,['deriveBits']).then(function(k){
    return crypto.subtle.deriveBits({name:'PBKDF2',salt:e.encode(salt),iterations:it,hash:'SHA-256'},k,256)}).then(hex)
    .catch(function(){return 'W:'+weak(pw+salt)})},
- set:function(pw){var salt=rnd(16),it=210000;
+ /* แก้บัค (F-05): เดิมถ้า crypto.subtle ใช้ไม่ได้ (เปิดผ่าน HTTP/LAN IP ธรรมดา) ตอน "ตั้งรหัส
+    ใหม่" จะร่วงไปใช้ hash อ่อน (weak()) แบบเงียบๆ ไม่มีคำเตือน — รหัสแอดมินแตกง่ายโดยไม่รู้ตัว
+    ตอนนี้ถ้าตั้ง/เปลี่ยนรหัสแล้วไม่มี crypto.subtle จะ reject ชัดเจนแทนที่จะเนียนใช้ของอ่อน */
+ set:function(pw){
+  if(!this.hasSubtle())return Promise.reject(new Error('ต้องเปิดหน้านี้ผ่าน HTTPS (หรือ localhost) เพื่อตั้งรหัสผ่านอย่างปลอดภัย'));
+  var salt=rnd(16),it=210000;
   return this.derive(pw,salt,it).then(function(h){
    localStorage.setItem(K_AUTH,JSON.stringify({s:salt,i:it,h:h,t:Date.now()}));return true})},
- check:function(pw){var r=this.rec();if(!r)return Promise.resolve(false);
+ /* แก้บัค (F-05 ต่อ): บัคเดิมอีกจุด — ถ้าตั้งรหัสตอนไม่มี crypto.subtle (ได้ hash อ่อนมา) แล้ว
+    วันหลังมาล็อกอินตอนมี crypto.subtle แล้ว (เช่นย้ายไปเปิดผ่าน HTTPS) derive() จะคำนวณ hash
+    แบบ PBKDF2 ความยาวไม่เท่าของเดิมที่เก็บไว้ → เทียบ length ไม่ตรง → false ทันที ล็อกอินไม่ได้
+    เงียบๆ ทั้งที่รหัสถูก — ตอนนี้เช็คแบบ weak ต่อสำหรับ hash เก่า แล้ว "อัปเกรด" เป็น PBKDF2
+    ให้อัตโนมัติเมื่อมี crypto.subtle แล้ว (ล็อกอินผ่านได้เหมือนเดิม ไม่ล็อกใครออก) */
+ check:function(pw){var self=this,r=this.rec();if(!r)return Promise.resolve(false);
+  if(String(r.h||'').indexOf('W:')===0){
+   var ok=('W:'+weak(pw+r.s))===r.h;
+   if(ok&&this.hasSubtle()){
+    var ns=rnd(16),ni=210000;
+    this.derive(pw,ns,ni).then(function(h){
+     if(String(h).indexOf('W:')!==0)localStorage.setItem(K_AUTH,JSON.stringify({s:ns,i:ni,h:h,t:Date.now()}))});
+   }
+   return Promise.resolve(ok);
+  }
   return this.derive(pw,r.s,r.i).then(function(h){
    if(h.length!==r.h.length)return false;var d=0;for(var i=0;i<h.length;i++)d|=h.charCodeAt(i)^r.h.charCodeAt(i);return d===0})},
  lock:function(){try{return JSON.parse(localStorage.getItem(K_LOCK))||{n:0,u:0}}catch(e){return {n:0,u:0}}},
@@ -1678,8 +1714,23 @@ if(bc)bc.onmessage=function(e){onMsg(e.data)};
 var WSU=P('ws')||CFG.ws;
 function wsConnect(){if(!WSU)return;
  var u=WSU+(WSU.indexOf('?')>=0?'&':'?')+'ch='+encodeURIComponent(CH);
+ /* เตรียมพื้นฐานไว้เฉย ๆ (ไม่มีผลอะไรถ้ายังไม่ตั้งค่า): ถ้าอนาคตตั้ง CFG.token ไว้ (คู่กับ
+    RELAY_TOKEN บนเซิร์ฟเวอร์) จะแนบ &tok= ไปด้วย — ตอนนี้ CFG.token ว่างเสมอ พฤติกรรมเดิม 100% */
+ if(CFG.token)u+='&tok='+encodeURIComponent(CFG.token);
  try{ws=new WebSocket(u);
   ws.onmessage=function(e){try{onMsg(JSON.parse(e.data))}catch(x){}};
+  /* แก้บัค (F-14): เดิมไม่มี onopen เลย — ถ้าเซิร์ฟเวอร์รีสตาร์ท (Render redeploy/spin-down)
+     cfgStore บนเซิร์ฟเวอร์จะว่างเปล่า ไม่มีใคร push cfg ให้ใหม่ โดนัยว่าโดนอร์ที่เปิดหน้าเว็บ
+     พอดีตอนนั้นจะเห็น "PROMPTPAY NOT CONFIGURED" ทั้งที่ทุกอย่างดูปกติ ไม่มี error ให้เห็น —
+     ตอนนี้ถ้าแท็บนี้คือแอดมินที่ล็อกอินอยู่ (มีสิทธิ์ตั้งค่าจริง) จะส่ง cfg ปัจจุบันกลับไปให้
+     เซิร์ฟเวอร์ทุกครั้งที่ (ต่อ)เชื่อมต่อสำเร็จ */
+  ws.onopen=function(){
+   try{
+    if(location.hash.indexOf('#admin')===0&&typeof AUTH!=='undefined'&&AUTH.valid&&AUTH.valid()&&CFG.pp){
+     emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip});
+    }
+   }catch(e){}
+  };
   ws.onclose=function(){ws=null;setTimeout(wsConnect,2000+Math.random()*2000)};
   ws.onerror=function(){try{ws.close()}catch(e){}}}
  catch(e){setTimeout(wsConnect,3000)}}
@@ -1841,7 +1892,7 @@ dForm.addEventListener('submit',function(e){e.preventDefault();
  btnFx($('#bGen'));openPay({name:n,amount:a,message:dMsg.value.trim()})});
 
 /* ═══════════ PAY MODAL ═══════════ */
-var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='';
+var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='',slipSha='';
 function openPay(d){
  pend={id:uid(),name:d.name,amount:d.amount,message:d.message,ts:Date.now(),status:'pending',
   ref:'RZ-'+Date.now().toString(36).toUpperCase().slice(-6),slip:false};
@@ -1868,6 +1919,15 @@ $('#bSaveQr').addEventListener('click',function(){if(!qrSrc)return toast('!! NO 
 $('#fSlip').addEventListener('change',function(){var f=this.files&&this.files[0];if(!f)return;
  if(!/^image\//.test(f.type))return toast('!! ต้องเป็นไฟล์รูป');
  if(f.size>12*1024*1024)return toast('!! ไฟล์ใหญ่เกิน 12MB');
+ /* F-06: แฮชไฟล์สลิปต้นฉบับด้วย SHA-256 เก็บไว้คู่กับ rec — ใช้เตือนแอดมินตอนอนุมัติถ้ามีคน
+    เอาสลิปใบเดิมมายิงซ้ำ (การโกงที่พบบ่อยสุดของระบบแบบนี้) ไม่ต้องพึ่ง API ธนาคารเลย —
+    เป็นแค่คำเตือน ไม่บล็อกอัตโนมัติ เผื่อกรณี false positive จะได้ไม่ปฏิเสธคนจ่ายจริง */
+ slipSha='';
+ if(window.crypto&&crypto.subtle&&crypto.subtle.digest){
+  f.arrayBuffer().then(function(buf){return crypto.subtle.digest('SHA-256',buf)})
+   .then(function(h){slipSha=Array.prototype.map.call(new Uint8Array(h),function(b){return b.toString(16).padStart(2,'0')}).join('')})
+   .catch(function(){});
+ }
  var fr=new FileReader();fr.onload=function(){var im=new Image();
   im.onload=function(){var mx=1000,r=Math.min(1,mx/Math.max(im.width,im.height));
    var cv=document.createElement('canvas');cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);
@@ -1880,14 +1940,14 @@ $('#bSubmit').addEventListener('click',function(){
  if(!pend)return;
  if(CFG.reqSlip&&!slipData)return toast('!! กรุณาแนบสลิปก่อน');
  var b=this;b.disabled=true;btnFx(b);
- var rec=Object.assign({},pend);rec.slip=!!slipData;
+ var rec=Object.assign({},pend);rec.slip=!!slipData;rec.sha=slipSha||'';
  var ops=[ST.put('don',rec)];
  if(slipData)ops.push(ST.put('slip',{id:rec.id,data:slipData}));
  Promise.all(ops).then(function(){
   emit('donation',{rec:rec,slip:slipData||null});
   emit('sync',{});closePay();dForm.reset();$('#mCnt').textContent='0';
   $$('#chips .chip').forEach(function(x){x.classList.remove('on')});upTier();
-  pend=null;slipData='';b.disabled=false;
+  pend=null;slipData='';slipSha='';b.disabled=false;
   toast('✓ ส่งคำขอแล้ว รอตรวจสอบ',1);refreshPublic()})
  .catch(function(){b.disabled=false;toast('!! บันทึกไม่สำเร็จ')})});
 
@@ -1926,7 +1986,10 @@ gForm.addEventListener('submit',function(e){e.preventDefault();gErr.classList.re
   if(pw.length<10){gErr.textContent='!! รหัสต้องยาวอย่างน้อย 10 ตัวอักษร';return gErr.classList.add('on')}
   if(pw!==gPw2.value){gErr.textContent='!! รหัสผ่านทั้งสองช่องไม่ตรงกัน';return gErr.classList.add('on')}
   gBtn.disabled=true;AUTH.set(pw).then(function(){AUTH.open();gPw.value=gPw2.value='';gBtn.disabled=false;
-   toast('✓ ตั้งรหัสผ่านสำเร็จ',1);enterAdmin()});return}
+   toast('✓ ตั้งรหัสผ่านสำเร็จ',1);enterAdmin()}).catch(function(e){
+   /* F-05: AUTH.set() ตอนนี้ reject ได้ถ้าไม่มี crypto.subtle (ไม่ใช่ HTTPS/localhost) — ต้องจับไว้
+      ไม่งั้นปุ่มจะค้าง disabled ตลอดไปเงียบๆ โดยไม่มี error ให้เห็น */
+   gBtn.disabled=false;gErr.textContent='!! '+(e&&e.message||'ตั้งรหัสผ่านไม่สำเร็จ');gErr.classList.add('on')});return}
  gBtn.disabled=true;
  AUTH.check(pw).then(function(ok){gBtn.disabled=false;gPw.value='';
   if(ok){AUTH.pass();AUTH.open();enterAdmin();
@@ -1979,6 +2042,12 @@ function renderQueue(pd){var h=$('#qList');
  $$('[data-no]',h).forEach(function(b){b.addEventListener('click',function(){
   if(confirm('ปฏิเสธรายการนี้?'))decide(b.dataset.no,'rejected')})})}
 function decide(id,st){var d=DONS.find(function(x){return x.id===id});if(!d)return;
+ /* F-06: เตือน (ไม่บล็อก) ถ้าสลิปนี้ตรงกับสลิปที่อนุมัติไปแล้วก่อนหน้า — เคสโกงที่พบบ่อยสุด
+    คือเอาสลิปจริงใบเดียวมายิงซ้ำหลายรอบ */
+ if(st==='approved'&&d.sha){
+  var dup=DONS.find(function(x){return x.sha===d.sha&&x.id!==d.id&&x.status==='approved'});
+  if(dup&&!confirm('⚠ สลิปนี้เหมือนกับรายการ '+dup.ref+' ที่อนุมัติไปแล้ว ('+new Date(dup.ts).toLocaleString('th-TH')+') — อนุมัติต่อไหม?'))return;
+ }
  d.status=st;d.decided=Date.now();
  ST.put('don',d).then(function(){
   emit('resolved',{id:d.id,status:st});
@@ -2093,7 +2162,8 @@ $('#bChpw').addEventListener('click',function(){
  var o=$('#cpOld').value,n=$('#cpNew').value;
  if(n.length<10)return toast('!! รหัสใหม่ต้องยาว 10+ ตัว');
  AUTH.check(o).then(function(ok){if(!ok)return toast('!! รหัสเดิมไม่ถูกต้อง');
-  AUTH.set(n).then(function(){$('#cpOld').value=$('#cpNew').value='';btnFx($('#bChpw'));toast('✓ เปลี่ยนรหัสแล้ว',1)})})});
+  AUTH.set(n).then(function(){$('#cpOld').value=$('#cpNew').value='';btnFx($('#bChpw'));toast('✓ เปลี่ยนรหัสแล้ว',1)})
+   .catch(function(e){toast('!! '+(e&&e.message||'เปลี่ยนรหัสไม่สำเร็จ'))})})});
 $('#bWipe').addEventListener('click',function(){
  if(!confirm('ลบข้อมูลโดเนททั้งหมดถาวร?'))return;
  if(!confirm('ยืนยันอีกครั้ง — กู้คืนไม่ได้'))return;
