@@ -1528,21 +1528,37 @@ var ST={db:null,mem:null,
   setTimeout(function(){if(!self.db&&!self.mem){self.mem=self.readLS();res(false)}},2500)})},
  readLS:function(){try{return JSON.parse(localStorage.getItem('rzc_db_v4'))||{don:[],slip:{}}}catch(e){return {don:[],slip:{}}}},
  writeLS:function(){try{localStorage.setItem('rzc_db_v4',JSON.stringify(this.mem))}catch(e){}},
+ /* บั๊ก (แก้แล้ว): เดิมแท็บที่ใช้ IndexedDB จริง (เช่น admin) แก้ข้อมูลแล้วไม่มีอะไรบอก
+    แท็บอื่นในเบราว์เซอร์เดียวกัน (เช่น หน้า donate/public ที่เปิดค้างไว้) ให้ไปอ่านใหม่ —
+    เห็นผลคือ "ลบใน admin แล้วเหลือ 0 จริง แต่หน้า public ยอดเก่ายังอยู่แม้ refresh"
+    ตอนนี้ทุกครั้งที่ store 'don' เปลี่ยน จะ mirror รายการ 'don' ล้วน (ไม่รวมสลิปรูปภาพ
+    กันโควตา localStorage ล้น) ไปที่ localStorage key เดิม 'rzc_db_v4' เสมอ ไม่ว่าแท็บนี้จะ
+    ใช้ IndexedDB จริงหรือโหมด fallback — การเขียน localStorage จะยิง 'storage' event ไปทุก
+    แท็บอื่นโดยอัตโนมัติ (เบราว์เซอร์ทำให้เอง) ให้แท็บนั้น reload()+render ใหม่จากฐานข้อมูล
+    จริงของตัวเอง (ดู listener 'storage' ท้ายไฟล์) */
+ _mirrorDon:function(){var self=this;
+  if(self.mem)return; // โหมด fallback เขียน rzc_db_v4 ผ่าน writeLS() อยู่แล้วในตัว put/del/clear
+  self.all('don').then(function(r){
+   try{var raw=JSON.parse(localStorage.getItem('rzc_db_v4')||'{}');
+    localStorage.setItem('rzc_db_v4',JSON.stringify({don:r,slip:(raw&&raw.slip)||{}}))}catch(e){}})},
  put:function(store,v){var self=this;return new Promise(function(res,rej){
   if(self.mem){if(store==='don'){var i=self.mem.don.findIndex(function(x){return x.id===v.id});i>=0?self.mem.don[i]=v:self.mem.don.push(v)}else self.mem.slip[v.id]=v.data;self.writeLS();return res(v)}
-  var q=self.db.transaction(store,'readwrite').objectStore(store).put(v);q.onsuccess=function(){res(v)};q.onerror=function(){rej(q.error)}})},
+  var q=self.db.transaction(store,'readwrite').objectStore(store).put(v);
+  q.onsuccess=function(){if(store==='don')self._mirrorDon();res(v)};q.onerror=function(){rej(q.error)}})},
  get:function(store,k){var self=this;return new Promise(function(res){
   if(self.mem){if(store==='don')return res(self.mem.don.find(function(x){return x.id===k})||null);return res(self.mem.slip[k]?{id:k,data:self.mem.slip[k]}:null)}
   var q=self.db.transaction(store,'readonly').objectStore(store).get(k);q.onsuccess=function(){res(q.result||null)};q.onerror=function(){res(null)}})},
  del:function(store,k){var self=this;return new Promise(function(res){
   if(self.mem){if(store==='don')self.mem.don=self.mem.don.filter(function(x){return x.id!==k});else delete self.mem.slip[k];self.writeLS();return res()}
-  var q=self.db.transaction(store,'readwrite').objectStore(store).delete(k);q.onsuccess=function(){res()};q.onerror=function(){res()}})},
+  var q=self.db.transaction(store,'readwrite').objectStore(store).delete(k);
+  q.onsuccess=function(){if(store==='don')self._mirrorDon();res()};q.onerror=function(){res()}})},
  all:function(store){var self=this;return new Promise(function(res){
   if(self.mem)return res(store==='don'?self.mem.don.slice():Object.keys(self.mem.slip).map(function(k){return {id:k,data:self.mem.slip[k]}}));
   var q=self.db.transaction(store,'readonly').objectStore(store).getAll();q.onsuccess=function(){res(q.result||[])};q.onerror=function(){res([])}})},
  clear:function(store){var self=this;return new Promise(function(res){
   if(self.mem){if(store==='don')self.mem.don=[];else self.mem.slip={};self.writeLS();return res()}
-  var q=self.db.transaction(store,'readwrite').objectStore(store).clear();q.onsuccess=function(){res()};q.onerror=function(){res()}})}};
+  var q=self.db.transaction(store,'readwrite').objectStore(store).clear();
+  q.onsuccess=function(){if(store==='don')self._mirrorDon();res()};q.onerror=function(){res()}})}};
 
 var DONS=[];
 function reload(){return ST.all('don').then(function(r){DONS=r.sort(function(a,b){return b.ts-a.ts});return DONS})}
@@ -1651,6 +1667,14 @@ function onMsg(m){if(!m||!m.t)return;
  else if(m.t==='cfg'&&m.d){Object.assign(CFG,m.d);saveCfg();renderGoal();if($('#sPP'))ppHint();toast('▸ อัปเดตการตั้งค่าแล้ว',1)}
  else if(m.t==='sync'){if(IS_OBS)reload().then(renderOGoal);else refreshPublic()}}
 window.addEventListener('storage',function(e){if(e.key!==K_BUS||!e.newValue)return;try{onMsg(JSON.parse(e.newValue))}catch(x){}});
+/* จับตา key 'rzc_db_v4' โดยตรง (แยกจาก K_BUS ด้านบน) — ครอบคลุมทุกจุดที่ store 'don' เปลี่ยน
+   (ST._mirrorDon ด้านบน) ไม่ใช่แค่ตอน delete ให้แท็บอื่นในเบราว์เซอร์เดียวกัน (public/OBS ที่
+   เปิดค้างไว้) ดึงข้อมูลจริงจากฐานของตัวเองมา render ใหม่ทันที ไม่ต้องกด refresh เอง */
+window.addEventListener('storage',function(e){if(e.key!=='rzc_db_v4')return;
+ if(ST.mem){try{ST.mem=ST.readLS()}catch(x){}}
+ if(location.hash.indexOf('#admin')===0)adminRefresh();
+ else if(IS_OBS)reload().then(renderOGoal);
+ else refreshPublic();});
 if(bc)bc.onmessage=function(e){onMsg(e.data)};
 var WSU=P('ws')||CFG.ws;
 function wsConnect(){if(!WSU)return;
