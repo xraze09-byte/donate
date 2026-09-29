@@ -1744,13 +1744,11 @@ function burst(n){var f=document.createDocumentFragment(),R=window.innerWidth>64
  sparks.innerHTML='';sparks.appendChild(f);T(function(){sparks.innerHTML=''},1900)}
 function roll(el,from,to,ms){var st=performance.now();(function s(n){var p=cl((n-st)/(ms||800),0,1),e=1-Math.pow(1-p,3);
  el.textContent=fmt(Math.floor(from+(to-from)*e));p<1?requestAnimationFrame(s):el.textContent=fmt(to)})(st)}
-var TH_TAIL_RE=/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/,TH_LEAD_RE=/[\u0E40-\u0E44]+$/;
-function thSlice(s,n){s=String(s==null?'':s);if(s.length<=n)return s;return s.slice(0,n).replace(TH_TAIL_RE,'').replace(TH_LEAD_RE,'')}
 function typeIn(el,tx,sp){if(typer)clearInterval(typer);el.textContent='';el.classList.add('cr');
  if(!tx){el.classList.remove('cr');return}var i=0;
  typer=setInterval(function(){el.textContent=tx.slice(0,++i);if(i%3===0)SFX.tick();
   if(i>=tx.length){clearInterval(typer);typer=null;el.classList.remove('cr')}},sp||26)}
-function play(d,done){clr();var t=tierOf(num(d.amount)),nm=thSlice(String(d.name||'ANONYMOUS'),22);if(!/[\u0E00-\u0E7F]/.test(nm))nm=nm.toUpperCase();
+function play(d,done){clr();var t=tierOf(d.amount),nm=String(d.name||'ANONYMOUS').toUpperCase().slice(0,22);
  aName.textContent=nm;aName.setAttribute('data-text',nm);aTier.textContent=t.n;aAmt.textContent='0';aMsg.textContent='';
  card.classList.remove('in','out');card.style.opacity='0';lw.classList.remove('go','dock','out');stage.classList.add('active');
  prep();void lw.offsetWidth;lw.classList.add('go');rs(strk,'go');SFX.whoosh();
@@ -1759,8 +1757,8 @@ function play(d,done){clr();var t=tierOf(num(d.amount)),nm=thSlice(String(d.name
   $$('#cracks path').forEach(function(p,i){p.style.animation='none';void p.offsetWidth;p.style.animation='cd .34s ease-out '+(i*12)+'ms forwards'});
   SFX.hit(t.p);burst(t.s)},400);
  T(function(){lw.classList.add('dock');card.style.opacity='';rs(card,'in')},780);
- T(function(){roll(aAmt,0,num(d.amount),950)},1150);
- T(function(){typeIn(aMsg,thSlice(String(d.message||''),120),26)},1480);
+ T(function(){roll(aAmt,0,Number(d.amount)||0,950)},1150);
+ T(function(){typeIn(aMsg,String(d.message||'').slice(0,120),26)},1480);
  T(function(){card.classList.remove('in');card.classList.add('out');lw.classList.remove('dock');lw.classList.add('out');
   T(function(){stage.classList.remove('active');lw.classList.remove('go','dock','out');
    try{lVid.pause()}catch(e){}done&&done()},470)},780+t.h)}
