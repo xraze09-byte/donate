@@ -1176,6 +1176,15 @@ html.nf-mob .modal{-webkit-backdrop-filter:none;backdrop-filter:none}        /* 
 @media(prefers-reduced-motion:reduce){
   html.nf-shk{animation:none!important}
   #nf-fxc{display:none!important}}
+
+/* ═══ NEON FORGE v5 — flash toast + WS status ═══ */
+.nf-flash{position:fixed;left:50%;top:22px;z-index:9999;transform:translate3d(-50%,0,0);
+ padding:10px 20px;border-radius:999px;white-space:nowrap;font:700 13px/1 system-ui,'Noto Sans Thai',sans-serif;color:#fff;
+ background:linear-gradient(135deg,color-mix(in srgb,var(--c) 88%,#000),color-mix(in srgb,var(--c) 45%,#0a0a0f));
+ border:1px solid color-mix(in srgb,var(--c) 70%,#fff);box-shadow:0 0 34px -6px var(--c),0 10px 30px rgba(0,0,0,.5);
+ animation:nf-flashin .42s cubic-bezier(.34,1.56,.64,1);transition:opacity .4s,transform .4s}
+@keyframes nf-flashin{from{opacity:0;transform:translate3d(-50%,-22px,0) scale(.9)}to{opacity:1;transform:translate3d(-50%,0,0) scale(1)}}
+html.obs .nf-flash{display:none!important}
 </style>
 </head>
 <body>
@@ -1694,13 +1703,24 @@ window.addEventListener('storage',function(e){if(e.key!=='rzc_db_v4')return;
  else refreshPublic();});
 if(bc)bc.onmessage=function(e){onMsg(e.data)};
 var WSU=P('ws')||CFG.ws;
+var wsTries=0,wsTimer=null,wsLastRx=0;
+function wsRetry(){if(wsTimer)return; /* กันตั้ง timer ซ้อน = กันเปิดหลายซ็อกเก็ตพร้อมกัน */
+ wsTries++;var w=Math.min(30000,1000*Math.pow(2,Math.min(wsTries,5)))*(.7+Math.random()*.6);
+ wsTimer=setTimeout(function(){wsTimer=null;wsConnect()},w)}
 function wsConnect(){if(!WSU)return;
+ if(ws&&(ws.readyState===0||ws.readyState===1))return;
  var u=WSU+(WSU.indexOf('?')>=0?'&':'?')+'ch='+encodeURIComponent(CH);
- try{ws=new WebSocket(u);
-  ws.onmessage=function(e){try{onMsg(JSON.parse(e.data))}catch(x){}};
-  ws.onclose=function(){ws=null;setTimeout(wsConnect,2000+Math.random()*2000)};
-  ws.onerror=function(){try{ws.close()}catch(e){}}}
- catch(e){setTimeout(wsConnect,3000)}}
+ try{var s=new WebSocket(u);ws=s;
+  s.onopen=function(){wsTries=0;wsLastRx=Date.now()};
+  s.onmessage=function(e){wsLastRx=Date.now();try{onMsg(JSON.parse(e.data))}catch(x){}};
+  s.onclose=function(){if(ws===s)ws=null;wsRetry()};
+  s.onerror=function(){try{s.close()}catch(e){}}}
+ catch(e){ws=null;wsRetry()}}
+/* เน็ตกลับมา = ต่อใหม่ทันที (ไม่รอ backoff) */
+window.addEventListener('online',function(){wsTries=0;if(wsTimer){clearTimeout(wsTimer);wsTimer=null}wsConnect()});
+/* สายตายเงียบ: ซ็อกเก็ตค้าง OPEN แต่ไม่มีข้อมูลเข้าเลย 90 วิ (รีเลย์ส่ง ping เอง) → ปิดเพื่อต่อใหม่
+   ไม่ส่งข้อความ ping แปลกๆ ไปรีเลย์ เพราะ server อาจไม่รู้จัก */
+setInterval(function(){if(ws&&ws.readyState===1&&wsLastRx&&Date.now()-wsLastRx>90000){try{ws.close()}catch(e){}}},15000);
 wsConnect();
 
 /* ═══════════ SOUND ═══════════ */
@@ -1745,8 +1765,21 @@ var Q=[],busy=false,typer=null,TM=[];
 function T(f,m){TM.push(setTimeout(f,m))}
 function clr(){TM.forEach(clearTimeout);TM=[];if(typer){clearInterval(typer);typer=null}}
 function rs(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c)}
-function enqueue(d){Q.push(d);pump()}
-function pump(){if(busy||!Q.length)return;busy=true;play(Q.shift(),function(){busy=false;T(pump,420)})}
+/* กัน alert เด้งซ้ำ: ข้อความเดียวกัน (ชื่อ+ยอด+ข้อความ) ภายใน 8 วิ = ตัดทิ้ง
+   (BroadcastChannel + storage event + WebSocket ส่งข้อความเดียวกันมาหลายทางพร้อมกัน) */
+var ALERT_SEEN={};
+function enqueue(d){d=d||{};
+ var now=Date.now(),k=[d.name,amt(d.amount),d.message].join('|');
+ for(var x in ALERT_SEEN)if(now-ALERT_SEEN[x]>8000)delete ALERT_SEEN[x];
+ if(ALERT_SEEN[k]&&!d.force)return;ALERT_SEEN[k]=now;
+ if(Q.length>=30)Q.shift(); /* คิวไม่โตไม่จำกัดตอนโดนสแปม */
+ Q.push(d);pump()}
+var pumpTimer=null;
+function pumpDone(){clearTimeout(pumpTimer);pumpTimer=null;busy=false;T(pump,420)}
+function pump(){if(busy||!Q.length)return;busy=true;
+ /* watchdog: play() ค้าง (วิดีโอโหลดไม่ขึ้น/exception) เกิน 18 วิ = ปลดล็อกเดินต่อ ไม่ต้อง F5 */
+ clearTimeout(pumpTimer);pumpTimer=setTimeout(function(){try{clr()}catch(e){}stage.classList.remove('active');pumpDone()},18000);
+ try{play(Q.shift(),pumpDone)}catch(e){pumpDone()}}
 function prep(){var v=P('video')||CFG.video,g=P('logo')||CFG.logo;
  [lVid,lImg,lSvg].forEach(function(e){e.classList.remove('on')});
  if(v){if(lVid.getAttribute('src')!==v)lVid.setAttribute('src',v);lVid.classList.add('on');
@@ -1893,12 +1926,24 @@ dForm.addEventListener('submit',function(e){e.preventDefault();
 }catch(e){}})();
 
 /* ═══════════ PAY MODAL ═══════════ */
-var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='';
+var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='',slipHash='';
+/* ตรวจสลิป: hash 8x8 แบบ perceptual (aHash) — ใช้ "เตือนแอดมิน" เท่านั้น ไม่บล็อกผู้บริจาค
+   เพราะสลิปธนาคารหน้าตาคล้ายกันมาก (เสี่ยง false positive) ; เกณฑ์เข้มกว่าเดิม (<=3 จาก 64 บิต)
+   ข้อจำกัด: เป็น client-side เท่านั้น ตัดสินสลิปซ้ำจริงต้องเทียบเลขอ้างอิงธุรกรรมบน server */
+var SLIPH={
+ hash:function(cv){var c=document.createElement('canvas');c.width=c.height=8;var x=c.getContext('2d');if(!x)return '';
+  x.drawImage(cv,0,0,8,8);var p=x.getImageData(0,0,8,8).data,g=[],a=0,i;
+  for(i=0;i<256;i+=4){var v=p[i]*.299+p[i+1]*.587+p[i+2]*.114;g.push(v);a+=v}a/=64;
+  return g.map(function(v){return v>a?'1':'0'}).join('')},
+ dist:function(a,b){var d=0;if(!a||!b||a.length!==b.length)return 99;for(var i=0;i<a.length;i++)if(a[i]!==b[i])d++;return d},
+ dup:function(h,list,selfId){if(!h)return null;for(var i=0;i<list.length;i++){var o=list[i];
+  if(o.id!==selfId&&o.sh&&SLIPH.dist(o.sh,h)<=3)return o}return null}
+};
 function openPay(d){
  pend={id:uid(),name:d.name,amount:d.amount,message:d.message,ts:Date.now(),status:'pending',
   ref:'RZ-'+Date.now().toString(36).toUpperCase().slice(-6),slip:false};
  if(d.q)pend.q=d.q;
- slipData='';$('#slipPrev').style.display='none';$('#dropTxt').style.display='';$('#fSlip').value='';
+ slipData='';slipHash='';$('#slipPrev').style.display='none';$('#dropTxt').style.display='';$('#fSlip').value='';
  $('#pAmt').textContent=fmt(d.amount);$('#pDonor').textContent=d.name;
  $('#pTo').textContent=CFG.payee||'RZ CLAN';$('#pId').textContent=PP.nice(CFG.pp);$('#pRef').textContent=pend.ref;
  $('#slipReq').style.display=CFG.reqSlip?'':'none';
@@ -1926,6 +1971,7 @@ $('#fSlip').addEventListener('change',function(){var f=this.files&&this.files[0]
    var cv=document.createElement('canvas');cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);
    cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
    slipData=cv.toDataURL('image/jpeg',.72);
+   try{slipHash=SLIPH.hash(cv)}catch(e){slipHash=''}
    $('#slipPrev').src=slipData;$('#slipPrev').style.display='';$('#dropTxt').style.display='none';toast('✓ แนบสลิปแล้ว',1)};
   im.onerror=function(){toast('!! อ่านรูปไม่ได้')};im.src=fr.result};
  fr.readAsDataURL(f)});
@@ -1933,14 +1979,14 @@ $('#bSubmit').addEventListener('click',function(){
  if(!pend)return;
  if(CFG.reqSlip&&!slipData)return toast('!! กรุณาแนบสลิปก่อน');
  var b=this;b.disabled=true;btnFx(b);
- var rec=Object.assign({},pend);rec.slip=!!slipData;
+ var rec=Object.assign({},pend);rec.slip=!!slipData;if(slipData&&slipHash)rec.sh=slipHash;
  var ops=[ST.put('don',rec)];
  if(slipData)ops.push(ST.put('slip',{id:rec.id,data:slipData}));
  Promise.all(ops).then(function(){
   emit('donation',{rec:rec,slip:slipData||null});
   emit('sync',{});closePay();dForm.reset();$('#mCnt').textContent='0';$('#qFields').style.display='none';
   $$('#chips .chip').forEach(function(x){x.classList.remove('on')});upTier();
-  pend=null;slipData='';b.disabled=false;
+  pend=null;slipData='';slipHash='';b.disabled=false;
   toast('✓ ส่งคำขอแล้ว รอตรวจสอบ',1);refreshPublic()})
  .catch(function(){b.disabled=false;toast('!! บันทึกไม่สำเร็จ')})});
 
@@ -2019,7 +2065,8 @@ function renderQueue(pd){var h=$('#qList');
    (d.slip?'<img class="slip-th" data-slip="'+d.id+'" alt="slip">':'<div class="slip-th" style="display:grid;place-items:center;color:#556;font-size:.55rem" class="f-tech">NO<br>SLIP</div>')+
    '<div class="min-w-0 flex-1"><div class="flex items-baseline gap-2">'+
    '<span class="f-teko text-2xl leading-none text-blood">฿'+fmt(d.amount)+'</span>'+
-   '<span class="tag warn">'+t.n+'</span></div>'+
+   '<span class="tag warn">'+t.n+'</span>'+
+   (SLIPH.dup(d.sh,DONS,d.id)?'<span class="tag warn" style="color:#fff;background:#ff1f4b" title="สลิปนี้หน้าตาเหมือนสลิปที่เคยส่งมา — ตรวจเลขอ้างอิงธุรกรรมก่อนอนุมัติ">⚠ สลิปคล้ายซ้ำ</span>':'')+'</div>'+
    '<div class="font-semibold text-[.86rem] truncate mt-.5">'+esc(d.name)+'</div>'+
    (d.message?'<div class="text-[.72rem] text-steel break-words">'+esc(d.message)+'</div>':'')+
    '<div class="f-tech text-[.5rem] tracking-[.12em] text-steel mt-1">'+d.ref+' · '+new Date(d.ts).toLocaleString('th-TH')+'</div>'+
@@ -2032,6 +2079,7 @@ function renderQueue(pd){var h=$('#qList');
  $$('[data-no]',h).forEach(function(b){b.addEventListener('click',function(){
   if(confirm('ปฏิเสธรายการนี้?'))decide(b.dataset.no,'rejected')})})}
 function decide(id,st){var d=DONS.find(function(x){return x.id===id});if(!d)return;
+ if(d.status===st)return toast('▸ รายการนี้'+(st==='approved'?'อนุมัติ':'ปฏิเสธ')+'ไปแล้ว'); /* กัน alert ซ้ำ */
  d.status=st;d.decided=Date.now();
  ST.put('don',d).then(function(){
   emit('resolved',{id:d.id,status:st});
@@ -2590,6 +2638,10 @@ function fire(d){
   onRawAlert(d);
 }
 
+function row(k,label){
+  return '<div class="nf-row'+(cfg[k]?' on':'')+'" data-k="'+k+'">'+
+         '<span>'+label+'</span><span class="nf-sw"></span></div>';
+}
 function dock(){
   var d=document.createElement('div'); d.id='nf-dock';
   d.innerHTML='<button id="nf-gear" aria-label="FX Console">&#9881;</button>'+
@@ -2648,6 +2700,48 @@ if(document.readyState!=='loading') init();
 else addEventListener('DOMContentLoaded',init);
 })();
 
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   NEON FORGE v5 · RESILIENCE ADD-ON (rewritten to fit real scopes)
+   - ไม่ wrap window.* (ฟังก์ชันจริงอยู่ใน IIFE) — แพตช์ใน scope จริงแล้วด้านบน
+   - ส่วนนี้: เฝ้าโควตาพื้นที่, export CSV, ฮอตคีย์แอดมิน ; เงียบบน OBS
+   ══════════════════════════════════════════════════════════════════ */
+(function(){'use strict';
+if(window.__NF5)return;window.__NF5=1;
+var D=document,hash=function(){return (location.hash||'').split('?')[0].toLowerCase()};
+var OBS=hash()==='#overlay'||hash()==='#obs',ADM=hash()==='#admin';
+function flash(msg,c,ms){if(OBS)return;var t=D.createElement('div');t.className='nf-flash';
+ t.style.setProperty('--c',c||'#ff1f4b');t.textContent=msg;D.body.appendChild(t);
+ setTimeout(function(){t.style.opacity='0';t.style.transform='translate3d(-50%,-14px,0)'},(ms||2600)-400);
+ setTimeout(function(){t.remove()},ms||2600)}
+/* โควตา: เตือนเมื่อเกิน 78% + ขอ persistent storage กันเบราว์เซอร์ลบข้อมูลเอง */
+function quota(){if(!navigator.storage||!navigator.storage.estimate)return;
+ navigator.storage.estimate().then(function(e){var p=(e.usage||0)/(e.quota||1);
+  if(p>.78)flash('⚠ พื้นที่เก็บเหลือน้อย ('+Math.round(p*100)+'%) — Export แล้วลบสลิปเก่า','#ff1f4b',6000)}).catch(function(){})}
+if(ADM){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+ setTimeout(quota,4000);setInterval(quota,120000)}
+/* Export CSV (ไม่รวมรูปสลิป) — อ่านจาก IndexedDB ตรงๆ ชื่อ store จริง 'don' */
+function readAll(){return new Promise(function(res){
+ try{var r=indexedDB.open('rz_clan_v4',1);
+  r.onsuccess=function(){try{var g=r.result.transaction('don','readonly').objectStore('don').getAll();
+   g.onsuccess=function(){res(g.result||[])};g.onerror=function(){res([])}}catch(e){res([])}};
+  r.onerror=function(){res([])}}catch(e){res([])}})}
+function csvCell(v){v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v; /* กัน CSV formula injection */
+ return '"'+v.replace(/"/g,'""')+'"'}
+function exportCsv(){readAll().then(function(rows){
+ if(!rows.length){try{rows=(JSON.parse(localStorage.getItem('rzc_db_v4'))||{}).don||[]}catch(e){rows=[]}}
+ if(!rows.length)return flash('ไม่มีข้อมูลให้ export','#ffb020');
+ var cols=[];rows.forEach(function(o){Object.keys(o).forEach(function(k){if(k!=='slip'&&k!=='sh'&&cols.indexOf(k)<0)cols.push(k)})});
+ var csv=[cols.join(',')].concat(rows.map(function(o){return cols.map(function(c){return csvCell(typeof o[c]==='object'?JSON.stringify(o[c]):o[c])}).join(',')})).join('\n');
+ var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}),a=D.createElement('a');
+ a.href=URL.createObjectURL(b);a.download='rz-donations-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+ setTimeout(function(){URL.revokeObjectURL(a.href)},4000);flash('Export CSV ✓','#26e6ff')})}
+window.NF5={exportCsv:exportCsv,quota:quota};
+if(ADM)D.addEventListener('keydown',function(e){if(!e.altKey||e.repeat)return;
+ if(e.key.toLowerCase()==='e'){exportCsv();e.preventDefault()}});
+})();
 </script>
 </body>
 </html
