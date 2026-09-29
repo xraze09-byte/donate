@@ -100,7 +100,7 @@ const donations=t=>t.sent.filter(m=>m.t==='donation');
  // 10) circuit breaker: queue healthy => iframe shown, src correct
  t=boot({health:'ok'});await sleep(400);
  const f=t.w.document.getElementById('qF');
- ok(/^https:\/\/rzclan-queue\.onrender\.com\/embed\?ch=rzc_testkey123&parent=/.test(f.src),'healthy: iframe src -> /embed with ch + parent');
+ ok(/^https:\/\/queue-system-r517\.onrender\.com\/embed\?ch=rzc_testkey123&parent=/.test(f.src),'healthy: iframe src -> /embed with ch + parent');
  f.onload&&f.onload();
  ok(t.w.document.getElementById('qBox').style.display==='','healthy + loaded: box visible');
 
@@ -121,16 +121,16 @@ const donations=t=>t.sent.filter(m=>m.t==='donation');
  // 13) never mounts on OBS overlay / admin views
  for(const h of ['#overlay?k=testkey123','#admin']){
   t=boot({hash:h});await sleep(400);
-  ok(!t.fetched.some(u=>u.includes('rzclan-queue')),`${h}: queue not contacted`)}
+  ok(!t.fetched.some(u=>u.includes('queue-system-r517')),`${h}: queue not contacted`)}
 
  // 14) resize message: only from queue origin, clamped
  t=boot();await sleep(400);
  const fr=t.w.document.getElementById('qF');
  t.w.dispatchEvent(new t.w.MessageEvent('message',{origin:'https://evil.test',data:{type:'rzq:height',h:500}}));
  ok(fr.style.height==='210px','resize from foreign origin ignored');
- t.w.dispatchEvent(new t.w.MessageEvent('message',{origin:'https://rzclan-queue.onrender.com',data:{type:'rzq:height',h:320}}));
+ t.w.dispatchEvent(new t.w.MessageEvent('message',{origin:'https://queue-system-r517.onrender.com',data:{type:'rzq:height',h:320}}));
  ok(fr.style.height==='320px','resize from queue origin applied');
- t.w.dispatchEvent(new t.w.MessageEvent('message',{origin:'https://rzclan-queue.onrender.com',data:{type:'rzq:height',h:99999}}));
+ t.w.dispatchEvent(new t.w.MessageEvent('message',{origin:'https://queue-system-r517.onrender.com',data:{type:'rzq:height',h:99999}}));
  ok(fr.style.height==='320px','absurd height rejected');
 
  console.log(`\n${pass} passed, ${fail} failed`);process.exit(fail?1:0);

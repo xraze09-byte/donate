@@ -1870,7 +1870,7 @@ dForm.addEventListener('submit',function(e){e.preventDefault();
    - ต้องผ่านสองด่านถึงจะโชว์: /health ตอบ ok ภายใน 6 วิ  และ iframe onload ภายใน 6 วิ
    - ทุกอย่างอยู่ใน try/catch และไม่ throw ออกนอกบล็อกนี้ */
 (function mountQueue(){try{
- var QHOST='https://rzclan-queue.onrender.com';        /* โดเมน service คิว */
+ var QHOST='https://queue-system-r517.onrender.com';        /* โดเมน service คิว */
  if(!QHOST||/^#(overlay|obs|admin)/.test(location.hash||''))return;
  var box=document.getElementById('qBox'),f=document.getElementById('qF');if(!box||!f)return;
  var shown=false,dead=false;
