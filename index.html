@@ -1241,6 +1241,19 @@ html.nf-mob .modal{-webkit-backdrop-filter:none;backdrop-filter:none}        /* 
      <div><label class="lbl-f" for="dMsg">[03] ข้อความถึงสตรีมเมอร์</label>
       <textarea id="dMsg" class="inp" rows="3" maxlength="120" placeholder="พิมพ์ข้อความที่จะขึ้นจอ..."></textarea>
       <div class="text-right mt-1 f-tech text-[.54rem] text-steel"><span id="mCnt">0</span>/120</div></div>
+     <div id="qWrap" class="border border-blood/30 p-3" style="clip-path:var(--cut-sm)">
+      <label class="flex items-center gap-2 cursor-pointer select-none">
+       <input type="checkbox" id="dQ" style="width:18px;height:18px;accent-color:#ff0033">
+       <span class="lbl-f" style="margin:0">[04] ขอคิวเล่นเกมด้วย (ไม่บังคับ)</span></label>
+      <div id="qFields" style="display:none" class="mt-3 space-y-3">
+       <div><label class="lbl-f" for="dQName">ชื่อในเกม</label>
+        <input id="dQName" class="inp" maxlength="24" placeholder="ชื่อในเกม Free Fire"></div>
+       <div><label class="lbl-f" for="dQUid">UID Free Fire (ตัวเลข 6-14 หลัก) <i>*</i></label>
+        <input id="dQUid" class="inp" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="เช่น 123456789">
+        <div class="err" id="eQUid">!! UID ต้องเป็นตัวเลข 6-14 หลัก</div></div>
+       <div class="f-tech text-[.52rem] leading-relaxed tracking-[.1em] text-steel">คิวโดเนทเกิดหลังแอดมินอนุมัติการโอนแล้วเท่านั้น</div>
+      </div>
+     </div>
      <div class="border border-blood/30 p-3" style="clip-path:var(--cut-sm);background:rgba(255,0,51,.06)">
       <div class="flex items-center justify-between gap-3">
        <div><div class="f-tech text-[.54rem] tracking-[.24em] text-steel">ALERT TIER</div>
@@ -1258,6 +1271,10 @@ html.nf-mob .modal{-webkit-backdrop-filter:none;backdrop-filter:none}        /* 
   </div>
 
   <div class="space-y-5">
+   <div id="qBox" style="display:none"><iframe id="qF" title="คิวเล่นเกม"
+    style="width:100%;height:210px;border:0;display:block;background:transparent"
+    referrerpolicy="no-referrer" loading="lazy"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe></div>
    <div class="panel"><div class="panel-in">
     <div class="hdr"><span class="dot"></span><h3>Top Donators</h3><span class="ml-auto tag">SEASON 01</span></div>
     <div class="p-3 sm:p-4"><div id="board"></div></div>
@@ -1828,20 +1845,59 @@ function upTier(){var v=Number(dAmt.value)||0,t=tierOf(v),on=v>0;
 upTier();
 function bad(el,sel,msg){el.classList.add('bad');var e=$(sel);if(msg)e.textContent='!! '+msg;e.classList.add('on');
  setTimeout(function(){el.classList.remove('bad')},520);el.focus()}
+/* ── ขอคิวเล่นเกม (ไม่บังคับ): ติ๊กแล้วต้องกรอก UID; ไม่ติ๊ก = ฟอร์มทำงานเหมือนเดิมทุกอย่าง ── */
+var dQ=$('#dQ'),dQName=$('#dQName'),dQUid=$('#dQUid');
+dQ.addEventListener('change',function(){$('#qFields').style.display=dQ.checked?'':'none'});
+dQUid.addEventListener('input',function(){dQUid.value=dQUid.value.replace(/\D/g,'').slice(0,14)});
+/* คืนค่า {name,uid} | null (ไม่ขอคิว) | false (ขอคิวแต่ UID ผิด) */
+function readQ(){if(!dQ.checked)return null;
+ var uid=dQUid.value.replace(/\D/g,'');if(!/^\d{6,14}$/.test(uid))return false;
+ return {name:(dQName.value.trim()||dName.value.trim()).slice(0,24),uid:uid}}
 dForm.addEventListener('submit',function(e){e.preventDefault();
  $$('.err').forEach(function(x){x.classList.remove('on')});
  var n=dName.value.trim(),a=Math.floor(Number(dAmt.value)||0);
  if(!n)return bad(dName,'#eName','กรุณาระบุชื่อ');
  if(!(a>0))return bad(dAmt,'#eAmt','จำนวนเงินต้องมากกว่า 0');
  if(a<(CFG.min||1))return bad(dAmt,'#eAmt','ขั้นต่ำ '+fmt(CFG.min)+' บาท');
+ var qq=readQ();
+ if(qq===false)return bad(dQUid,'#eQUid','UID ต้องเป็นตัวเลข 6-14 หลัก');
  if(!PP.tgt(CFG.pp))return toast('!! ระบบยังไม่พร้อมรับโอน');
- btnFx($('#bGen'));openPay({name:n,amount:a,message:dMsg.value.trim()})});
+ btnFx($('#bGen'));openPay({name:n,amount:a,message:dMsg.value.trim(),q:qq})});
+
+/* ═══════════ QUEUE EMBED (บริการแยก) ═══════════
+   หลักการ: คิวล่ม/ช้า/ถูกบล็อก = กล่องไม่โผล่ ฟอร์มโดเนทไม่รู้สึกอะไรเลย
+   - โหลดเมื่อเป็นหน้าสาธารณะเท่านั้น (ไม่โหลดใน OBS overlay / แอดมิน)
+   - ต้องผ่านสองด่านถึงจะโชว์: /health ตอบ ok ภายใน 6 วิ  และ iframe onload ภายใน 6 วิ
+   - ทุกอย่างอยู่ใน try/catch และไม่ throw ออกนอกบล็อกนี้ */
+(function mountQueue(){try{
+ var QHOST='https://rzclan-queue.onrender.com';        /* โดเมน service คิว */
+ if(!QHOST||/^#(overlay|obs|admin)/.test(location.hash||''))return;
+ var box=document.getElementById('qBox'),f=document.getElementById('qF');if(!box||!f)return;
+ var shown=false,dead=false;
+ function giveUp(){dead=true;try{f.removeAttribute('src');box.style.display='none'}catch(e){}}
+ var to=setTimeout(function(){if(!shown)giveUp()},6000);
+ function show(){if(dead||shown)return;shown=true;clearTimeout(to);box.style.display=''}
+ /* ด่าน 1: /health (fetch แบบ no-cors ไม่ได้ผลอ่านได้ -> ใช้ cors ปกติ; ล้มเหลวเงียบ ๆ) */
+ var ctl=(typeof window.AbortController==='function')?new window.AbortController():null;
+ setTimeout(function(){try{ctl&&ctl.abort()}catch(e){}},6000);
+ fetch(QHOST+'/health',{cache:'no-store',signal:ctl?ctl.signal:undefined})
+  .then(function(r){return r.ok?r.json():Promise.reject()})
+  .then(function(j){if(dead||!j||!j.ok)return giveUp();
+   f.onload=show;f.onerror=giveUp;
+   f.src=QHOST+'/embed?ch='+encodeURIComponent(CH)+'&parent='+encodeURIComponent(location.origin)})
+  .catch(giveUp);
+ window.addEventListener('message',function(ev){try{
+  if(ev.origin!==QHOST||!ev.data||typeof ev.data!=='object')return;
+  if(ev.data.type==='rzq:height'){var h=Number(ev.data.h);if(h>=80&&h<=900)f.style.height=Math.ceil(h)+'px'}
+ }catch(e){}});
+}catch(e){}})();
 
 /* ═══════════ PAY MODAL ═══════════ */
 var payEl=$('#pay'),pend=null,pTick=null,qrSrc='',slipData='';
 function openPay(d){
  pend={id:uid(),name:d.name,amount:d.amount,message:d.message,ts:Date.now(),status:'pending',
   ref:'RZ-'+Date.now().toString(36).toUpperCase().slice(-6),slip:false};
+ if(d.q)pend.q=d.q;
  slipData='';$('#slipPrev').style.display='none';$('#dropTxt').style.display='';$('#fSlip').value='';
  $('#pAmt').textContent=fmt(d.amount);$('#pDonor').textContent=d.name;
  $('#pTo').textContent=CFG.payee||'RZ CLAN';$('#pId').textContent=PP.nice(CFG.pp);$('#pRef').textContent=pend.ref;
@@ -1882,7 +1938,7 @@ $('#bSubmit').addEventListener('click',function(){
  if(slipData)ops.push(ST.put('slip',{id:rec.id,data:slipData}));
  Promise.all(ops).then(function(){
   emit('donation',{rec:rec,slip:slipData||null});
-  emit('sync',{});closePay();dForm.reset();$('#mCnt').textContent='0';
+  emit('sync',{});closePay();dForm.reset();$('#mCnt').textContent='0';$('#qFields').style.display='none';
   $$('#chips .chip').forEach(function(x){x.classList.remove('on')});upTier();
   pend=null;slipData='';b.disabled=false;
   toast('✓ ส่งคำขอแล้ว รอตรวจสอบ',1);refreshPublic()})
