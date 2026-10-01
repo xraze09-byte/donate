@@ -1186,6 +1186,387 @@ html.nf-mob .modal{-webkit-backdrop-filter:none;backdrop-filter:none}        /* 
 @keyframes nf-flashin{from{opacity:0;transform:translate3d(-50%,-22px,0) scale(.9)}to{opacity:1;transform:translate3d(-50%,0,0) scale(1)}}
 html.obs .nf-flash{display:none!important}
 </style>
+<style id="design-repair">
+/* ==========================================================
+   DESIGN REPAIR
+   Existing selectors retained. No JavaScript changes.
+   ========================================================== */
+
+/* 1. Shared design tokens */
+:root {
+  --red: #ff2340;
+  --red-hi: #ff627a;
+  --red-lo: #c1102c;
+  --ink: #080a10;
+  --s0: #0b0e15;
+  --s1: #11151e;
+  --s2: #171c27;
+  --s3: #202737;
+  --s4: #303a4c;
+  --bone: #f5f7fc;
+  --steel: #b9c3d4;
+  --steel-d: #9ba9be;
+  --ok: #43dfa0;
+  --warn: #ffd075;
+
+  --ui-border: rgba(185, 195, 212, 0.2);
+  --ui-radius: 18px;
+  --ui-control-radius: 10px;
+  --ui-focus: #91caff;
+  --ui-shadow: 0 16px 42px rgba(0, 0, 0, 0.28);
+}
+
+/* 2. Base sizing and typography */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body:not(.obs) {
+  margin: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: "Kanit", system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+body:not(.obs) :is(#vDonor, #vAdmin, #pay) {
+  overflow-wrap: anywhere;
+}
+
+:is(#vDonor, #vAdmin, #pay) :is(h1, h2, h3, h4) {
+  line-height: 1.3;
+  text-shadow: none;
+}
+
+:is(#vDonor, #vAdmin, #pay) :is(button, input, select, textarea) {
+  font: inherit;
+}
+
+:is(#vDonor, #vAdmin, #pay) :is(img, video, canvas, svg) {
+  max-width: 100%;
+}
+
+:is(#vDonor, #vAdmin, #pay) img {
+  height: auto;
+}
+
+/* 3. Donor layout
+   Match the retrieved grid without changing hidden views. */
+#vDonor > :is(header, section, footer).max-w-5xl {
+  width: 100%;
+  max-width: 1160px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3vw, 32px);
+}
+
+#vDonor > section.grid {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(16px, 2.5vw, 28px);
+  padding-bottom: clamp(32px, 5vw, 64px);
+}
+
+#vDonor > section.grid > *,
+#vDonor .panel,
+#vAdmin .panel,
+#vDonor .panel-in,
+#vAdmin .panel-in,
+#pS > * {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  #vDonor > section.grid {
+    grid-template-columns:
+      minmax(0, 1.08fr)
+      minmax(0, 0.92fr);
+  }
+}
+
+/* 4. Panels
+   Remove diagonal clipping so controls and focus indicators
+   are not cut off at panel edges. */
+:is(#vDonor, #vAdmin, #pay) .panel {
+  padding: 0;
+  clip-path: none;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--s1);
+  box-shadow: var(--ui-shadow);
+}
+
+:is(#vDonor, #vAdmin, #pay) .panel > .panel-in {
+  min-width: 0;
+  clip-path: none;
+  border-radius: inherit;
+  background: linear-gradient(145deg, var(--s2), var(--s1));
+}
+
+/* 5. Donation form */
+#dForm {
+  padding: clamp(18px, 3vw, 28px);
+}
+
+#dForm > * + * {
+  margin-top: 18px;
+}
+
+:is(#vDonor, #vAdmin, #pay) .inp {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-control-radius);
+  clip-path: none;
+  background: #0b1019;
+  color: var(--bone);
+  font-family: "Kanit", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  box-shadow: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+:is(#vDonor, #vAdmin, #pay) .inp::placeholder {
+  color: var(--steel-d);
+  opacity: 1;
+}
+
+:is(#vDonor, #vAdmin, #pay) .inp:hover {
+  border-color: rgba(185, 195, 212, 0.45);
+}
+
+:is(#vDonor, #vAdmin, #pay) .inp:focus {
+  border-color: var(--ui-focus);
+  background: #101724;
+  box-shadow: 0 0 0 3px rgba(145, 202, 255, 0.16);
+}
+
+:is(#vDonor, #vAdmin, #pay) textarea.inp {
+  min-height: 120px;
+  resize: vertical;
+}
+
+:is(#vDonor, #vAdmin, #pay) select.inp {
+  appearance: auto;
+}
+
+:is(#vDonor, #vAdmin, #pay) .inp[aria-invalid="true"] {
+  border-color: #ff8395;
+}
+
+:is(#vDonor, #vAdmin, #pay) .err {
+  color: #ff9eac;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* 6. Buttons and amount chips */
+:is(#vDonor, #vAdmin, #pay) .btn-x {
+  min-width: 44px;
+  min-height: 48px;
+  max-width: 100%;
+  padding: 12px 20px;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--ui-control-radius);
+  clip-path: none;
+  background: linear-gradient(180deg, #c71937, #a8102b);
+  color: #fff;
+  font-family: "Kanit", system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.025em;
+  text-align: center;
+  white-space: normal;
+  text-shadow: none;
+  box-shadow: 0 6px 18px rgba(167, 16, 43, 0.2);
+  touch-action: manipulation;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+:is(#vDonor, #vAdmin, #pay) .chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 9px 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-control-radius);
+  clip-path: none;
+  background: var(--s2);
+  color: var(--bone);
+  font-family: "Kanit", system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.4;
+  text-align: center;
+  touch-action: manipulation;
+}
+
+/* Attribute-based selected styles, if used by the app. */
+:is(#vDonor, #vAdmin, #pay)
+.chip:is([aria-pressed="true"], [aria-selected="true"]) {
+  border-color: var(--red-hi);
+  background: #381522;
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(#vDonor, #vAdmin, #pay) .btn-x:not(:disabled):hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+    box-shadow: 0 9px 22px rgba(167, 16, 43, 0.28);
+  }
+
+  :is(#vDonor, #vAdmin, #pay) .chip:not(:disabled):hover {
+    border-color: var(--red-hi);
+    background: #2a1722;
+  }
+}
+
+:is(#vDonor, #vAdmin, #pay) .btn-x:not(:disabled):active {
+  transform: translateY(0);
+}
+
+:is(#vDonor, #vAdmin, #pay)
+:is(button, input, select, textarea):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 7. Keyboard focus */
+:is(#vDonor, #vAdmin, #pay)
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--ui-focus);
+  outline-offset: 3px;
+}
+
+/* 8. Payment modal
+   Preserve existing .modal/.on visibility logic. */
+body:not(.obs) #pay.modal {
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(3, 6, 12, 0.88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+#pay .modal-box {
+  width: 100%;
+  max-width: 460px;
+  min-width: 0;
+  min-height: 0;
+  max-height: calc(100vh - 32px);
+  max-height: calc(
+    100dvh
+    - max(16px, env(safe-area-inset-top, 0px))
+    - max(16px, env(safe-area-inset-bottom, 0px))
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 20px;
+  border-radius: var(--ui-radius);
+  clip-path: none;
+}
+
+/* Keep QR/image proportions; do not crop or recolor them. */
+#pay .modal-box :is(img, canvas) {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* 9. Narrow-screen administration layout */
+@media (max-width: 839px) {
+  #vAdmin #pS.on {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #vAdmin #pS.on > * {
+    grid-column: auto;
+    min-width: 0;
+  }
+}
+
+/* 10. Decorative effects */
+body:not(.obs)::after {
+  display: none;
+}
+
+body:not(.obs) #bgfx {
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  body:not(.obs) #bgfx {
+    display: none;
+  }
+
+  body:not(.obs) #pay.modal {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Restrict motion changes to UI and decorative backgrounds,
+   rather than altering OBS alert timing. */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.obs) {
+    scroll-behavior: auto;
+  }
+
+  body:not(.obs) #bgfx,
+  body:not(.obs) #bgfx *,
+  body:not(.obs) :is(#vDonor, #vAdmin, #pay),
+  body:not(.obs) :is(#vDonor, #vAdmin, #pay) *,
+  body:not(.obs) :is(#vDonor, #vAdmin, #pay) *::before,
+  body:not(.obs) :is(#vDonor, #vAdmin, #pay) *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 11. OBS transparency safeguards */
+html.obs,
+body.obs {
+  background: transparent !important;
+}
+
+body.obs::before,
+body.obs::after {
+  display: none !important;
+}
+
+body.obs #bgfx,
+body.obs .view,
+body.obs .modal {
+  display: none !important;
+}
+
+body.obs #stage.active {
+  background: transparent !important;
+}
+</style>
 </head>
 <body>
 
