@@ -1372,6 +1372,7 @@ html.obs .nf-flash{display:none!important}
       <div><label class="lbl-f" for="sImg">LOGO IMAGE / GIF URL</label><input id="sImg" class="inp f-tech !text-[.7rem]" placeholder="https://.../rz-logo.gif"></div>
       <div><label class="lbl-f" for="sVid">LOGO VIDEO URL (.webm alpha)</label><input id="sVid" class="inp f-tech !text-[.7rem]" placeholder="https://.../slam.webm"></div>
       <div><label class="lbl-f" for="sWs">WEBSOCKET SERVER (ถ้ามี backend)</label><input id="sWs" class="inp f-tech !text-[.7rem]" placeholder="wss://your-server.com/ws"></div>
+      <div><label class="lbl-f" for="sTok">RELAY TOKEN (ต้องตรงกับ RELAY_TOKEN บน Render)</label><input id="sTok" type="password" autocomplete="off" class="inp f-tech !text-[.7rem]" placeholder="วางรหัสยาวๆ ที่ตั้งบน Render — เก็บในเครื่องนี้เท่านั้น"></div>
       <div class="flex items-center gap-2 pt-1">
        <input type="checkbox" id="sSlip" style="width:18px;height:18px;accent-color:#ff0033">
        <label for="sSlip" class="text-xs text-steel">บังคับแนบสลิปก่อนส่งคำขอ</label></div>
@@ -1533,6 +1534,8 @@ var CFG=(function(){try{return Object.assign({},DEF,JSON.parse(localStorage.getI
 if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 /* OBS/overlay: คีย์ใน URL ชนะคีย์เก่าที่ค้างใน localStorage ของ OBS เสมอ (กันหน้าหลักกับ RAW feed ต่อคนละห้อง) */
 (function(){var uk=P('k');if(uk&&uk!==CFG.key){CFG.key=uk;try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}})();
+var K_TOK='rzc_tok_v1';
+function relayTok(){try{return localStorage.getItem(K_TOK)||''}catch(e){return ''}}
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 (function(){var u={};['pp','payee','goal','min','reqSlip'].forEach(function(k){var v=P(k);if(v===null)return;
  u[k]=k==='reqSlip'?(v==='1'||v==='true'):(k==='goal'||k==='min')?(Number(v)||0):v});
@@ -1714,6 +1717,7 @@ function wsRetry(){if(wsTimer)return; /* กันตั้ง timer ซ้อ�
 function wsConnect(){if(!WSU)return;
  if(ws&&(ws.readyState===0||ws.readyState===1))return;
  var u=WSU+(WSU.indexOf('?')>=0?'&':'?')+'ch='+encodeURIComponent(CH);
+  if((location.hash||'').toLowerCase().indexOf('#admin')===0&&relayTok())u+='&tok='+encodeURIComponent(relayTok());
  try{var s=new WebSocket(u);ws=s;
   s.onopen=function(){wsTries=0;wsLastRx=Date.now()};
   s.onmessage=function(e){wsLastRx=Date.now();try{onMsg(JSON.parse(e.data))}catch(x){}};
@@ -2131,7 +2135,7 @@ $('#bDelAll').addEventListener('click',function(){
 /* SETTINGS */
 function fillSettings(){$('#sPP').value=CFG.pp;$('#sName').value=CFG.payee;$('#sGoal').value=CFG.goal;
  $('#sMin').value=CFG.min;$('#sImg').value=CFG.logo;$('#sVid').value=CFG.video;$('#sWs').value=CFG.ws;
- $('#sSlip').checked=!!CFG.reqSlip;ppHint()}
+ $('#sSlip').checked=!!CFG.reqSlip;$('#sTok').value=relayTok();ppHint()}
 function ppHint(){var t=PP.tgt($('#sPP').value);
  $('#sPPt').textContent='TYPE: '+(t?t.y+'  ✓':'— ยังไม่ถูกต้อง');
  $('#sPPt').style.color=t?'var(--ok)':'var(--red)'}
@@ -2141,6 +2145,8 @@ $('#bSaveS').addEventListener('click',function(){
  CFG.goal=Math.max(1,Number($('#sGoal').value)||50000);CFG.min=Math.max(1,Number($('#sMin').value)||20);
  CFG.logo=$('#sImg').value.trim();CFG.video=$('#sVid').value.trim();CFG.ws=$('#sWs').value.trim();
  CFG.reqSlip=$('#sSlip').checked;saveCfg();buildObs();buildDon();renderGoal();
+ var nt=$('#sTok').value.trim();if(nt!==relayTok()){try{nt?localStorage.setItem(K_TOK,nt):localStorage.removeItem(K_TOK)}catch(e){}
+  if(ws){try{ws.close()}catch(e){}}}  /* ต่อใหม่ด้วย token ใหม่ */
  emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip});
  btnFx(this);toast('✓ SETTINGS SAVED',1)});
 
