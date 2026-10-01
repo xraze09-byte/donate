@@ -1531,6 +1531,8 @@ function P(k){var h=location.hash||'',i=h.indexOf('?'),
 var DEF={pp:'',payee:'RZ CLAN',goal:50000,min:20,logo:'',video:'',ws:'wss://donate-backend-60hc.onrender.com/ws',key:'fce4afe701527d17fbef394d',reqSlip:true};
 var CFG=(function(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(K_CFG))||{})}catch(e){return Object.assign({},DEF)}})();
 if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
+/* OBS/overlay: คีย์ใน URL ชนะคีย์เก่าที่ค้างใน localStorage ของ OBS เสมอ (กันหน้าหลักกับ RAW feed ต่อคนละห้อง) */
+(function(){var uk=P('k');if(uk&&uk!==CFG.key){CFG.key=uk;try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}})();
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 (function(){var u={};['pp','payee','goal','min','reqSlip'].forEach(function(k){var v=P(k);if(v===null)return;
  u[k]=k==='reqSlip'?(v==='1'||v==='true'):(k==='goal'||k==='min')?(Number(v)||0):v});
@@ -1703,6 +1705,8 @@ window.addEventListener('storage',function(e){if(e.key!=='rzc_db_v4')return;
  else refreshPublic();});
 if(bc)bc.onmessage=function(e){onMsg(e.data)};
 var WSU=P('ws')||CFG.ws;
+/* แหล่งความจริงเดียวของห้อง/relay: สคริปต์เสริม (RAW ALERT FEED) อยู่นอก IIFE นี้ จึงต้องอ่านจากตรงนี้ */
+try{window.__RZ={ch:CH,ws:WSU}}catch(e){}
 var wsTries=0,wsTimer=null,wsLastRx=0;
 function wsRetry(){if(wsTimer)return; /* กันตั้ง timer ซ้อน = กันเปิดหลายซ็อกเก็ตพร้อมกัน */
  wsTries++;var w=Math.min(30000,1000*Math.pow(2,Math.min(wsTries,5)))*(.7+Math.random()*.6);
@@ -2513,8 +2517,8 @@ function pParam(k){
 var RAW={ws:null,up:false,tryN:0};
 function rawConnect(){
   try{
-    var base='wss://donate-backend-60hc.onrender.com/ws';
-    var ch='rzc_'+(pParam('k')||'fce4afe701527d17fbef394d');
+    var base=(window.__RZ&&window.__RZ.ws)||'wss://donate-backend-60hc.onrender.com/ws';  /* relay เดียวกับแอปหลัก */
+    var ch=(window.__RZ&&window.__RZ.ch)||('rzc_'+(pParam('k')||'fce4afe701527d17fbef394d'));  /* ห้องเดียวกับแอปหลักเสมอ */
     RAW.ws=new WebSocket(base+'?ch='+encodeURIComponent(ch));
     RAW.ws.onopen=function(){RAW.up=true;RAW.tryN=0};
     RAW.ws.onmessage=function(e){
