@@ -1535,7 +1535,17 @@ if(!CFG.key){CFG.key=rnd(12);try{localStorage.setItem(K_CFG,JSON.stringify(CFG))
 /* OBS/overlay: คีย์ใน URL ชนะคีย์เก่าที่ค้างใน localStorage ของ OBS เสมอ (กันหน้าหลักกับ RAW feed ต่อคนละห้อง) */
 (function(){var uk=P('k');if(uk&&uk!==CFG.key){CFG.key=uk;try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}})();
 var K_TOK='rzc_tok_v1';
-function relayTok(){try{return localStorage.getItem(K_TOK)||''}catch(e){return ''}}
+function relayTok(){var t=SRV.tok||SRV.saved();if(t)return t;try{return localStorage.getItem(K_TOK)||''}catch(e){return ''}}
+/* ---- SERVER LOGIN: รหัสแอดมินตรวจที่ relay (ใช้ได้ทุกเครื่อง) ---- */
+var SRV={on:null,tok:'',
+ base:function(){var w=(CFG.ws||'').replace(/^ws/i,'http').replace(/\/ws\/?$/,'');return w},
+ post:function(path,body){var b=this.base();if(!b)return Promise.reject(new Error('no relay'));
+  return fetch(b+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j._s=r.status;return j})})},
+ /* เซิร์ฟเวอร์เปิดโหมดรหัสผ่านไหม? (503 = ยังไม่ตั้ง ADMIN_PASSWORD_HASH) ไม่ตอบ = ถือว่าไม่เปิด (fallback โหมดเดิม) */
+ probe:function(){var self=this;if(self.on!==null)return Promise.resolve(self.on);
+  return self.post('/admin/check',{token:'probe'}).then(function(j){self.on=(j._s!==503&&j._s!==404&&j.ok!==undefined);return self.on}).catch(function(){self.on=false;return false})},
+ saved:function(){try{return sessionStorage.getItem('rzc_srvtok')||''}catch(e){return ''}},
+ keep:function(t){this.tok=t;try{t?sessionStorage.setItem('rzc_srvtok',t):sessionStorage.removeItem('rzc_srvtok')}catch(e){}}};
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
 (function(){var u={};['pp','payee','goal','min','reqSlip'].forEach(function(k){var v=P(k);if(v===null)return;
  u[k]=k==='reqSlip'?(v==='1'||v==='true'):(k==='goal'||k==='min')?(Number(v)||0):v});
@@ -2013,6 +2023,12 @@ function gateUI(){
   $('#gSub').textContent='ลองใหม่อีกครั้งใน '+Math.ceil((l.u-Date.now())/60000)+' นาที';
   gForm.style.display='none';setTimeout(gateUI,15000);return}
  gForm.style.display='';
+ if(SRV.on===null){SRV.probe().then(gateUI);$('#gSub').textContent='CHECKING…';return}
+ if(SRV.on){MODE='login';
+  $('#gHead').textContent='OPERATOR LOGIN';$('#gSub').textContent='ADMIN AUTHORIZATION REQUIRED';
+  $('#gTag').textContent='SECURE';$('#gTag').className='ml-auto tag';
+  $('#gPw2Wrap').style.display='none';$('#gBarWrap').style.display='none';$('#gHint').style.display='none';
+  gPw.setAttribute('autocomplete','current-password');gBtn.querySelector('.lbl').textContent='AUTHENTICATE';return}
  if(!AUTH.has()){MODE='setup';
   $('#gHead').textContent='FIRST SETUP';$('#gSub').textContent='ตั้งรหัสผ่านแอดมินครั้งแรก';
   $('#gTag').textContent='SETUP';$('#gTag').className='ml-auto tag warn';
@@ -2035,13 +2051,19 @@ gForm.addEventListener('submit',function(e){e.preventDefault();gErr.classList.re
   gBtn.disabled=true;AUTH.set(pw).then(function(){AUTH.open();gPw.value=gPw2.value='';gBtn.disabled=false;
    toast('✓ ตั้งรหัสผ่านสำเร็จ',1);enterAdmin()});return}
  gBtn.disabled=true;
+ if(SRV.on){SRV.post('/admin/login',{password:pw}).then(function(j){gBtn.disabled=false;gPw.value='';
+   if(j.ok&&j.token){SRV.keep(j.token);AUTH.open();enterAdmin();
+     if(ws){try{ws.close()}catch(e){}}   /* ต่อ WS ใหม่พร้อม session token */
+     setTimeout(function(){emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})},1500)}
+   else{gErr.textContent=j._s===429?'!! ลองผิดหลายครั้ง ถูกล็อกชั่วคราว รอสักครู่':j._s===401?'!! รหัสไม่ถูกต้อง'+(j.left!=null?' (เหลืออีก '+j.left+' ครั้ง)':''):'!! เชื่อมต่อเซิร์ฟเวอร์ไม่ได้';
+     gErr.classList.add('on')}}).catch(function(){gBtn.disabled=false;gErr.textContent='!! เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (relay อาจกำลังตื่น ลองใหม่ใน 30 วินาที)';gErr.classList.add('on')});return}
  AUTH.check(pw).then(function(ok){gBtn.disabled=false;gPw.value='';
   if(ok){AUTH.pass();AUTH.open();enterAdmin();
    emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})}
   else{var l=AUTH.fail();
    gErr.textContent=l.u&&l.u>Date.now()?'!! ใส่ผิดหลายครั้ง ระบบล็อกชั่วคราว':'!! รหัสผ่านไม่ถูกต้อง ('+(5-l.n)+' ครั้งก่อนถูกล็อก)';
    gErr.classList.add('on');gateUI()}})});
-$('#bOut').addEventListener('click',function(){AUTH.close();$('#adm').style.display='none';$('#gate').style.display='';
+$('#bOut').addEventListener('click',function(){if(SRV.on&&relayTok())SRV.post('/admin/logout',{token:relayTok()});SRV.keep('');AUTH.close();$('#adm').style.display='none';$('#gate').style.display='';
  gateUI();toast('▸ LOGGED OUT')});
 
 /* ═══════════ ADMIN ═══════════ */
@@ -2236,7 +2258,17 @@ function route(){
  if(IS_OBS){document.documentElement.style.background='transparent';document.body.style.background='transparent';
   if(P('mute')!=='1')$('#aud').classList.add('need')}
  else{document.documentElement.style.background='';document.body.style.background=''}
- if(isAdm){if(AUTH.valid())enterAdmin();else{$('#adm').style.display='none';$('#gate').style.display='';gateUI()}}
+ if(isAdm){
+   /* โหมดเซิร์ฟเวอร์: เข้า admin ได้ก็ต่อเมื่อเซิร์ฟเวอร์ยืนยัน session token นี้จริง (sessionStorage ที่ถูกแก้เองไม่พอ) */
+   SRV.probe().then(function(on){
+     if(!on){if(AUTH.valid())enterAdmin();else{$('#adm').style.display='none';$('#gate').style.display='';gateUI()}return}
+     var t=SRV.saved();
+     if(!t){$('#adm').style.display='none';$('#gate').style.display='';gateUI();return}
+     SRV.post('/admin/check',{token:t}).then(function(j){
+       if(j.ok){SRV.tok=t;AUTH.open();enterAdmin()}
+       else{SRV.keep('');$('#adm').style.display='none';$('#gate').style.display='';gateUI()}
+     }).catch(function(){$('#adm').style.display='none';$('#gate').style.display='';gateUI()})});
+ }
  else{clearInterval(sTimer)}}
 window.addEventListener('hashchange',function(){location.reload()});
 
