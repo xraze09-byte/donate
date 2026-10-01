@@ -1924,7 +1924,22 @@ var SRV={on:null,tok:'',
   return fetch(b+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j._s=r.status;return j})})},
  /* เซิร์ฟเวอร์เปิดโหมดรหัสผ่านไหม? (503 = ยังไม่ตั้ง ADMIN_PASSWORD_HASH) ไม่ตอบ = ถือว่าไม่เปิด (fallback โหมดเดิม) */
  probe:function(){var self=this;if(self.on!==null)return Promise.resolve(self.on);
-  return self.post('/admin/check',{token:'probe'}).then(function(j){self.on=(j._s!==503&&j._s!==404&&j.ok!==undefined);return self.on}).catch(function(){self.on=false;return false})},
+  if(self._p)return self._p;
+  /* ผลที่ "ชัดเจน" (เซิร์ฟเวอร์ตอบ 200/401/429 = เปิด, 503/404 = ปิด) ถึงจะจำ · ถ้าเน็ตหลุด/เซิร์ฟเวอร์ Render กำลังตื่น (timeout) ห้ามจำว่า "ปิด" ไม่งั้นหน้า admin จะสลับไป FIRST SETUP เอง → ลองใหม่ 3 ครั้งแล้วค่อยถอยไปโหมดเดิมแบบไม่จำ */
+  var tries=0;
+  function once(){tries++;
+   var ctl=(typeof AbortController!=='undefined')?new AbortController():null,to=ctl?setTimeout(function(){ctl.abort()},12000):0;
+   var b=self.base();if(!b)return Promise.reject(new Error('no relay'));
+   return fetch(b+'/admin/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'probe'}),signal:ctl?ctl.signal:undefined})
+    .then(function(r){clearTimeout(to);return r.json().catch(function(){return {}}).then(function(j){j._s=r.status;return j})})
+    .then(function(j){
+     if(j._s>=500&&j._s!==503){throw new Error('srv '+j._s)}   /* 502/504 = กำลังตื่น ไม่ใช่คำตอบจริง */
+     self.on=(j._s!==503&&j._s!==404&&j.ok!==undefined);return self.on})
+    .catch(function(e){clearTimeout(to);
+     if(tries<3)return new Promise(function(ok){setTimeout(ok,2500*tries)}).then(once);
+     return false})}   /* ไม่ set self.on → ครั้งหน้ายังลองถามใหม่ */
+  self._p=once().then(function(v){self._p=null;return v},function(){self._p=null;return false});
+  return self._p},
  saved:function(){try{return sessionStorage.getItem('rzc_srvtok')||''}catch(e){return ''}},
  keep:function(t){this.tok=t;try{t?sessionStorage.setItem('rzc_srvtok',t):sessionStorage.removeItem('rzc_srvtok')}catch(e){}}};
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
@@ -2404,7 +2419,19 @@ function gateUI(){
   $('#gSub').textContent='ลองใหม่อีกครั้งใน '+Math.ceil((l.u-Date.now())/60000)+' นาที';
   gForm.style.display='none';setTimeout(gateUI,15000);return}
  gForm.style.display='';
- if(SRV.on===null){SRV.probe().then(gateUI);$('#gSub').textContent='CHECKING…';return}
+ if(SRV.on===null){
+  /* ยังไม่รู้ว่าเซิร์ฟเวอร์เปิดโหมดรหัสผ่านไหม (เช่น Render กำลังตื่น) → รอ/ลองใหม่ ห้ามเดาเป็น FIRST SETUP */
+  $('#gHead').textContent='OPERATOR LOGIN';$('#gSub').textContent='CHECKING SERVER…';
+  $('#gTag').textContent='WAKING';$('#gTag').className='ml-auto tag warn';
+  $('#gPw2Wrap').style.display='none';$('#gBarWrap').style.display='none';$('#gHint').style.display='none';
+  if(gateUI._w)return;gateUI._w=1;
+  SRV.probe().then(function(v){gateUI._w=0;
+   if(SRV.on!==null)return gateUI();
+   /* probe ล้มเหลวครบ 3 ครั้ง: ถ้าเครื่องนี้มีรหัสแอดมินในเครื่องอยู่แล้วให้ใช้โหมดเดิมได้ · ถ้าไม่มี ให้บอกให้ลองใหม่ ไม่เปิด FIRST SETUP */
+   if(AUTH.has()){SRV.on=false;return gateUI()}
+   $('#gSub').textContent='เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (relay อาจกำลังตื่น) · ลองใหม่ใน 30 วินาที';
+   gForm.style.display='none';setTimeout(function(){gForm.style.display='';gateUI()},30000)});
+  return}
  if(SRV.on){MODE='login';
   $('#gHead').textContent='OPERATOR LOGIN';$('#gSub').textContent='ADMIN AUTHORIZATION REQUIRED';
   $('#gTag').textContent='SECURE';$('#gTag').className='ml-auto tag';
