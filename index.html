@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<script id="perf-patch-early">
+/* PERF PATCH v1 (early): must run before other scripts.
+   reveal() observes attributes(class/style/hidden) on the whole body subtree -> feedback loop
+   (is-visible/aria/style changes re-fire it + a full-page querySelectorAll).
+   Fix: drop `attributes` when observing body+subtree, and coalesce callbacks to 1 per frame. */
+(function(){var N=window.MutationObserver;if(!N||N.__perfWrapped)return;
+var W=function(cb){var pend=0,recs=[],self=this;
+ var inner=new N(function(r){for(var i=0;i<r.length;i++)recs.push(r[i]);if(pend)return;
+  pend=(window.requestAnimationFrame||setTimeout)(function(){pend=0;var x=recs;recs=[];if(x.length>400)x=x.slice(-400);
+   try{cb.call(self,x,self)}catch(e){console.warn('[perf] MO',e)}},16)});
+ this.observe=function(t,o){if(t===document.body&&o&&o.subtree&&o.attributes){o=Object.assign({},o);delete o.attributes;delete o.attributeFilter;delete o.attributeOldValue}return inner.observe(t,o)};
+ this.disconnect=function(){recs=[];return inner.disconnect()};
+ this.takeRecords=function(){return inner.takeRecords()}};
+W.__perfWrapped=true;W.prototype=N.prototype;window.MutationObserver=W})();
+</script>
+
 <meta charset="UTF-8"/>
 <!-- MODAL SAFETY NET (runs before everything else): a modal may only be visible when the app itself opened it
      (.on). Hard-hides it otherwise, even if a stale/cached stylesheet or a later CSS layer says display:grid. -->
@@ -4909,5 +4925,51 @@ document.readyState==='loading' ? addEventListener('DOMContentLoaded',boot) : bo
 })();
 </script>
 
+<!-- PERF PATCH v1: fixes lag/jank. Additive only; OBS overlay (#overlay / body.obs) untouched. -->
+<style id="perf-patch">
+/* huge blur filters are the most expensive paint op: remove (gradients are already soft) */
+body:not(.obs) .fx-a,body:not(.obs) .fx-b{filter:none!important;will-change:opacity}
+body:not(.obs) #bgfx{filter:none!important;contain:strict}
+/* 220%-size full-screen grain animating every 1.1s = giant repaint: stop it */
+body:not(.obs) #bgfx::before{animation:none!important;inset:0!important;opacity:.025!important}
+/* animating background-position forces a repaint every frame: stop (static look unchanged) */
+body:not(.obs) .fx-s,body:not(.obs) .fx-g{animation:none!important}
+/* let the browser skip layout/paint of off-screen panels */
+body:not(.obs) #vDonor .panel,body:not(.obs) #vAdmin .panel{content-visibility:auto;contain-intrinsic-size:auto 420px}
+/* while scrolling, pause all infinite animations so main thread/GPU serve the scroll */
+html.perf-scrolling body:not(.obs) *,html.perf-scrolling body:not(.obs) *::before,html.perf-scrolling body:not(.obs) *::after{animation-play-state:paused!important}
+/* hidden tab: pause everything */
+html.perf-hidden *,html.perf-hidden *::before,html.perf-hidden *::after{animation-play-state:paused!important}
+/* phones / weak devices: drop heavy background FX entirely */
+html.nf-mob body:not(.obs) .fx-a,html.nf-mob body:not(.obs) .fx-b,html.nf-mob body:not(.obs) .fx-g,html.nf-mob body:not(.obs) .fx-s,
+html.nf-mob body:not(.obs) .fx-v::before,html.nf-mob body:not(.obs) .fx-v::after{animation:none!important}
+html.nf-mob body:not(.obs) #bgfx::before,html.nf-mob body:not(.obs) #bgfx::after{display:none!important}
+html.nf-mob body:not(.obs) .glitch::before,html.nf-mob body:not(.obs) .glitch::after{animation:none!important}
+html.nf-mob body:not(.obs) .btn-x:hover{animation:none!important}
+</style>
+<script id="perf-patch-js">
+(function(){'use strict';
+var d=document,root=d.documentElement;
+var IS_OBS=d.body.classList.contains('obs')||['#overlay','#obs'].indexOf((location.hash||'').split('?')[0].toLowerCase())>=0;
+d.addEventListener('visibilitychange',function(){root.classList.toggle('perf-hidden',d.hidden)});
+if(!IS_OBS){var st=0,on=false;
+ addEventListener('scroll',function(){if(!on){on=true;root.classList.add('perf-scrolling')}
+  clearTimeout(st);st=setTimeout(function(){on=false;root.classList.remove('perf-scrolling')},160)},{passive:true})}
+/* rescan() ran full-page scans ~400ms after ANY DOM change: debounce harder (1.2s), skip while hidden, defer while scrolling */
+var tries=0;
+function patch(){var R=window.RZDS;
+ if(!R||typeof R.rescan!=='function'){if(tries++<60)setTimeout(patch,250);return}
+ if(R.rescan.__perf)return;
+ var orig=R.rescan,t=0,last=0;
+ function run(){
+  if(d.hidden)return;
+  if(root.classList.contains('perf-scrolling')){clearTimeout(t);t=setTimeout(run,400);return}
+  last=Date.now();orig.call(R)}
+ var w=function(){clearTimeout(t);t=setTimeout(run,Math.max(0,1200-(Date.now()-last)))};
+ w.__perf=1;R.rescan=w}
+/* later blocks re-wrap RZDS.rescan (Goal block) - patch last so ours is the outermost wrapper */
+if(d.readyState==='complete')patch();else addEventListener('load',patch);
+})();
+</script>
 </body>
 </html
