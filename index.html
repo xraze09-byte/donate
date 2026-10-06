@@ -1703,6 +1703,10 @@ body.obs #stage.active {
      <div class="err" id="gErr"></div>
      <button type="submit" class="btn-x w-full" id="gBtn"><span class="sheen"></span><span class="lbl">AUTHENTICATE</span></button>
     </form>
+    <div id="gGh" style="display:none" class="space-y-2">
+     <div class="f-tech text-[.5rem] tracking-[.2em] text-steel text-center">— หรือ —</div>
+     <button type="button" class="btn-x w-full alt" id="gGhBtn"><span class="lbl">LOGIN WITH GITHUB</span></button>
+    </div>
     <p class="f-tech text-[.5rem] leading-relaxed tracking-[.1em] text-steel text-center">
      PBKDF2-SHA256 · 210,000 ROUNDS · SESSION 30 MIN<br>รหัสผ่านถูก hash ในเครื่อง ไม่มีการส่งออกไปที่ใด</p>
    </div>
@@ -2476,6 +2480,30 @@ $('#bOut').addEventListener('click',function(){if(SRV.on&&relayTok())SRV.post('/
 
 /* ═══════════ ADMIN ═══════════ */
 var sTimer=null;
+/* ── GitHub login: ปุ่มโผล่เมื่อ relay ตั้ง GITHUB_* ครบ · code ใน URL ใช้ได้ครั้งเดียวและอายุ 60 วิ ── */
+var GH={
+ base:function(){return SRV.base()},
+ probe:function(){var b=this.base();if(!b)return;
+  fetch(b+'/admin/github/enabled',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+   if(j&&j.ok)$('#gGh').style.display=''}).catch(function(){})},
+ start:function(){var b=this.base();if(!b)return toast('!! ยังไม่ได้ตั้งค่า relay server');location.href=b+'/admin/github/start'},
+ finish:function(){
+  var h=location.hash||'',i=h.indexOf('?');if(i<0)return false;
+  var q=new URLSearchParams(h.slice(i+1)),code=q.get('gh'),err=q.get('gherr');
+  if(!code&&!err)return false;
+  history.replaceState(null,'',location.pathname+location.search+'#admin');   /* ลบ code ออกจาก URL ทันที */
+  if(err){var m={denied:'บัญชี GitHub นี้ไม่มีสิทธิ์แอดมิน',state:'ลิงก์ล็อกอินหมดอายุ ลองใหม่',locked:'ถูกล็อกชั่วคราว รอสักครู่',token:'GitHub ปฏิเสธการยืนยัน',server:'เซิร์ฟเวอร์ผิดพลาด ลองใหม่'};
+   setTimeout(function(){gErr.textContent='!! '+(m[err]||'ล็อกอินด้วย GitHub ไม่สำเร็จ');gErr.classList.add('on')},300);return false}
+  SRV.post('/admin/github/exchange',{code:code}).then(function(j){
+   if(j.ok&&j.token){SRV.on=true;SRV.keep(j.token);AUTH.open();enterAdmin();
+    if(ws){try{ws.close()}catch(e){}}
+    setTimeout(function(){emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})},1500);
+    toast('✓ ล็อกอินด้วย GitHub สำเร็จ',1)}
+   else{gErr.textContent='!! โค้ดล็อกอินหมดอายุหรือถูกใช้ไปแล้ว ลองใหม่';gErr.classList.add('on')}
+  }).catch(function(){gErr.textContent='!! เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (relay อาจกำลังตื่น ลองใหม่)';gErr.classList.add('on')});
+  return true}
+};
+$('#gGhBtn').addEventListener('click',function(){GH.start()});
 function enterAdmin(){$('#gate').style.display='none';$('#adm').style.display='';
  fillSettings();buildObs();buildDon();adminRefresh();
  clearInterval(sTimer);sTimer=setInterval(function(){
@@ -2667,6 +2695,8 @@ function route(){
   if(P('mute')!=='1')$('#aud').classList.add('need')}
  else{document.documentElement.style.background='';document.body.style.background=''}
  if(isAdm){
+   GH.probe();
+   if(GH.finish())return;
    /* โหมดเซิร์ฟเวอร์: เข้า admin ได้ก็ต่อเมื่อเซิร์ฟเวอร์ยืนยัน session token นี้จริง (sessionStorage ที่ถูกแก้เองไม่พอ) */
    SRV.probe().then(function(on){
      if(!on){if(AUTH.valid())enterAdmin();else{$('#adm').style.display='none';$('#gate').style.display='';gateUI()}return}
