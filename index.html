@@ -2047,6 +2047,39 @@ body.rzds-locked{ overflow:hidden }
 }
 #rzdsDock button:hover{ color:var(--primary-accent); border-color:var(--primary-accent); transform:translateY(-2px) }
 @media(max-width:640px){ #rzdsDock{ display:none } }
+
+/* ══ QR SCAN-READABILITY (final override; beats all earlier .qr-frame layers) ══
+   Fixed: pulsing red glow + corner brackets over the code made phone cameras under-expose it; a grey-gradient
+   frame and fractional downscaling lowered contrast and smeared modules. Now: flat pure white frame, wide quiet
+   zone, static thin border, crisp integer-scaled bitmap, no animation. */
+#pay .qr-frame{
+  display:block !important; width:min(100%,468px) !important; aspect-ratio:auto !important;
+  margin-inline:auto !important; padding:14px !important; background:#ffffff !important;
+  background-image:none !important; border-radius:14px !important; overflow:visible !important;
+  animation:none !important; filter:none !important; opacity:1 !important; mix-blend-mode:normal !important;
+  box-shadow:0 0 0 2px #ffffff, 0 0 0 3px rgba(255,35,64,.55) !important; clip-path:none !important;
+}
+#pay .qr-frame::before,#pay .qr-frame::after{ display:none !important; content:none !important }
+#pay .qr-laser{ display:none !important }
+#pay #qrHost{ display:grid; place-items:center; background:#ffffff; border-radius:6px }
+#pay #qrHost img{
+  display:block; background:#ffffff; image-rendering:pixelated; image-rendering:crisp-edges;
+  filter:none !important; opacity:1 !important; mix-blend-mode:normal !important; animation:none !important;
+  max-width:none; -webkit-user-select:none; user-select:none;
+}
+#pay .qr-load{ background:#ffffff !important; color:#444 !important; min-height:240px; width:100% }
+#pay .qr-hint{ text-align:center; font-size:.72rem; letter-spacing:.06em; color:var(--steel,#9aa7b1); margin-top:8px }
+@media (max-width:480px){ #pay .qr-frame{ width:100% !important; padding:10px !important } }
+
+/* While paying, the QR must be the brightest, largest thing on screen: dim the scene behind the modal (so the
+   white code is high-contrast against it and phone auto-exposure doesn't wash it out), and let the modal
+   use nearly the whole phone width. */
+body:not(.obs) #pay.modal.on{ background:rgba(0,0,0,.94) !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important }
+@media (max-width:480px){
+  #pay.modal{ padding:8px !important }
+  #pay .modal-box{ max-width:none !important; width:100% !important }
+  #pay .modal-box .panel-in > .p-4,#pay .modal-box .p-4{ padding-left:10px !important; padding-right:10px !important }
+}
 </style>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -2481,6 +2514,7 @@ html[data-motion="off"] .rzds-ring{ display:none !important }
    <span class="pp-b">◈ PROMPTPAY</span>
    <span class="f-tech text-[.58rem] tracking-[.18em] text-steel">EXP <span id="pTimer" class="text-blood">15:00</span></span></div>
   <div class="qr-frame"><div class="qr-laser"></div><div id="qrHost"><div class="qr-load">GENERATING QR…</div></div></div>
+   <div class="qr-hint">แตะ QR เพื่อขยาย · เพิ่มความสว่างหน้าจอให้สุดเพื่อสแกนง่ายขึ้น</div>
   <div class="text-center">
    <div class="f-tech text-[.56rem] tracking-[.28em] text-steel">AMOUNT</div>
    <div class="f-teko text-5xl leading-none text-blood" style="text-shadow:0 0 24px rgba(255,0,51,.8)">฿<span id="pAmt">0</span></div></div>
@@ -2726,18 +2760,37 @@ var QR={lib:null,q:[],ld:false,
    var s=document.createElement('script');s.src=u[i++];
    s.onload=function(){self.lib=window.qrcode;self.ld=false;self.q.splice(0).forEach(function(f){f(!!self.lib)})};
    s.onerror=nx;document.head.appendChild(s)})()},
+ /* FIX (scan reliability): PURE #000 modules on PURE #fff, 4-module quiet zone, INTEGER pixels per module (c).
+    The bitmap is shown at a whole-number-of-pixels-per-module size (see fit), so no fractional resampling can
+    smear or merge modules. */
  draw:function(t,px){var q=this.lib(0,'M');q.addData(t);q.make();
-  var n=q.getModuleCount(),qz=4,tt=n+qz*2,c=Math.max(3,Math.floor((px||520)/tt)),sz=c*tt;
+  var n=q.getModuleCount(),qz=4,tt=n+qz*2,c=Math.max(4,Math.floor((px||520)/tt)),sz=c*tt;
   var cv=document.createElement('canvas');cv.width=cv.height=sz;var g=cv.getContext('2d');
-  g.fillStyle='#fff';g.fillRect(0,0,sz,sz);g.fillStyle='#07070a';
+  g.fillStyle='#ffffff';g.fillRect(0,0,sz,sz);g.fillStyle='#000000';
   for(var r=0;r<n;r++)for(var k=0;k<n;k++)if(q.isDark(r,k))g.fillRect((k+qz)*c,(r+qz)*c,c,c);
   return cv.toDataURL('image/png')},
  render:function(host,text,done){var self=this;
   self.load(function(ok){var im=new Image();im.alt='PromptPay QR';
-   im.onload=function(){host.innerHTML='';host.appendChild(im);done&&done(im.src)};
+   im.onload=function(){host.innerHTML='';host.appendChild(im);self.fit(im);done&&done(im.src)};
    im.onerror=function(){host.innerHTML='<div class="qr-load" style="color:#ff0033">QR ERROR<br>ตรวจการเชื่อมต่ออินเทอร์เน็ต</div>'};
    if(ok){try{im.src=self.draw(text,560)}catch(e){im.src=self.api(text)}}else im.src=self.api(text)})},
- api:function(t){return 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=14&data='+encodeURIComponent(t)}};
+ api:function(t){return 'https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=14&data='+encodeURIComponent(t)},
+ /* Show the bitmap at a size where every module is a WHOLE number of CSS pixels. The old fractional scale
+    (540px shown at 248px = x0.459) blurred/merged modules and made phone cameras fail to lock on. */
+ fit:function(im){
+  var nat=im.naturalWidth||560,f=im.closest&&im.closest('.qr-frame'),cw=f?f.clientWidth-(window.innerWidth<=480?20:28):320;
+  var avail=Math.max(160,Math.min(cw,440));
+  /* nat = c*(n+8) where c = source px per module. Choose a CSS px-per-module m (integer, or .5 steps on dense
+     screens) so m*(n+8) is the biggest size that still fits. n+8 is recovered from nat by trying c=4..14. */
+  var tt=0,c;for(c=14;c>=4;c--){if(nat%c===0){tt=nat/c;break}}
+  var dpr=window.devicePixelRatio||1,step=dpr>=2?0.5:1,best=0;
+  if(tt){var m=Math.floor(avail/tt/step)*step;if(m<1)m=1;best=Math.round(m*tt*2)/2}
+  if(!best)best=Math.floor(avail);
+  im.style.width=best+'px';im.style.height=best+'px';im.style.maxWidth='none';
+  im.setAttribute('data-fit',String(best));im.style.cursor='zoom-in';im.title='แตะเพื่อขยาย / Tap to enlarge';
+  im.onclick=function(){var lb=document.getElementById('lb'),li=document.getElementById('lbImg');
+   if(!lb||!li)return;li.src=im.src;li.style.cssText='background:#fff;padding:18px;border-radius:12px;width:min(92vw,92vh);height:min(92vw,92vh);max-height:none;image-rendering:pixelated';
+   lb.classList.add('on')}}};
 
 /* ═══════════ BUS ═══════════ */
 var CH='rzc_'+(P('k')||CFG.key||'x'),bc=null,ws=null;
