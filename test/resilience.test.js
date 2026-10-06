@@ -8,7 +8,7 @@ function boot({hash='#overlay?k=testkey123',ws='wss://relay.test/ws'}={}){
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(String(e.message||e)));
  const dom=new JSDOM(HTML,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://donate.test/'+hash,virtualConsole:vc,
   beforeParse(w){
-   class FakeWS{constructor(u){this.url=u;this.readyState=0;sockets.push(this);setTimeout(()=>{this.readyState=1;this.onopen&&this.onopen()},0)}
+   class FakeWS{constructor(u){this.url=u;this.readyState=0;this.raw=/rawConnect/.test(new Error().stack);sockets.push(this);setTimeout(()=>{this.readyState=1;this.onopen&&this.onopen()},0)}
     send(){}close(){this.readyState=3;setTimeout(()=>this.onclose&&this.onclose(),0)}}
    w.WebSocket=FakeWS;
    w.fetch=()=>Promise.reject(new Error('blocked'));
@@ -16,8 +16,11 @@ function boot({hash='#overlay?k=testkey123',ws='wss://relay.test/ws'}={}){
    w.HTMLCanvasElement.prototype.getContext=()=>null;w.scrollTo=()=>{};w.tailwind={};
    w.localStorage.setItem('rzc_cfg_v4',JSON.stringify({pp:'0812345678',payee:'RZ',min:20,key:'testkey123',ws}));
   }});
- const app=()=>sockets.filter(x=>x.url.startsWith('wss://relay.test'));
- return {dom,w:dom.window,errors,sockets,app};
+ // app = the main wsConnect() socket only. The RAW ALERT FEED pack (rawConnect, commit 56bde86) deliberately
+ // opens its own second socket on the SAME relay/room for TTS, so it is excluded here and checked separately.
+ const app=()=>sockets.filter(x=>x.url.startsWith('wss://relay.test')&&!x.raw);
+ const raw=()=>sockets.filter(x=>x.url.startsWith('wss://relay.test')&&x.raw);
+ return {dom,w:dom.window,errors,sockets,app,raw};
 }
 const shown=w=>w.document.getElementById('aName').textContent;
 (async()=>{
@@ -37,6 +40,7 @@ const shown=w=>w.document.getElementById('aName').textContent;
  // 2) reconnect: backoff grows, only ONE socket at a time, resets after open
  t=boot();await sleep(300);
  ok(t.app().length===1,'exactly one app relay socket on boot');
+ ok(t.raw().length===1&&t.raw()[0].url===t.app()[0].url,'RAW feed opens exactly one socket on the SAME relay/room as the app');
  const first=t.app()[0];first.readyState=3;first.onclose();first.onclose();first.onclose(); // storm of close events
  await sleep(2600);
  ok(t.app().length===2,'close storm => exactly 1 reconnect (got '+t.app().length+' app sockets)');
