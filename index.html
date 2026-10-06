@@ -1577,14 +1577,14 @@ body.obs #stage.active {
 <style id="rz-ds">
 /* ══ 1. TOKENS ══════════════════════════════════════════════ */
 :root{
-  --primary-base:#0F172A;
-  --primary-accent:#3B82F6; --primary-accent-hover:#2563EB; --primary-accent-active:#1D4ED8;
+  --primary-base:#080A10;
+  --primary-accent:#E0002D; --primary-accent-hover:#FF0033; --primary-accent-active:#8C0020; /* RZ CLAN brand red */
   --secondary-accent:#10B981; --secondary-accent-hover:#059669;
   --danger:#EF4444; --danger-hover:#DC2626; --warning:#F59E0B;
   --surface-1:#FFFFFF; --surface-2:#F8FAFC; --surface-3:#F1F5F9;
   --text-primary:#1E293B; --text-secondary:#64748B; --text-on-accent:#FFFFFF;
   --border-subtle:rgba(15,23,42,.06); --border-strong:rgba(15,23,42,.14);
-  --rgb-accent:59,130,246; --rgb-success:16,185,129; --rgb-danger:239,68,68; --rgb-base:15,23,42;
+  --rgb-accent:255,0,51; --rgb-success:16,185,129; --rgb-danger:239,68,68; --rgb-base:15,23,42;
 
   --text-xs:clamp(.75rem,.71rem + .2vw,.875rem);
   --text-sm:clamp(.875rem,.83rem + .22vw,1rem);
@@ -1624,26 +1624,26 @@ body.obs #stage.active {
 
 /* ══ 2. THEMES ══════════════════════════════════════════════ */
 html[data-theme="dark"]{
-  --surface-1:#0F172A; --surface-2:#1E293B; --surface-3:#334155;
-  --text-primary:#F8FAFC;   /* 15.8:1 → AAA */
+  --surface-1:#080A10; --surface-2:#11151E; --surface-3:#1B2130; /* original near-black ink */
+  --text-primary:#F5F7FC;   /* 15.8:1 → AAA */
   --text-secondary:#CBD5E1; /* 11.2:1 → AAA */
-  --primary-accent:#60A5FA; --primary-accent-hover:#93C5FD;
+  --primary-accent:#FF2340; --primary-accent-hover:#FF627A; --primary-accent-active:#A3001F;
   --secondary-accent:#34D399; --danger:#F87171;
   --border-subtle:rgba(248,250,252,.08); --border-strong:rgba(248,250,252,.18);
-  --rgb-base:0,0,0; --rgb-accent:96,165,250;
+  --rgb-base:0,0,0; --rgb-accent:255,35,64;
   --shadow-3:0 20px 40px -10px rgba(0,0,0,.55);
 }
 html[data-contrast="high"]{
   --text-secondary:var(--text-primary);
   --border-subtle:var(--border-strong);
-  --primary-accent:#1D4ED8;
+  --primary-accent:#B80024;
 }
-html[data-contrast="high"][data-theme="dark"]{ --primary-accent:#93C5FD; }
+html[data-contrast="high"][data-theme="dark"]{ --primary-accent:#FF5A78; }
 
 /* ══ 3. LEGACY BRIDGE — ตัวแปรเดิม → token ใหม่ ══════════════ */
 :root{
   --red:var(--primary-accent); --red-h:var(--primary-accent-hover);
-  --red-d:var(--primary-accent-active); --red-dd:var(--primary-base);
+  --red-d:var(--primary-accent-active); --red-dd:#3A000D;
   --ink:var(--surface-1); --bg-0:var(--surface-1); --bg-1:var(--surface-1);
   --bg-2:var(--surface-2); --bg-3:var(--surface-3);
   --bone:var(--text-primary); --tx-1:var(--text-primary);
@@ -2205,7 +2205,7 @@ html[data-twilight="dusk"]{
 html[data-twilight="dawn"][data-theme="dark"]{ --primary-accent:#FBBF24; --rgb-accent:251,191,36 }
 html[data-twilight="dusk"][data-theme="dark"]{ --primary-accent:#FB923C; --rgb-accent:251,146,60 }
 /* บังคับ Overlay OBS ใช้โทนกลางคืนเสมอ กันสีเพี้ยนบนสตรีม */
-#stage,#stage *{ --primary-accent:#3B82F6 !important; --rgb-accent:59,130,246 !important }
+#stage,#stage *{ --primary-accent:#FF2340 !important; --rgb-accent:255,35,64 !important }
 
 #rzdsDock button[data-dock="theme"]{ position:relative }
 #rzdsDock button[data-dock="theme"]::after{
@@ -3976,7 +3976,7 @@ function theme(){
     H.dataset.contrast = S.get('contrast','normal');
     H.dataset.motion   = S.get('motion','on');
     const mt = $('meta[name="theme-color"]');
-    if(mt) mt.content = H.dataset.theme==='dark' ? '#0F172A' : '#FFFFFF';
+    if(mt) mt.content = H.dataset.theme==='dark' ? '#080A10' : '#FFFFFF';
   };
   sysDark.addEventListener('change', ()=>{ if(S.get('theme','dark')==='auto') apply(); });
   apply();
@@ -4760,7 +4760,7 @@ const Solar = (() => {
     if(ov) S.set('override',null);
     H.dataset.theme = p.dark ? 'dark' : 'light';
     const mt=$('meta[name="theme-color"]');
-    if(mt) mt.content = p.dark ? '#0F172A' : '#FFFFFF';
+    if(mt) mt.content = p.dark ? '#080A10' : '#FFFFFF';
     if(announce){
       const g=S.get('geo',CFG.geo);
       const f=d=>d?d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'—';
