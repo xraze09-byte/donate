@@ -1751,6 +1751,9 @@ body.obs #stage.active {
       <div><label class="lbl-f" for="sPP">PROMPTPAY ID (เบอร์ / บัตร ปชช. / Tax ID)</label>
        <input id="sPP" class="inp f-tech" inputmode="numeric" placeholder="0812345678">
        <div class="f-tech text-[.52rem] tracking-[.12em] mt-1" id="sPPt">TYPE: —</div></div>
+      <div><label class="lbl-f" for="sEd">ลิงก์หน้าโดเนท EasyDonate (เว้นว่าง = ใช้ QR PromptPay เดิม)</label>
+       <input id="sEd" class="inp f-tech !text-[.7rem]" placeholder="https://easydonate.app/ชื่อของคุณ">
+       <div class="f-tech text-[.52rem] tracking-[.12em] mt-1" id="sEdt" style="color:var(--steel)">เมื่อกรอก ผู้โดเนทจะถูกพาไปจ่ายที่ EasyDonate แทน QR/สลิปเดิม</div></div>
       <div><label class="lbl-f" for="sName">ชื่อผู้รับเงิน</label><input id="sName" class="inp" maxlength="30" placeholder="RZ CLAN"></div>
       <div><label class="lbl-f" for="sGoal">เป้าหมายรวม (บาท)</label><input id="sGoal" class="inp" type="number" inputmode="numeric" placeholder="50000"></div>
       <div><label class="lbl-f" for="sMin">ยอดขั้นต่ำที่รับ (บาท)</label><input id="sMin" class="inp" type="number" inputmode="numeric" placeholder="20"></div>
@@ -1947,7 +1950,7 @@ var SRV={on:null,tok:'',
  saved:function(){try{return sessionStorage.getItem('rzc_srvtok')||''}catch(e){return ''}},
  keep:function(t){this.tok=t;try{t?sessionStorage.setItem('rzc_srvtok',t):sessionStorage.removeItem('rzc_srvtok')}catch(e){}}};
 function saveCfg(){try{localStorage.setItem(K_CFG,JSON.stringify(CFG))}catch(e){}}
-(function(){var u={};['pp','payee','goal','min','reqSlip'].forEach(function(k){var v=P(k);if(v===null)return;
+(function(){var u={};['pp','payee','goal','min','reqSlip','ed'].forEach(function(k){var v=P(k);if(v===null)return;
  u[k]=k==='reqSlip'?(v==='1'||v==='true'):(k==='goal'||k==='min')?(Number(v)||0):v});
  if(Object.keys(u).length){Object.assign(CFG,u);saveCfg()}})();
 
@@ -2301,6 +2304,9 @@ var dQ=$('#dQ'),dQName=$('#dQName'),dQUid=$('#dQUid');
 dQ.addEventListener('change',function(){$('#qFields').style.display=dQ.checked?'':'none'});
 dQUid.addEventListener('input',function(){dQUid.value=dQUid.value.replace(/\D/g,'').slice(0,14)});
 /* คืนค่า {name,uid} | null (ไม่ขอคิว) | false (ขอคิวแต่ UID ผิด) */
+/* ลิงก์หน้าโดเนท EasyDonate: รับเฉพาะ https://easydonate.app/<ชื่อ> (กัน redirect ไปเว็บอื่นถ้าค่าถูกแก้) */
+function edUrl(){var u=String(CFG.ed||'').trim();
+ return /^https:\/\/(www\.)?easydonate\.app\/[A-Za-z0-9_.-]{1,64}\/?$/.test(u)?u:''}
 function readQ(){if(!dQ.checked)return null;
  var uid=dQUid.value.replace(/\D/g,'');if(!/^\d{6,14}$/.test(uid))return false;
  return {name:(dQName.value.trim()||dName.value.trim()).slice(0,24),uid:uid}}
@@ -2312,6 +2318,9 @@ dForm.addEventListener('submit',function(e){e.preventDefault();
  if(a<(CFG.min||1))return bad(dAmt,'#eAmt','ขั้นต่ำ '+fmt(CFG.min)+' บาท');
  var qq=readQ();
  if(qq===false)return bad(dQUid,'#eQUid','UID ต้องเป็นตัวเลข 6-14 หลัก');
+ var EDU=edUrl();
+ if(EDU){btnFx($('#bGen'));toast('✓ กำลังพาไปหน้าชำระเงิน EasyDonate',1);
+  setTimeout(function(){location.href=EDU},450);return}
  if(!PP.tgt(CFG.pp))return toast('!! ระบบยังไม่พร้อมรับโอน');
  btnFx($('#bGen'));openPay({name:n,amount:a,message:dMsg.value.trim(),q:qq})});
 
@@ -2466,12 +2475,12 @@ gForm.addEventListener('submit',function(e){e.preventDefault();gErr.classList.re
  if(SRV.on){SRV.post('/admin/login',{password:pw}).then(function(j){gBtn.disabled=false;gPw.value='';
    if(j.ok&&j.token){SRV.keep(j.token);AUTH.open();enterAdmin();
      if(ws){try{ws.close()}catch(e){}}   /* ต่อ WS ใหม่พร้อม session token */
-     setTimeout(function(){emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})},1500)}
+     setTimeout(function(){emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip,ed:CFG.ed||''})},1500)}
    else{gErr.textContent=j._s===429?'!! ลองผิดหลายครั้ง ถูกล็อกชั่วคราว รอสักครู่':j._s===401?'!! รหัสไม่ถูกต้อง'+(j.left!=null?' (เหลืออีก '+j.left+' ครั้ง)':''):'!! เชื่อมต่อเซิร์ฟเวอร์ไม่ได้';
      gErr.classList.add('on')}}).catch(function(){gBtn.disabled=false;gErr.textContent='!! เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (relay อาจกำลังตื่น ลองใหม่ใน 30 วินาที)';gErr.classList.add('on')});return}
  AUTH.check(pw).then(function(ok){gBtn.disabled=false;gPw.value='';
   if(ok){AUTH.pass();AUTH.open();enterAdmin();
-   emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})}
+   emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip,ed:CFG.ed||''})}
   else{var l=AUTH.fail();
    gErr.textContent=l.u&&l.u>Date.now()?'!! ใส่ผิดหลายครั้ง ระบบล็อกชั่วคราว':'!! รหัสผ่านไม่ถูกต้อง ('+(5-l.n)+' ครั้งก่อนถูกล็อก)';
    gErr.classList.add('on');gateUI()}})});
@@ -2497,7 +2506,7 @@ var GH={
   SRV.post('/admin/github/exchange',{code:code}).then(function(j){
    if(j.ok&&j.token){SRV.on=true;SRV.keep(j.token);AUTH.open();enterAdmin();
     if(ws){try{ws.close()}catch(e){}}
-    setTimeout(function(){emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip})},1500);
+    setTimeout(function(){emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip,ed:CFG.ed||''})},1500);
     toast('✓ ล็อกอินด้วย GitHub สำเร็จ',1)}
    else{gErr.textContent='!! โค้ดล็อกอินหมดอายุหรือถูกใช้ไปแล้ว ลองใหม่';gErr.classList.add('on')}
   }).catch(function(){gErr.textContent='!! เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (relay อาจกำลังตื่น ลองใหม่)';gErr.classList.add('on')});
@@ -2593,7 +2602,7 @@ $('#bDelAll').addEventListener('click',function(){
 /* SETTINGS */
 function fillSettings(){$('#sPP').value=CFG.pp;$('#sName').value=CFG.payee;$('#sGoal').value=CFG.goal;
  $('#sMin').value=CFG.min;$('#sImg').value=CFG.logo;$('#sVid').value=CFG.video;$('#sWs').value=CFG.ws;
- $('#sSlip').checked=!!CFG.reqSlip;$('#sTok').value=relayTok();ppHint()}
+ $('#sSlip').checked=!!CFG.reqSlip;$('#sTok').value=relayTok();if($('#sEd'))$('#sEd').value=CFG.ed||'';ppHint()}
 function ppHint(){var t=PP.tgt($('#sPP').value);
  $('#sPPt').textContent='TYPE: '+(t?t.y+'  ✓':'— ยังไม่ถูกต้อง');
  $('#sPPt').style.color=t?'var(--ok)':'var(--red)'}
@@ -2602,10 +2611,14 @@ $('#bSaveS').addEventListener('click',function(){
  CFG.pp=$('#sPP').value.trim();CFG.payee=$('#sName').value.trim()||'RZ CLAN';
  CFG.goal=Math.max(1,Number($('#sGoal').value)||50000);CFG.min=Math.max(1,Number($('#sMin').value)||20);
  CFG.logo=$('#sImg').value.trim();CFG.video=$('#sVid').value.trim();CFG.ws=$('#sWs').value.trim();
- CFG.reqSlip=$('#sSlip').checked;saveCfg();buildObs();buildDon();renderGoal();
+ CFG.reqSlip=$('#sSlip').checked;
+ var edv=$('#sEd').value.trim();
+ if(edv&&!/^https:\/\/(www\.)?easydonate\.app\/[A-Za-z0-9_.-]{1,64}\/?$/.test(edv)){$('#sEdt').textContent='!! ต้องเป็นลิงก์แบบ https://easydonate.app/ชื่อของคุณ';$('#sEdt').style.color='var(--red)';return toast('!! ลิงก์ EasyDonate ไม่ถูกต้อง')}
+ CFG.ed=edv;$('#sEdt').style.color='var(--steel)';
+ saveCfg();buildObs();buildDon();renderGoal();
  var nt=$('#sTok').value.trim();if(nt!==relayTok()){try{nt?localStorage.setItem(K_TOK,nt):localStorage.removeItem(K_TOK)}catch(e){}
   if(ws){try{ws.close()}catch(e){}}}  /* ต่อใหม่ด้วย token ใหม่ */
- emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip});
+ emit('cfg',{pp:CFG.pp,payee:CFG.payee,goal:CFG.goal,min:CFG.min,reqSlip:CFG.reqSlip,ed:CFG.ed||''});
  btnFx(this);toast('✓ SETTINGS SAVED',1)});
 
 /* SYSTEM */
@@ -2617,7 +2630,8 @@ function buildObs(){var u=location.href.split('#')[0]+'#overlay?k='+encodeURICom
  $('#obsUrl').value=u}
 function buildDon(){var u=location.href.split('#')[0]+'#?pp='+encodeURIComponent(CFG.pp||'')
  +'&goal='+encodeURIComponent(CFG.goal||50000)+'&payee='+encodeURIComponent(CFG.payee||'RZ CLAN')
- +'&min='+encodeURIComponent(CFG.min||20)+'&reqSlip='+(CFG.reqSlip?1:0)+'&k='+encodeURIComponent(CFG.key);
+ +'&min='+encodeURIComponent(CFG.min||20)+'&reqSlip='+(CFG.reqSlip?1:0)+'&k='+encodeURIComponent(CFG.key)
+ +(CFG.ed?'&ed='+encodeURIComponent(CFG.ed):'');
  $('#donUrl').value=u}
 $('#bCopyDon').addEventListener('click',function(){copy($('#donUrl').value,'✓ COPIED')});
 $('#bCopyUrl').addEventListener('click',function(){copy($('#obsUrl').value,'✓ COPIED')});
@@ -3090,6 +3104,8 @@ function onRawAlert(d){
   /* ticker ใช้ค่าดิบทันที ไม่ต้องรออนิเมชัน */
   push(name,'฿'+amt.toLocaleString('th-TH'));
 
+  /* alert จาก EasyDonate webhook (ed:1): ห้ามอ่านซ้ำ เสียงมาจาก Donate Alert widget ของ EasyDonate ใน OBS */
+  if(d.ed) return;
   /* เสียง: หน่วงคงที่ แล้วเข้าคิว TTS (คิวพูดทีละลำดับเสมอ) */
   /* เพิ่มจุดหยุดพัก (,) ระหว่างประโยคย่อย — แก้บัคอ่านวรรคตอนเพี้ยน/อ่านรวดเดียวไม่มีจังหวะหยุด
      ซึ่งเครื่องอ่านเสียงสังเคราะห์มักอ่านลื่นไถลผิดจังหวะถ้าไม่มีเครื่องหมายคั่นให้หยุดหายใจ */
