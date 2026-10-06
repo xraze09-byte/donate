@@ -2,6 +2,9 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
+<!-- MODAL SAFETY NET (runs before everything else): a modal may only be visible when the app itself opened it
+     (.on). Hard-hides it otherwise, even if a stale/cached stylesheet or a later CSS layer says display:grid. -->
+<style id="modal-safety">.modal:not(.on):not(.is-open),#lb:not(.on){display:none!important}</style>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <!-- preconnect สุดหัว: มือถือ RTT สูง ยิง DNS/TCP/TLS ให้เร็วที่สุดตั้งแต่ไบต์แรก -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4404,6 +4407,25 @@ document.readyState==='loading' ? addEventListener('DOMContentLoaded',boot) : bo
 <!-- ═══════════════════════════════════════════════════════════
      RZ DS EXTENSION JS  |  Zero Network · Read-Only Observers
      ═══════════════════════════════════════════════════════════ -->
+<script id="modal-close-fallback">
+/* MODAL CLOSE FALLBACK: X button, backdrop click and Esc always close the payment modal / lightbox, independent of
+   any other handler. Also clears stray scroll-lock so the page can never be left stuck behind a dead modal. */
+(function(){
+  function shut(m){ if(!m) return; m.classList.remove('on','is-open'); m.setAttribute('aria-hidden','true');
+    if(!document.querySelector('.modal.on,.modal.is-open,#lb.on')) document.body.classList.remove('rzds-locked'); }
+  document.addEventListener('click',function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var x=t.closest('#bClose,#lbClose'); if(x){ shut(x.closest('.modal,#lb')); return; }
+    if(t.classList&&(t.classList.contains('modal')||t.id==='lb')&&(t.classList.contains('on')||t.classList.contains('is-open'))) shut(t);
+  },true);
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape') return;
+    var o=document.querySelectorAll('.modal.on,.modal.is-open,#lb.on'); if(o.length) shut(o[o.length-1]);
+  },true);
+  function heal(){ if(!document.querySelector('.modal.on,.modal.is-open,#lb.on')) document.body.classList.remove('rzds-locked'); }
+  document.addEventListener('DOMContentLoaded',heal); addEventListener('load',heal);
+})();
+</script>
 <script id="rz-ds-ext-js">
 (() => {
 'use strict';
