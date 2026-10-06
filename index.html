@@ -1567,6 +1567,654 @@ body.obs #stage.active {
   background: transparent !important;
 }
 </style>
+<!-- ═══════════════════════════════════════════════════════════
+     RZ DESIGN SYSTEM v2.0  |  Additive-Only  |  Live-Safe
+     ไม่แตะ backend / relay / storage เดิม
+     ═══════════════════════════════════════════════════════════ -->
+<style id="rz-ds">
+/* ══ 1. TOKENS ══════════════════════════════════════════════ */
+:root{
+  --primary-base:#0F172A;
+  --primary-accent:#3B82F6; --primary-accent-hover:#2563EB; --primary-accent-active:#1D4ED8;
+  --secondary-accent:#10B981; --secondary-accent-hover:#059669;
+  --danger:#EF4444; --danger-hover:#DC2626; --warning:#F59E0B;
+  --surface-1:#FFFFFF; --surface-2:#F8FAFC; --surface-3:#F1F5F9;
+  --text-primary:#1E293B; --text-secondary:#64748B; --text-on-accent:#FFFFFF;
+  --border-subtle:rgba(15,23,42,.06); --border-strong:rgba(15,23,42,.14);
+  --rgb-accent:59,130,246; --rgb-success:16,185,129; --rgb-danger:239,68,68; --rgb-base:15,23,42;
+
+  --text-xs:clamp(.75rem,.71rem + .2vw,.875rem);
+  --text-sm:clamp(.875rem,.83rem + .22vw,1rem);
+  --text-base:clamp(1rem,.96rem + .22vw,1.125rem);
+  --text-lg:clamp(1.125rem,1.08rem + .22vw,1.25rem);
+  --text-xl:clamp(1.25rem,1.2rem + .22vw,1.375rem);
+  --text-2xl:clamp(1.5rem,1.43rem + .36vw,1.75rem);
+  --text-3xl:clamp(1.875rem,1.76rem + .55vw,2.25rem);
+  --text-4xl:clamp(2.25rem,2.08rem + .83vw,2.875rem);
+  --text-5xl:clamp(3rem,2.62rem + 1.9vw,4.25rem);
+  --text-6xl:clamp(3.75rem,3.18rem + 2.84vw,5.875rem);
+
+  --font-display:'Playfair Display','Kanit',Georgia,serif;
+  --font-body:'Inter','Kanit',system-ui,-apple-system,sans-serif;
+  --font-mono:'Share Tech Mono',ui-monospace,monospace;
+  --tracking-tight:-.02em; --leading-tight:1.15; --leading-body:1.6;
+
+  --space-1:4px;  --space-2:8px;  --space-3:12px;  --space-4:16px;
+  --space-6:24px; --space-8:32px; --space-10:40px; --space-12:48px;
+  --space-16:64px;--space-20:80px;--space-24:96px;
+
+  --grid-max:1440px; --grid-gap:24px;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:16px; --radius-xl:24px; --radius-full:999px;
+
+  --shadow-1:0 1px 2px rgba(var(--rgb-base),.05);
+  --shadow-2:0 4px 12px -2px rgba(var(--rgb-base),.08);
+  --shadow-3:0 20px 40px -10px rgba(var(--rgb-base),.08);
+  --shadow-accent:0 4px 14px 0 rgba(var(--rgb-accent),.39);
+
+  --z-base:1; --z-sticky:100; --z-overlay:800; --z-modal:900;
+  --z-toast:950; --z-cmd:960; --z-alert:1000;
+
+  --ease-spring:cubic-bezier(.175,.885,.32,1.275);
+  --ease-smooth:cubic-bezier(.4,0,.2,1);
+  --dur-fast:150ms; --dur-base:250ms; --dur-slow:600ms;
+}
+
+/* ══ 2. THEMES ══════════════════════════════════════════════ */
+html[data-theme="dark"]{
+  --surface-1:#0F172A; --surface-2:#1E293B; --surface-3:#334155;
+  --text-primary:#F8FAFC;   /* 15.8:1 → AAA */
+  --text-secondary:#CBD5E1; /* 11.2:1 → AAA */
+  --primary-accent:#60A5FA; --primary-accent-hover:#93C5FD;
+  --secondary-accent:#34D399; --danger:#F87171;
+  --border-subtle:rgba(248,250,252,.08); --border-strong:rgba(248,250,252,.18);
+  --rgb-base:0,0,0; --rgb-accent:96,165,250;
+  --shadow-3:0 20px 40px -10px rgba(0,0,0,.55);
+}
+html[data-contrast="high"]{
+  --text-secondary:var(--text-primary);
+  --border-subtle:var(--border-strong);
+  --primary-accent:#1D4ED8;
+}
+html[data-contrast="high"][data-theme="dark"]{ --primary-accent:#93C5FD; }
+
+/* ══ 3. LEGACY BRIDGE — ตัวแปรเดิม → token ใหม่ ══════════════ */
+:root{
+  --red:var(--primary-accent); --red-h:var(--primary-accent-hover);
+  --red-d:var(--primary-accent-active); --red-dd:var(--primary-base);
+  --ink:var(--surface-1); --bg-0:var(--surface-1); --bg-1:var(--surface-1);
+  --bg-2:var(--surface-2); --bg-3:var(--surface-3);
+  --bone:var(--text-primary); --tx-1:var(--text-primary);
+  --steel:var(--text-secondary); --tx-3:var(--text-secondary);
+  --ok:var(--secondary-accent); --warn:var(--warning);
+  --cyan:var(--primary-accent); --ember:var(--warning); --gold:var(--secondary-accent);
+  --cut-lg:none; --cut-md:none; --cut-sm:none;
+  --e-out:var(--ease-smooth); --e-spring:var(--ease-spring); --e-snap:var(--ease-smooth);
+  --sh-1:var(--shadow-1); --sh-2:var(--shadow-2);
+  --sh-3:var(--shadow-3); --sh-4:var(--shadow-3); --glow:var(--shadow-accent);
+}
+
+/* ══ 4. BASE ════════════════════════════════════════════════ */
+*,*::before,*::after{ box-sizing:border-box }
+html{ -webkit-text-size-adjust:100%; scroll-behavior:smooth; scroll-padding-top:80px }
+body{
+  margin:0; font-family:var(--font-body); font-size:var(--text-base);
+  line-height:var(--leading-body); color:var(--text-primary);
+  background:var(--surface-1); -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  transition:background var(--dur-base) var(--ease-smooth), color var(--dur-base) var(--ease-smooth);
+}
+h1,h2,h3,h4{
+  font-family:var(--font-display); font-weight:700;
+  letter-spacing:var(--tracking-tight); line-height:var(--leading-tight);
+  margin:0 0 var(--space-4); text-wrap:balance;
+}
+h1{font-size:var(--text-6xl)} h2{font-size:var(--text-4xl)}
+h3{font-size:var(--text-2xl)} h4{font-size:var(--text-xl)}
+p{ margin:0 0 var(--space-4); max-width:68ch; text-wrap:pretty }
+
+/* ══ 5. GRID ════════════════════════════════════════════════ */
+.ds-container{ width:100%; max-width:var(--grid-max); margin-inline:auto; padding-inline:var(--space-4) }
+@media(min-width:768px){ .ds-container{ padding-inline:var(--space-8) } }
+.ds-grid{ display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px }
+@media(min-width:1024px){ .ds-grid{ gap:var(--grid-gap) } }
+.col-12,.col-8,.col-6,.col-4,.col-3{ grid-column:span 12 }
+@media(min-width:768px){
+  .col-8{grid-column:span 8} .col-6{grid-column:span 6}
+  .col-4{grid-column:span 4} .col-3{grid-column:span 6}
+}
+@media(min-width:1024px){ .col-3{grid-column:span 3} }
+.section{ padding-block:var(--space-16) }
+.section--hero{ padding-block:var(--space-24) }
+@media(max-width:767px){ .section{padding-block:var(--space-10)} .section--hero{padding-block:var(--space-12)} }
+
+/* ══ 6. BUTTONS — 5 STATES ══════════════════════════════════ */
+.btn,.btn-x,.btn-g{
+  --btn-bg:var(--primary-accent); --btn-fg:var(--text-on-accent);
+  display:inline-flex; align-items:center; justify-content:center; gap:var(--space-2);
+  min-height:44px; min-width:44px; padding:var(--space-3) var(--space-6);
+  font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; line-height:1;
+  color:var(--btn-fg); background:var(--btn-bg);
+  border:1px solid transparent; border-radius:var(--radius-md);
+  cursor:pointer; text-decoration:none; clip-path:none !important;
+  transition:background var(--dur-fast) var(--ease-smooth),
+             box-shadow var(--dur-base) var(--ease-spring),
+             transform var(--dur-fast) var(--ease-spring);
+}
+.btn:hover:not(:disabled):not([aria-busy="true"]),
+.btn-x:hover:not(:disabled):not([aria-busy="true"]),
+.btn-g:hover:not(:disabled):not([aria-busy="true"]){
+  --btn-bg:var(--primary-accent-hover);
+  box-shadow:0 4px 14px 0 rgba(var(--rgb-accent),.39);
+  transform:translateY(-1px);
+}
+.btn:active:not(:disabled),.btn-x:active:not(:disabled),.btn-g:active:not(:disabled){
+  transform:scale(.98); box-shadow:none;
+}
+.btn:disabled,.btn-x:disabled,.btn-g:disabled,.btn[aria-disabled="true"]{
+  opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;
+}
+.btn[aria-busy="true"],.btn-x[aria-busy="true"],.btn-g[aria-busy="true"]{
+  cursor:progress; color:transparent !important; position:relative; pointer-events:none;
+}
+.btn[aria-busy="true"]::after,.btn-x[aria-busy="true"]::after,.btn-g[aria-busy="true"]::after{
+  content:""; position:absolute; width:18px; height:18px;
+  border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+  border-radius:50%; animation:ds-spin .6s linear infinite;
+}
+@keyframes ds-spin{ to{ transform:rotate(360deg) } }
+.btn--secondary,.btn-x.alt,.btn-g{
+  --btn-bg:transparent; --btn-fg:var(--text-primary); border-color:var(--text-secondary);
+}
+.btn--secondary:hover:not(:disabled),.btn-x.alt:hover,.btn-g:hover{
+  --btn-bg:var(--surface-2); border-color:var(--text-primary); box-shadow:none;
+}
+.btn--success,.btn-x.go{ --btn-bg:var(--secondary-accent) }
+.btn--success:hover:not(:disabled),.btn-x.go:hover{
+  --btn-bg:var(--secondary-accent-hover); box-shadow:0 4px 14px 0 rgba(var(--rgb-success),.39);
+}
+.btn--danger,.btn-x.no{ --btn-bg:var(--danger) }
+.btn--danger:hover:not(:disabled),.btn-x.no:hover{
+  --btn-bg:var(--danger-hover); box-shadow:0 4px 14px 0 rgba(var(--rgb-danger),.39);
+}
+.btn--lg{ min-height:56px; padding:var(--space-4) var(--space-8); font-size:var(--text-base) }
+.btn--block{ width:100% }
+
+/* ══ 7. CHIPS ═══════════════════════════════════════════════ */
+.chip{
+  min-height:44px; padding:var(--space-2) var(--space-4);
+  font-size:var(--text-sm); font-weight:500; color:var(--text-secondary);
+  background:var(--surface-2); border:1px solid var(--border-subtle);
+  border-radius:var(--radius-full); cursor:pointer; clip-path:none !important;
+  transition:all var(--dur-fast) var(--ease-smooth);
+}
+.chip:hover{ border-color:var(--primary-accent); color:var(--text-primary) }
+.chip.on,.chip[aria-pressed="true"]{
+  background:var(--primary-accent); color:var(--text-on-accent); border-color:var(--primary-accent);
+}
+
+/* ══ 8. PANELS / CARDS ══════════════════════════════════════ */
+.panel,.panel-in,#card,.qcard,.card{
+  background:var(--surface-1); border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg); padding:var(--space-6);
+  box-shadow:var(--shadow-1); clip-path:none !important;
+}
+.card--interactive:hover,.qcard:hover{
+  transform:translateY(-4px); box-shadow:0 20px 40px -10px rgba(var(--rgb-base),.08);
+  transition:transform var(--dur-base) var(--ease-spring), box-shadow var(--dur-base) var(--ease-smooth);
+}
+.qcard.ap{ border-left:3px solid var(--secondary-accent) }
+.qcard.rj{ border-left:3px solid var(--danger) }
+.card__media{
+  aspect-ratio:16/9; width:100%; object-fit:cover;
+  border-radius:var(--radius-md); margin-bottom:var(--space-4); background:var(--surface-3);
+}
+.card__media--4x3{ aspect-ratio:4/3 }
+
+/* ══ 9. HEADER ══════════════════════════════════════════════ */
+.hdr,.site-header{
+  position:sticky; top:0; z-index:var(--z-sticky);
+  background:color-mix(in srgb,var(--surface-1) 72%,transparent);
+  backdrop-filter:blur(12px) saturate(140%);
+  -webkit-backdrop-filter:blur(12px) saturate(140%);
+  border-bottom:1px solid var(--border-subtle);
+  transition:box-shadow var(--dur-base) var(--ease-smooth),
+             transform var(--dur-base) var(--ease-smooth);
+}
+.hdr.is-scrolled,.site-header.is-scrolled{ box-shadow:var(--shadow-2) }
+.hdr.is-hidden,.site-header.is-hidden{ transform:translateY(-100%) }
+
+/* ══ 10. FORMS ══════════════════════════════════════════════ */
+.inp,input[type=text],input[type=number],input[type=password],
+input[type=email],input[type=tel],textarea,select{
+  width:100%; min-height:48px; padding:var(--space-3) var(--space-4);
+  font-family:var(--font-body); font-size:var(--text-base); color:var(--text-primary);
+  background:var(--surface-2); border:1px solid var(--border-strong);
+  border-radius:var(--radius-md); clip-path:none !important;
+  transition:border-color var(--dur-fast) var(--ease-smooth),
+             box-shadow var(--dur-fast) var(--ease-smooth);
+}
+.inp::placeholder{ color:var(--text-secondary); opacity:.8 }
+.inp:hover{ border-color:var(--text-secondary) }
+.inp:focus{ outline:none; border-color:var(--primary-accent); box-shadow:0 0 0 3px rgba(var(--rgb-accent),.18) }
+.inp.bad,.inp[aria-invalid="true"]{ border-color:var(--danger) }
+.inp.bad:focus{ box-shadow:0 0 0 3px rgba(var(--rgb-danger),.18) }
+textarea{ min-height:120px; resize:vertical; line-height:var(--leading-body) }
+.lbl-f{ font-size:var(--text-sm); font-weight:600; color:var(--text-primary); display:block; margin-bottom:var(--space-2) }
+.err{ font-size:var(--text-xs); color:var(--danger); align-items:center; gap:var(--space-1) }
+.err.on{ display:flex; animation:ds-shake .3s var(--ease-smooth) }
+@keyframes ds-shake{ 0%,100%{transform:none} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+.rzds-count{
+  font-size:var(--text-xs); color:var(--text-secondary);
+  font-variant-numeric:tabular-nums; text-align:right; margin-top:var(--space-1);
+}
+.rzds-count.warn{ color:var(--warning) } .rzds-count.over{ color:var(--danger); font-weight:700 }
+
+/* ══ 11. TABS ═══════════════════════════════════════════════ */
+.tabs{
+  display:flex; gap:var(--space-1); padding:var(--space-1);
+  background:var(--surface-2); border-radius:var(--radius-md);
+  overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{ display:none }
+.tab{
+  flex:1 0 auto; min-height:44px; padding:var(--space-2) var(--space-4);
+  font-size:var(--text-sm); font-weight:600; color:var(--text-secondary);
+  background:transparent; border:none; border-radius:var(--radius-sm);
+  cursor:pointer; white-space:nowrap; clip-path:none !important;
+  transition:all var(--dur-fast) var(--ease-smooth);
+}
+.tab:hover{ color:var(--text-primary) }
+.tab.on,.tab[aria-selected="true"]{ color:var(--text-on-accent); background:var(--primary-accent) }
+
+/* ══ 12. LEADERBOARD / STATS ════════════════════════════════ */
+.rk{
+  display:flex; align-items:center; gap:var(--space-4);
+  padding:var(--space-3) var(--space-4); border-radius:var(--radius-md);
+  transition:background var(--dur-fast) var(--ease-smooth);
+}
+.rk:hover{ background:var(--surface-2) }
+.rk-n{ font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-secondary); min-width:32px }
+.rk-a{ margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums }
+.rk.t1{ background:rgba(var(--rgb-accent),.08); border:1px solid rgba(var(--rgb-accent),.22) }
+.rk.t2,.rk.t3{ background:var(--surface-2) }
+.goal-t{ height:10px; background:var(--surface-3); border-radius:var(--radius-full); overflow:hidden }
+.goal-f{
+  height:100%; background:linear-gradient(90deg,var(--primary-accent),var(--secondary-accent));
+  border-radius:var(--radius-full); transition:width var(--dur-slow) var(--ease-smooth);
+}
+.stat__value,[data-countup]{ font-variant-numeric:tabular-nums }
+
+/* ══ 13. MODAL ══════════════════════════════════════════════ */
+.modal{
+  position:fixed; inset:0; z-index:var(--z-modal);
+  display:grid; place-items:center; padding:var(--space-4);
+  background:rgba(var(--rgb-base),.6); backdrop-filter:blur(8px);
+}
+.modal-box{
+  width:min(100%,480px); max-height:90dvh; overflow-y:auto; padding:var(--space-8);
+  background:var(--surface-1); border:1px solid var(--border-subtle);
+  border-radius:var(--radius-xl); box-shadow:var(--shadow-3); clip-path:none !important;
+  transform:translateY(16px) scale(.97);
+  transition:transform var(--dur-base) var(--ease-spring);
+}
+.modal.on .modal-box,.modal.is-open .modal-box{ transform:none }
+.qr-frame{
+  aspect-ratio:1; width:min(100%,280px); margin-inline:auto;
+  display:grid; place-items:center; padding:var(--space-4);
+  background:#FFFFFF; border-radius:var(--radius-lg);
+}
+.qr-laser{ display:none !important }
+
+/* ══ 14. TOAST ══════════════════════════════════════════════ */
+.toast,.rzds-toast{
+  display:flex; align-items:center; gap:var(--space-3);
+  padding:var(--space-4) var(--space-6);
+  background:var(--surface-1); border:1px solid var(--border-subtle);
+  border-left:3px solid var(--primary-accent); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-3); font-size:var(--text-sm);
+}
+.toast.good,.rzds-toast.good{ border-left-color:var(--secondary-accent) }
+.toast.bad,.rzds-toast.bad{ border-left-color:var(--danger) }
+.toast.warn,.rzds-toast.warn{ border-left-color:var(--warning) }
+#rzdsToasts{
+  position:fixed; bottom:var(--space-6); left:50%; transform:translateX(-50%);
+  z-index:var(--z-toast); display:flex; flex-direction:column-reverse;
+  gap:var(--space-2); pointer-events:none; width:min(92vw,420px);
+}
+.rzds-toast{
+  pointer-events:auto; opacity:0; transform:translateY(16px);
+  animation:ds-toast-in .35s var(--ease-spring) forwards;
+}
+.rzds-toast.out{ animation:ds-toast-out .25s var(--ease-smooth) forwards }
+@keyframes ds-toast-in{ to{opacity:1;transform:none} }
+@keyframes ds-toast-out{ to{opacity:0;transform:translateY(12px) scale(.96)} }
+
+/* ══ 15. MOTION ═════════════════════════════════════════════ */
+[data-reveal]{
+  opacity:0; transform:translateY(20px);
+  transition:opacity var(--dur-slow) var(--ease-smooth), transform var(--dur-slow) var(--ease-smooth);
+  transition-delay:var(--reveal-delay,0ms);
+}
+[data-reveal].is-visible{ opacity:1; transform:none }
+
+/* เอฟเฟกต์ Cyberpunk คงไว้เฉพาะใน #stage (overlay OBS) */
+:not(#stage) :not(#stage) > .glitch{ animation:none !important; text-shadow:none !important }
+#stage .glitch{ animation:unset }
+
+@media(prefers-reduced-motion:reduce),(prefers-reduced-motion:reduce) and (update:slow){
+  *,*::before,*::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important;
+  }
+  [data-reveal]{ opacity:1 !important; transform:none !important }
+}
+html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{
+  animation-duration:.01ms !important; transition-duration:.01ms !important;
+}
+html[data-motion="off"] [data-reveal]{ opacity:1 !important; transform:none !important }
+
+/* ══ 16. A11Y ═══════════════════════════════════════════════ */
+:focus-visible{ outline:2px solid var(--primary-accent); outline-offset:2px; border-radius:var(--radius-sm) }
+:focus:not(:focus-visible){ outline:none }
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+#rzdsSkip{
+  position:fixed; top:-100px; left:var(--space-4); z-index:9999;
+  padding:var(--space-3) var(--space-6); background:var(--primary-accent);
+  color:var(--text-on-accent); border-radius:var(--radius-md); text-decoration:none;
+  font-size:var(--text-sm); font-weight:600;
+  transition:top var(--dur-base) var(--ease-spring);
+}
+#rzdsSkip:focus{ top:var(--space-4) }
+body.rzds-locked{ overflow:hidden }
+
+/* ══ 17. SKELETON + OPTIMISTIC ══════════════════════════════ */
+.skeleton{
+  position:relative; overflow:hidden; background:var(--surface-3);
+  border-radius:var(--radius-sm); color:transparent !important; pointer-events:none;
+}
+.skeleton::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(var(--rgb-accent),.12),transparent);
+  animation:ds-shimmer 1.4s infinite;
+}
+@keyframes ds-shimmer{ 100%{ transform:translateX(100%) } }
+.skeleton--text{ height:1em; margin-block:.25em }
+.skeleton--title{ height:1.6em; width:60% }
+.skeleton--row{ height:56px; margin-bottom:var(--space-2) }
+[data-optimistic="pending"]{ opacity:.6 }
+[data-optimistic="failed"]{ animation:ds-shake .3s var(--ease-smooth); border-color:var(--danger) !important }
+
+/* ══ 18. SCROLL PROGRESS + BACK TO TOP ══════════════════════ */
+#rzdsProgress{
+  position:fixed; top:0; left:0; height:3px; width:0%;
+  background:linear-gradient(90deg,var(--primary-accent),var(--secondary-accent));
+  z-index:calc(var(--z-sticky) + 1); transition:width 80ms linear; pointer-events:none;
+}
+#rzdsTop{
+  position:fixed; right:var(--space-6); bottom:var(--space-6); z-index:var(--z-sticky);
+  width:48px; height:48px; display:grid; place-items:center;
+  background:var(--surface-1); color:var(--text-primary);
+  border:1px solid var(--border-strong); border-radius:var(--radius-full);
+  box-shadow:var(--shadow-2); cursor:pointer;
+  opacity:0; visibility:hidden; transform:translateY(12px);
+  transition:all var(--dur-base) var(--ease-spring);
+}
+#rzdsTop.on{ opacity:1; visibility:visible; transform:none }
+#rzdsTop:hover{ background:var(--primary-accent); color:var(--text-on-accent); border-color:transparent }
+
+/* ══ 19. COMMAND PALETTE ════════════════════════════════════ */
+#rzdsCmd{
+  position:fixed; inset:0; z-index:var(--z-cmd);
+  display:none; justify-content:center; align-items:flex-start;
+  padding:10vh var(--space-4) var(--space-4);
+  background:rgba(var(--rgb-base),.55); backdrop-filter:blur(8px);
+}
+#rzdsCmd.on{ display:flex }
+.rzds-cmd-box{
+  width:min(100%,560px); max-height:70vh; display:flex; flex-direction:column;
+  background:var(--surface-1); border:1px solid var(--border-strong);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow-3); overflow:hidden;
+  animation:ds-cmd-in .22s var(--ease-spring);
+}
+@keyframes ds-cmd-in{ from{opacity:0;transform:translateY(-12px) scale(.98)} }
+.rzds-cmd-input{
+  width:100%; padding:var(--space-4) var(--space-6); font-size:var(--text-lg);
+  color:var(--text-primary); background:transparent; border:none;
+  border-bottom:1px solid var(--border-subtle); outline:none;
+}
+.rzds-cmd-list{ list-style:none; margin:0; padding:var(--space-2); overflow-y:auto }
+.rzds-cmd-item{
+  display:flex; align-items:center; gap:var(--space-3);
+  padding:var(--space-3) var(--space-4); border-radius:var(--radius-md);
+  font-size:var(--text-sm); cursor:pointer;
+}
+.rzds-cmd-item[aria-selected="true"]{ background:var(--primary-accent); color:var(--text-on-accent) }
+.rzds-cmd-item .k{
+  margin-left:auto; font-family:var(--font-mono); font-size:var(--text-xs);
+  padding:2px 8px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); opacity:.7;
+}
+.rzds-cmd-empty{ padding:var(--space-6); text-align:center; color:var(--text-secondary); font-size:var(--text-sm) }
+
+/* ══ 20. NET STATUS + IDLE ══════════════════════════════════ */
+#rzdsNet{
+  position:fixed; left:50%; top:var(--space-4); transform:translate(-50%,-200%);
+  z-index:var(--z-toast); padding:var(--space-2) var(--space-6);
+  font-size:var(--text-sm); font-weight:600; color:var(--text-on-accent);
+  background:var(--danger); border-radius:var(--radius-full); box-shadow:var(--shadow-2);
+  transition:transform var(--dur-base) var(--ease-spring);
+}
+#rzdsNet.on{ transform:translate(-50%,0) }
+#rzdsNet.back{ background:var(--secondary-accent) }
+
+/* ══ 21. PERF — LIST VIRTUALIZER LITE ═══════════════════════ */
+.rzds-vlist > *{ content-visibility:auto; contain-intrinsic-size:auto 88px }
+
+/* ══ 22. PRINT / RECEIPT ════════════════════════════════════ */
+@media print{
+  #rzdsProgress,#rzdsTop,#rzdsCmd,#rzdsToasts,#rzdsNet,#rzdsSkip,
+  .hdr,.site-header,#bgfx,#stage,.nav-toggle,.tabs,.toast{ display:none !important }
+  html,body{ background:#fff !important; color:#000 !important }
+  .panel,.panel-in,#card,.qcard{ box-shadow:none !important; border:1px solid #ccc !important; break-inside:avoid }
+  a[href]::after{ content:" (" attr(href) ")"; font-size:10px; color:#555 }
+  @page{ margin:16mm }
+}
+
+/* ══ 23. SETTINGS DOCK ══════════════════════════════════════ */
+#rzdsDock{
+  position:fixed; right:var(--space-6); bottom:calc(var(--space-6) + 56px);
+  z-index:var(--z-sticky); display:flex; flex-direction:column; gap:var(--space-2);
+}
+#rzdsDock button{
+  width:44px; height:44px; display:grid; place-items:center;
+  background:var(--surface-1); color:var(--text-secondary);
+  border:1px solid var(--border-subtle); border-radius:var(--radius-full);
+  box-shadow:var(--shadow-1); cursor:pointer; font-size:16px;
+  transition:all var(--dur-fast) var(--ease-smooth);
+}
+#rzdsDock button:hover{ color:var(--primary-accent); border-color:var(--primary-accent); transform:translateY(-2px) }
+@media(max-width:640px){ #rzdsDock{ display:none } }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════
+     RZ DS EXTENSION  |  Goal FX + Leaderboard Diff + Solar Theme
+     Additive-Only · Live-Safe · ไม่เขียนทับ DOM เดิม
+     ═══════════════════════════════════════════════════════════ -->
+<style id="rz-ds-ext">
+/* ══════════════ A. GOAL MILESTONE ══════════════ */
+.goal-t{ position:relative; overflow:visible !important; margin-bottom:26px }
+.goal-f{ position:relative; overflow:hidden; border-radius:var(--radius-full) }
+
+/* แสงวิ่งบนแถบ */
+.goal-f::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);
+  transform:translateX(-100%); animation:rzds-flow 2.6s ease-in-out infinite;
+}
+.goal-t.rzds-full .goal-f::after{ animation:none }
+.goal-t.rzds-full .goal-f{
+  background:linear-gradient(90deg,var(--secondary-accent),var(--primary-accent),var(--secondary-accent));
+  background-size:200% 100%; animation:rzds-rainbow 3s linear infinite;
+}
+@keyframes rzds-flow{ 0%{transform:translateX(-100%)} 55%,100%{transform:translateX(220%)} }
+@keyframes rzds-rainbow{ to{ background-position:200% 0 } }
+
+/* รางหมุด */
+.rzds-ms-track{ position:absolute; inset:0; pointer-events:none; z-index:3 }
+.rzds-ms{
+  position:absolute; top:-3px; width:3px; height:calc(100% + 6px);
+  background:var(--border-strong); border-radius:2px;
+  transform:translateX(-50%);
+  transition:background var(--dur-base) var(--ease-smooth), box-shadow var(--dur-base) var(--ease-smooth);
+}
+.rzds-ms::before{
+  content:""; position:absolute; left:50%; top:50%;
+  width:12px; height:12px; transform:translate(-50%,-50%) scale(.7);
+  background:var(--surface-1); border:2px solid var(--border-strong);
+  border-radius:50%; transition:all var(--dur-base) var(--ease-spring);
+}
+.rzds-ms span{
+  position:absolute; left:50%; top:calc(100% + 8px); transform:translateX(-50%);
+  font-size:10px; font-weight:700; letter-spacing:.03em; white-space:nowrap;
+  color:var(--text-secondary); font-variant-numeric:tabular-nums;
+  transition:color var(--dur-base) var(--ease-smooth);
+}
+.rzds-ms.hit{ background:var(--secondary-accent) }
+.rzds-ms.hit::before{
+  background:var(--secondary-accent); border-color:var(--secondary-accent);
+  transform:translate(-50%,-50%) scale(1);
+  box-shadow:0 0 0 4px rgba(var(--rgb-success),.18);
+}
+.rzds-ms.hit span{ color:var(--secondary-accent) }
+.rzds-ms.pop::before{ animation:rzds-pop .72s var(--ease-spring) }
+@keyframes rzds-pop{
+  0%{transform:translate(-50%,-50%) scale(1)}
+  38%{transform:translate(-50%,-50%) scale(2.1)}
+  100%{transform:translate(-50%,-50%) scale(1)}
+}
+
+/* วงแหวนกระจาย */
+.rzds-ring{
+  position:absolute; top:50%; left:0; width:16px; height:16px;
+  transform:translate(-50%,-50%); border:2px solid var(--secondary-accent);
+  border-radius:50%; pointer-events:none; z-index:4;
+  animation:rzds-ring 900ms var(--ease-smooth) forwards;
+}
+@keyframes rzds-ring{
+  0%{opacity:.9; transform:translate(-50%,-50%) scale(.4)}
+  100%{opacity:0; transform:translate(-50%,-50%) scale(5.5)}
+}
+
+/* ประกายไฟ */
+.rzds-spark{
+  position:absolute; top:50%; left:0; width:6px; height:6px;
+  border-radius:50%; pointer-events:none; z-index:5;
+  animation:rzds-spark 1100ms cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes rzds-spark{
+  0%{opacity:1; transform:translate(-50%,-50%) translate(0,0) scale(1)}
+  100%{opacity:0; transform:translate(-50%,-50%) translate(var(--dx),var(--dy)) scale(.25)}
+}
+
+/* แผงข้อมูลใต้แถบ */
+.rzds-goal-meta{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2) var(--space-6);
+  margin-top:var(--space-4); font-size:var(--text-xs); color:var(--text-secondary);
+}
+.rzds-goal-meta b{ color:var(--text-primary); font-variant-numeric:tabular-nums }
+.rzds-goal-meta .sep{ opacity:.35 }
+.rzds-next{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:var(--radius-full);
+  background:rgba(var(--rgb-accent),.1); color:var(--primary-accent); font-weight:700;
+}
+.rzds-next.done{ background:rgba(var(--rgb-success),.12); color:var(--secondary-accent) }
+
+/* ══════════════ B. LEADERBOARD LIVE DIFF ══════════════ */
+#board{ position:relative }
+.rk{ position:relative; will-change:transform }
+
+.rzds-lb-badge{
+  display:inline-flex; align-items:center; gap:3px;
+  margin-left:var(--space-2); padding:2px 8px;
+  font-size:10px; font-weight:800; letter-spacing:.04em;
+  border-radius:var(--radius-full); white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  animation:rzds-badge-in .4s var(--ease-spring);
+}
+.rzds-lb-badge.out{ animation:rzds-badge-out .3s var(--ease-smooth) forwards }
+.rzds-lb-badge.up  { color:var(--secondary-accent); background:rgba(var(--rgb-success),.14) }
+.rzds-lb-badge.down{ color:var(--text-secondary);   background:var(--surface-3) }
+.rzds-lb-badge.new { color:var(--text-on-accent);   background:var(--primary-accent) }
+.rzds-lb-badge.amt { color:var(--secondary-accent); background:rgba(var(--rgb-success),.14) }
+@keyframes rzds-badge-in{ from{opacity:0;transform:translateY(-6px) scale(.8)} }
+@keyframes rzds-badge-out{ to{opacity:0;transform:scale(.8)} }
+
+.rk.rzds-flash{ animation:rzds-flash 1.25s var(--ease-smooth) }
+@keyframes rzds-flash{
+  0%{ background:rgba(var(--rgb-success),.22) }
+  100%{ background:transparent }
+}
+.rk.rzds-flash-new{ animation:rzds-flash-new 1.4s var(--ease-smooth) }
+@keyframes rzds-flash-new{
+  0%{ background:rgba(var(--rgb-accent),.26); transform:scale(1.015) }
+  100%{ background:transparent; transform:scale(1) }
+}
+.rk.rzds-crown .rk-n::after{
+  content:"♛"; margin-left:5px; color:var(--warning);
+  display:inline-block; animation:rzds-crown .9s var(--ease-spring);
+}
+@keyframes rzds-crown{ 0%{transform:translateY(-14px) rotate(-25deg);opacity:0} 100%{transform:none;opacity:1} }
+
+.rzds-live{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:10px; font-weight:800; letter-spacing:.1em;
+  color:var(--secondary-accent); text-transform:uppercase;
+}
+.rzds-live i{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--secondary-accent); animation:rzds-pulse 1.6s ease-in-out infinite;
+}
+@keyframes rzds-pulse{
+  0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(var(--rgb-success),.55) }
+  70%{ opacity:.55; box-shadow:0 0 0 7px rgba(var(--rgb-success),0) }
+}
+
+/* ══════════════ C. SOLAR THEME (ช่วงเวลา) ══════════════ */
+html[data-twilight="dawn"]{
+  --primary-accent:#F59E0B; --primary-accent-hover:#FBBF24;
+  --rgb-accent:245,158,11;
+}
+html[data-twilight="dusk"]{
+  --primary-accent:#F97316; --primary-accent-hover:#FB923C;
+  --rgb-accent:249,115,22;
+}
+html[data-twilight="dawn"][data-theme="dark"]{ --primary-accent:#FBBF24; --rgb-accent:251,191,36 }
+html[data-twilight="dusk"][data-theme="dark"]{ --primary-accent:#FB923C; --rgb-accent:251,146,60 }
+/* บังคับ Overlay OBS ใช้โทนกลางคืนเสมอ กันสีเพี้ยนบนสตรีม */
+#stage,#stage *{ --primary-accent:#3B82F6 !important; --rgb-accent:59,130,246 !important }
+
+#rzdsDock button[data-dock="theme"]{ position:relative }
+#rzdsDock button[data-dock="theme"]::after{
+  content:attr(data-mode); position:absolute; bottom:-2px; right:-2px;
+  font-size:8px; font-weight:800; line-height:1;
+  padding:2px 4px; border-radius:var(--radius-full);
+  background:var(--primary-accent); color:var(--text-on-accent);
+}
+
+/* ══ เคารพ reduced-motion ══ */
+@media(prefers-reduced-motion:reduce){
+  .goal-f::after,.goal-t.rzds-full .goal-f,.rzds-live i{ animation:none !important }
+  .rzds-spark,.rzds-ring{ display:none !important }
+}
+html[data-motion="off"] .goal-f::after,
+html[data-motion="off"] .rzds-live i{ animation:none !important }
+html[data-motion="off"] .rzds-spark,
+html[data-motion="off"] .rzds-ring{ display:none !important }
+</style>
+
 </head>
 <body>
 
@@ -3239,5 +3887,931 @@ if(ADM)D.addEventListener('keydown',function(e){if(!e.altKey||e.repeat)return;
  if(e.key.toLowerCase()==='e'){exportCsv();e.preventDefault()}});
 })();
 </script>
+<!-- ═══════════════════════════════════════════════════════════
+     RZ UI KIT v2.0  |  Presentation-Only  |  Zero Network Calls
+     ไม่มี fetch / WebSocket / BroadcastChannel / IndexedDB
+     ═══════════════════════════════════════════════════════════ -->
+<script id="rz-ui">
+(() => {
+'use strict';
+
+/* ══ CONFIG — ปิด/เปิดทีละฟีเจอร์ได้ทันทีตอน production ══ */
+const CFG = {
+  theme:true, reveal:true, header:true, parallax:true, mobileNav:true,
+  modal:true, tabs:true, forms:true, draft:true, countUp:true,
+  cmdPalette:true, progress:true, backTop:true, clipboard:true,
+  netStatus:true, imgGuard:true, shortcuts:true, idleWarn:true,
+  vlist:true, dock:true, errorLog:true,
+  draftTTL:86400000,      // อายุ draft 24 ชม.
+  idleMinutes:25,         // เตือนก่อน session 30 นาทีหมด
+  debug:false
+};
+
+const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches
+            || document.documentElement.dataset.motion === 'off';
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const LOGS = [];
+const safe = (name,fn)=>{ try{ fn(); }catch(e){
+  LOGS.push({m:name,e:String(e),t:Date.now()}); if(LOGS.length>50)LOGS.shift();
+  if(CFG.debug) console.warn('[RZDS]',name,e);
+}};
+
+/* ══ STORE — namespace rzds_ เท่านั้น ไม่ชน rzc_ ══ */
+const S = {
+  get(k,d=null){ try{ const v=localStorage.getItem('rzds_'+k); return v===null?d:JSON.parse(v);}catch{return d;} },
+  set(k,v){ try{ localStorage.setItem('rzds_'+k,JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem('rzds_'+k); }catch{} }
+};
+
+/* ══ 0. INJECT UI SHELL — ไม่ต้องแก้ body เดิม ══ */
+function shell(){
+  const frag = document.createElement('div');
+  frag.innerHTML = `
+    <a id="rzdsSkip" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+    <div id="rzdsProgress" role="presentation"></div>
+    <div id="rzdsToasts" role="region" aria-live="polite" aria-label="การแจ้งเตือนระบบ"></div>
+    <div id="rzdsNet" role="status" aria-live="assertive"></div>
+    <button id="rzdsTop" type="button" aria-label="กลับขึ้นด้านบน">↑</button>
+    <div id="rzdsDock" role="group" aria-label="ตั้งค่าการแสดงผล">
+      <button data-dock="theme"    aria-label="สลับธีมสว่าง/มืด" title="สลับธีม (Alt+T)">◐</button>
+      <button data-dock="contrast" aria-label="สลับโหมดคอนทราสต์สูง" title="คอนทราสต์สูง">◑</button>
+      <button data-dock="motion"   aria-label="เปิด/ปิดแอนิเมชัน" title="ลดการเคลื่อนไหว">✳</button>
+      <button data-dock="cmd"      aria-label="เปิดแผงคำสั่ง" title="แผงคำสั่ง (Ctrl+K)">⌘</button>
+    </div>
+    <div id="rzdsCmd" role="dialog" aria-modal="true" aria-label="แผงคำสั่ง">
+      <div class="rzds-cmd-box">
+        <label class="sr-only" for="rzdsCmdInput">ค้นหาคำสั่ง</label>
+        <input id="rzdsCmdInput" class="rzds-cmd-input" type="text"
+               placeholder="พิมพ์เพื่อค้นหาคำสั่ง…" autocomplete="off" role="combobox"
+               aria-expanded="true" aria-controls="rzdsCmdList">
+        <ul id="rzdsCmdList" class="rzds-cmd-list" role="listbox"></ul>
+      </div>
+    </div>`;
+  while(frag.firstElementChild) document.body.appendChild(frag.firstElementChild);
+  if(!$('#main')){
+    const m = $('#vDonor') || $('main') || $('.panel');
+    if(m && !m.id) m.id='main'; else if(m) m.setAttribute('data-main','');
+  }
+}
+
+/* ══ 1. THEME ENGINE ══ */
+function theme(){
+  const H = document.documentElement;
+  const sysDark = matchMedia('(prefers-color-scheme: dark)');
+  const apply = ()=>{
+    const pref = S.get('theme','dark');
+    H.dataset.theme = pref==='auto' ? (sysDark.matches?'dark':'light') : pref;
+    H.dataset.contrast = S.get('contrast','normal');
+    H.dataset.motion   = S.get('motion','on');
+    const mt = $('meta[name="theme-color"]');
+    if(mt) mt.content = H.dataset.theme==='dark' ? '#0F172A' : '#FFFFFF';
+  };
+  sysDark.addEventListener('change', ()=>{ if(S.get('theme','dark')==='auto') apply(); });
+  apply();
+  window.__rzdsApplyTheme = apply;
+
+  $$('#rzdsDock button').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.dock;
+    if(k==='theme'){ S.set('theme', H.dataset.theme==='dark'?'light':'dark'); apply();
+      toast('สลับธีมเป็น '+(H.dataset.theme==='dark'?'มืด':'สว่าง')); }
+    if(k==='contrast'){ const n=H.dataset.contrast==='high'?'normal':'high'; S.set('contrast',n); apply();
+      toast('คอนทราสต์สูง: '+(n==='high'?'เปิด':'ปิด')); }
+    if(k==='motion'){ const n=H.dataset.motion==='off'?'on':'off'; S.set('motion',n); apply();
+      toast('แอนิเมชัน: '+(n==='on'?'เปิด':'ปิด')); }
+    if(k==='cmd') cmdOpen(true);
+  }));
+}
+
+/* ══ 2. TOAST (ของเราเอง ไม่ชน .toast เดิม) ══ */
+function toast(msg,type='',ms=3200){
+  const box = $('#rzdsToasts'); if(!box) return;
+  const el = document.createElement('div');
+  el.className = 'rzds-toast '+type; el.setAttribute('role','status'); el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),260); }, ms);
+}
+
+/* ══ 3. SCROLL REVEAL ══ */
+function reveal(){
+  const auto = ['.panel','.qcard','.card','.stat','#board','#feed > *'];
+  auto.forEach(sel=>$$(sel).forEach((e,i)=>{
+    if(!e.hasAttribute('data-reveal') && !e.closest('#stage') && !e.closest('.modal')){
+      e.setAttribute('data-reveal',''); e.style.setProperty('--reveal-delay',Math.min(i*60,300)+'ms');
+    }
+  }));
+  const els = $$('[data-reveal]');
+  if(RM() || !('IntersectionObserver' in window))
+    return els.forEach(e=>e.classList.add('is-visible'));
+  const io = new IntersectionObserver(en=>en.forEach(x=>{
+    if(x.isIntersecting){ x.target.classList.add('is-visible'); io.unobserve(x.target); }
+  }),{threshold:.12,rootMargin:'0px 0px -8% 0px'});
+  els.forEach(e=>io.observe(e));
+}
+
+/* ══ 4. SMART HEADER + PROGRESS + BACK TO TOP ══ */
+function scrollSys(){
+  const h = $('#siteHeader')||$('.hdr')||$('.site-header');
+  const bar = $('#rzdsProgress'), top = $('#rzdsTop');
+  let last=0, tick=false;
+  const run=()=>{
+    const y=scrollY, dh=document.documentElement.scrollHeight-innerHeight;
+    if(h && CFG.header){
+      h.classList.toggle('is-scrolled', y>8);
+      h.classList.toggle('is-hidden', y>240 && y>last && !$('.modal.on'));
+    }
+    if(bar && CFG.progress) bar.style.width = (dh>0?(y/dh*100):0)+'%';
+    if(top && CFG.backTop) top.classList.toggle('on', y>400);
+    last=y; tick=false;
+  };
+  addEventListener('scroll',()=>{ if(!tick){tick=true;requestAnimationFrame(run);} },{passive:true});
+  top?.addEventListener('click',()=>scrollTo({top:0,behavior:RM()?'auto':'smooth'}));
+  run();
+}
+
+/* ══ 5. PARALLAX 0.1 — เฉพาะ decorative ══ */
+function parallax(){
+  const els = $$('#bgfx [data-parallax], #bgfx .fx-g, #bgfx .fx-s');
+  if(!els.length || RM()) return;
+  let t=false;
+  addEventListener('scroll',()=>{ if(t)return; t=true;
+    requestAnimationFrame(()=>{ const y=scrollY;
+      els.forEach(e=>e.style.transform=`translate3d(0,${y*.1}px,0)`); t=false; });
+  },{passive:true});
+}
+
+/* ══ 6. FOCUS TRAP ══ */
+const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function trap(box){
+  const n=$$(FOCUSABLE,box).filter(x=>x.offsetParent!==null);
+  if(!n.length) return ()=>{};
+  const f=n[0], l=n[n.length-1];
+  const k=e=>{ if(e.key!=='Tab')return;
+    if(e.shiftKey&&document.activeElement===f){e.preventDefault();l.focus();}
+    else if(!e.shiftKey&&document.activeElement===l){e.preventDefault();f.focus();} };
+  box.addEventListener('keydown',k); setTimeout(()=>f.focus(),50);
+  return ()=>box.removeEventListener('keydown',k);
+}
+
+/* ══ 7. MODAL A11Y — อ่านคลาสที่ JS เดิมสลับ ไม่เขียนกลับ ══ */
+function modals(){
+  $$('.modal, #pay, #lb').forEach(m=>{
+    if(m.dataset.rzds) return; m.dataset.rzds='1';
+    m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
+    let rel=null, opener=null;
+    new MutationObserver(()=>{
+      const open = m.classList.contains('on')||m.classList.contains('is-open');
+      m.setAttribute('aria-hidden',String(!open));
+      document.body.classList.toggle('rzds-locked',open);
+      if(open && !rel){ opener=document.activeElement; rel=trap(m); }
+      else if(!open && rel){ rel(); rel=null; try{opener?.focus();}catch{} }
+    }).observe(m,{attributes:true,attributeFilter:['class']});
+    m.addEventListener('click',e=>{ if(e.target===m) closeIt(m); });
+  });
+  addEventListener('keydown',e=>{
+    if(e.key!=='Escape')return;
+    const open=$$('.modal.on, .modal.is-open, #pay.on, #lb.on').pop();
+    if(open) closeIt(open);
+  });
+  function closeIt(m){
+    const btn = m.querySelector('[data-close],.x,.close,[id^="close"],[id^="btnClose"]');
+    if(btn) btn.click();
+  }
+}
+
+/* ══ 8. TABS ARIA + ARROW KEYS ══ */
+function tabs(){
+  $$('.tabs').forEach(list=>{
+    if(list.dataset.rzds) return; list.dataset.rzds='1';
+    list.setAttribute('role','tablist');
+    const items=$$('.tab',list);
+    items.forEach((t,i)=>{
+      t.setAttribute('role','tab');
+      const on=t.classList.contains('on');
+      t.setAttribute('aria-selected',String(on)); t.setAttribute('tabindex',on?'0':'-1');
+      t.addEventListener('keydown',e=>{
+        const map={ArrowRight:1,ArrowLeft:-1,Home:'f',End:'l'};
+        if(!(e.key in map))return; e.preventDefault();
+        const n = map[e.key]==='f'?0 : map[e.key]==='l'?items.length-1
+                : (i+map[e.key]+items.length)%items.length;
+        items[n].focus(); items[n].click();
+      });
+    });
+    new MutationObserver(()=>items.forEach(t=>{
+      const on=t.classList.contains('on');
+      t.setAttribute('aria-selected',String(on)); t.setAttribute('tabindex',on?'0':'-1');
+    })).observe(list,{attributes:true,subtree:true,attributeFilter:['class']});
+  });
+  $$('.pane').forEach(p=>{
+    p.setAttribute('role','tabpanel'); if(!p.hasAttribute('tabindex')) p.tabIndex=0;
+  });
+}
+
+/* ══ 9. FORM INTELLIGENCE + DRAFT AUTOSAVE ══ */
+function forms(){
+  $$('.inp,input,textarea').forEach(inp=>{
+    if(inp.dataset.rzds||inp.type==='file'||inp.type==='password') return;
+    inp.dataset.rzds='1';
+    const err = inp.parentElement?.querySelector('.err');
+    if(err){
+      if(!err.id) err.id='rzdse-'+(inp.id||Math.random().toString(36).slice(2));
+      err.setAttribute('role','alert'); err.setAttribute('aria-live','assertive');
+      inp.setAttribute('aria-describedby',err.id);
+      new MutationObserver(()=>inp.setAttribute('aria-invalid',String(inp.classList.contains('bad'))))
+        .observe(inp,{attributes:true,attributeFilter:['class']});
+    }
+    /* character counter */
+    const max = +inp.getAttribute('maxlength');
+    if(max>0){
+      const c=document.createElement('div'); c.className='rzds-count'; c.setAttribute('aria-live','polite');
+      inp.insertAdjacentElement('afterend',c);
+      const up=()=>{ const n=inp.value.length; c.textContent=`${n} / ${max}`;
+        c.className='rzds-count'+(n>max*.9?' warn':'')+(n>=max?' over':''); };
+      inp.addEventListener('input',up); up();
+    }
+  });
+  /* draft autosave — เฉพาะฟอร์มโดเนท ไม่แตะฟอร์มแอดมิน */
+  if(!CFG.draft) return;
+  const ids=['dName','dAmt','dMsg'];
+  const d=S.get('draft',null);
+  if(d && Date.now()-d.t < CFG.draftTTL){
+    let filled=false;
+    ids.forEach(id=>{ const e=$('#'+id); if(e && !e.value && d.v[id]){ e.value=d.v[id]; filled=true; } });
+    if(filled) toast('กู้คืนข้อมูลที่กรอกค้างไว้แล้ว','good');
+  }
+  let tm;
+  ids.forEach(id=>$('#'+id)?.addEventListener('input',()=>{
+    clearTimeout(tm); tm=setTimeout(()=>{
+      const v={}; ids.forEach(i=>{ const e=$('#'+i); if(e) v[i]=e.value; });
+      S.set('draft',{t:Date.now(),v});
+    },600);
+  }));
+  $('#dForm')?.addEventListener('submit',()=>setTimeout(()=>S.del('draft'),1500));
+}
+
+/* ══ 10. COUNT-UP NUMBERS ══ */
+function countUp(){
+  const parse=s=>{ const m=String(s).replace(/[,\s]/g,'').match(/-?\d+(\.\d+)?/); return m?+m[0]:null; };
+  const animate=(el,from,to,tpl)=>{
+    if(RM()||Math.abs(to-from)<1){ return; }
+    el.dataset.rzdsAnim='1'; const t0=performance.now(), dur=700;
+    const step=t=>{
+      const p=Math.min((t-t0)/dur,1), e=1-Math.pow(1-p,3);
+      const v=Math.round(from+(to-from)*e);
+      el.textContent = tpl.replace('@', v.toLocaleString('th-TH'));
+      if(p<1) requestAnimationFrame(step); else delete el.dataset.rzdsAnim;
+    };
+    requestAnimationFrame(step);
+  };
+  $$('.rk-a,[data-countup],.stat__value,#totAmt,#totCnt').forEach(el=>{
+    if(el.dataset.rzdsCu) return; el.dataset.rzdsCu='1';
+    let prev=parse(el.textContent);
+    new MutationObserver(()=>{
+      if(el.dataset.rzdsAnim) return;
+      const cur=parse(el.textContent);
+      if(cur===null||cur===prev){ prev=cur; return; }
+      const tpl=el.textContent.replace(/-?[\d,]+(\.\d+)?/,'@');
+      const from=prev??0; prev=cur; animate(el,from,cur,tpl);
+    }).observe(el,{childList:true,characterData:true,subtree:true});
+  });
+}
+
+/* ══ 11. CLIPBOARD ══ */
+function clipboard(){
+  document.addEventListener('click',async e=>{
+    const t=e.target.closest('[data-copy]'); if(!t) return;
+    const val=t.dataset.copy || t.textContent.trim();
+    try{ await navigator.clipboard.writeText(val); toast('คัดลอกแล้ว: '+val,'good',2000); }
+    catch{ toast('คัดลอกไม่สำเร็จ','bad'); }
+  });
+  /* เติมปุ่มคัดลอกให้เลขพร้อมเพย์อัตโนมัติ */
+  $$('#ppId,[data-pp],.pp-num').forEach(el=>{
+    if(el.dataset.rzdsCp) return; el.dataset.rzdsCp='1';
+    el.setAttribute('data-copy',el.textContent.trim());
+    el.style.cursor='copy'; el.title='คลิกเพื่อคัดลอก';
+  });
+}
+
+/* ══ 12. NET STATUS — อ่าน navigator.onLine เท่านั้น ไม่ ping ══ */
+function netStatus(){
+  const el=$('#rzdsNet'); if(!el) return;
+  const show=(txt,back)=>{ el.textContent=txt; el.classList.toggle('back',back); el.classList.add('on');
+    if(back) setTimeout(()=>el.classList.remove('on'),2600); };
+  addEventListener('offline',()=>show('⚠ ออฟไลน์ — ข้อมูลจะยังไม่ถูกส่ง',false));
+  addEventListener('online', ()=>show('✓ กลับมาออนไลน์แล้ว',true));
+  if(!navigator.onLine) show('⚠ ออฟไลน์ — ข้อมูลจะยังไม่ถูกส่ง',false);
+}
+
+/* ══ 13. IMAGE CLS GUARD ══ */
+function imgGuard(){
+  const fix=img=>{
+    if(img.dataset.rzds||img.closest('#stage')) return; img.dataset.rzds='1';
+    if(!img.hasAttribute('loading') && !img.closest('.hdr'))
+      img.setAttribute('loading','lazy');
+    if(!img.hasAttribute('decoding')) img.setAttribute('decoding','async');
+    if(!img.hasAttribute('alt')) img.setAttribute('alt','');
+    if(!img.getAttribute('width') && !img.style.aspectRatio)
+      img.style.aspectRatio = img.naturalWidth&&img.naturalHeight
+        ? `${img.naturalWidth}/${img.naturalHeight}` : '16/9';
+  };
+  $$('img').forEach(fix);
+  new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{
+    if(n.nodeType!==1)return;
+    if(n.tagName==='IMG') fix(n); else $$('img',n).forEach(fix);
+  }))).observe(document.body,{childList:true,subtree:true});
+}
+
+/* ══ 14. COMMAND PALETTE — เรียก .click() บนปุ่มเดิมเท่านั้น ══ */
+let CMD=[], cmdIdx=0;
+function buildCmd(){
+  CMD=[];
+  const push=(label,group,run,key)=>CMD.push({label,group,run,key});
+  push('สลับธีมสว่าง / มืด','การแสดงผล',()=>$('[data-dock="theme"]').click(),'Alt+T');
+  push('เปิด/ปิด คอนทราสต์สูง','การแสดงผล',()=>$('[data-dock="contrast"]').click());
+  push('เปิด/ปิด แอนิเมชัน','การแสดงผล',()=>$('[data-dock="motion"]').click());
+  push('กลับขึ้นด้านบนสุด','นำทาง',()=>scrollTo({top:0,behavior:'smooth'}),'Home');
+  push('พิมพ์ / บันทึกเป็น PDF','เครื่องมือ',()=>print(),'Ctrl+P');
+  push('ดูคีย์ลัดทั้งหมด','เครื่องมือ',()=>showKeys(),'?');
+  $$('.tab').forEach(t=>push('แท็บ: '+t.textContent.trim(),'แท็บผู้ดูแล',()=>t.click()));
+  $$('.chip').forEach(c=>push('เลือกยอด: '+c.textContent.trim(),'จำนวนเงิน',()=>c.click()));
+  $$('.btn-x,.btn-g,.btn').forEach(b=>{
+    const l=b.textContent.trim();
+    if(l && l.length<40 && b.offsetParent!==null) push(l,'ปุ่ม',()=>b.click());
+  });
+}
+function renderCmd(q=''){
+  const list=$('#rzdsCmdList'); if(!list) return;
+  const f=CMD.filter(c=>c.label.toLowerCase().includes(q.toLowerCase())).slice(0,40);
+  cmdIdx=0;
+  list.innerHTML = f.length ? f.map((c,i)=>
+    `<li class="rzds-cmd-item" role="option" data-i="${i}" aria-selected="${i===0}">
+       <span style="opacity:.55;font-size:11px">${c.group}</span>
+       <span>${c.label}</span>${c.key?`<span class="k">${c.key}</span>`:''}
+     </li>`).join('')
+    : `<li class="rzds-cmd-empty">ไม่พบคำสั่งที่ตรงกับ "${q}"</li>`;
+  list._f=f;
+}
+function cmdOpen(on){
+  const box=$('#rzdsCmd'), inp=$('#rzdsCmdInput'); if(!box) return;
+  if(on){ buildCmd(); renderCmd(''); box.classList.add('on');
+    document.body.classList.add('rzds-locked'); inp.value=''; setTimeout(()=>inp.focus(),40); }
+  else { box.classList.remove('on'); document.body.classList.remove('rzds-locked'); }
+}
+function cmdPalette(){
+  const box=$('#rzdsCmd'), inp=$('#rzdsCmdInput'), list=$('#rzdsCmdList');
+  if(!box) return;
+  inp.addEventListener('input',()=>renderCmd(inp.value));
+  const move=d=>{
+    const items=$$('.rzds-cmd-item',list); if(!items.length)return;
+    cmdIdx=(cmdIdx+d+items.length)%items.length;
+    items.forEach((x,i)=>x.setAttribute('aria-selected',String(i===cmdIdx)));
+    items[cmdIdx].scrollIntoView({block:'nearest'});
+  };
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();move(1);}
+    if(e.key==='ArrowUp'){e.preventDefault();move(-1);}
+    if(e.key==='Enter'){ e.preventDefault(); const c=list._f?.[cmdIdx];
+      if(c){ cmdOpen(false); setTimeout(()=>safe('cmd',c.run),80); } }
+    if(e.key==='Escape') cmdOpen(false);
+  });
+  list.addEventListener('click',e=>{
+    const li=e.target.closest('.rzds-cmd-item'); if(!li)return;
+    const c=list._f?.[+li.dataset.i]; if(c){ cmdOpen(false); setTimeout(()=>safe('cmd',c.run),80); }
+  });
+  box.addEventListener('click',e=>{ if(e.target===box) cmdOpen(false); });
+}
+
+/* ══ 15. KEYBOARD SHORTCUTS ══ */
+function showKeys(){
+  const rows=[['Ctrl / ⌘ + K','เปิดแผงคำสั่ง'],['Alt + T','สลับธีม'],
+    ['Alt + M','เปิด/ปิดแอนิเมชัน'],['?','หน้าต่างคีย์ลัดนี้'],
+    ['Esc','ปิดหน้าต่าง / แผงคำสั่ง'],['← →','สลับแท็บผู้ดูแล'],['Ctrl + P','พิมพ์ใบเสร็จ']];
+  toast('คีย์ลัด: '+rows.map(r=>r[0]+' = '+r[1]).join('  •  '),'',9000);
+}
+function shortcuts(){
+  addEventListener('keydown',e=>{
+    const typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault();
+      cmdOpen(!$('#rzdsCmd').classList.contains('on')); return; }
+    if(typing) return;
+    if(e.altKey&&e.key.toLowerCase()==='t'){ e.preventDefault(); $('[data-dock="theme"]')?.click(); }
+    if(e.altKey&&e.key.toLowerCase()==='m'){ e.preventDefault(); $('[data-dock="motion"]')?.click(); }
+    if(e.key==='?'){ e.preventDefault(); showKeys(); }
+  });
+}
+
+/* ══ 16. IDLE WARNING (แอดมิน) — แค่เตือน ไม่ logout ══ */
+function idleWarn(){
+  const admin=$('#vAdmin'); if(!admin) return;
+  let t=null, warned=false;
+  const reset=()=>{ warned=false; clearTimeout(t);
+    t=setTimeout(()=>{ if(!warned && admin.offsetParent!==null){
+      warned=true; toast('เซสชันผู้ดูแลจะหมดอายุในอีกประมาณ 5 นาที — ขยับเมาส์หรือกดปุ่มใดก็ได้เพื่อใช้งานต่อ','warn',8000);
+    }}, CFG.idleMinutes*60000); };
+  ['mousemove','keydown','click','touchstart'].forEach(ev=>
+    addEventListener(ev,()=>{ if(admin.offsetParent!==null) reset(); },{passive:true}));
+  reset();
+}
+
+/* ══ 17. LIST VIRTUALIZER LITE ══ */
+function vlist(){
+  ['#pQ','#pL','#feed','#board','.qlist'].forEach(sel=>{
+    const el=$(sel); if(el && el.children.length>20) el.classList.add('rzds-vlist');
+  });
+  const o=new MutationObserver(()=>{
+    ['#pQ','#pL','#feed','#board','.qlist'].forEach(sel=>{
+      const el=$(sel); if(el && el.children.length>20) el.classList.add('rzds-vlist');
+    });
+  });
+  const t=$('#pQ')||$('#feed'); if(t?.parentElement) o.observe(t.parentElement,{childList:true,subtree:true});
+}
+
+/* ══ 18. PUBLIC API สำหรับ JS เดิมเรียกใช้ ══ */
+window.RZDS = {
+  CONFIG: CFG,
+  toast,
+  logs: ()=>LOGS,
+  theme: v=>{ S.set('theme',v); window.__rzdsApplyTheme?.(); },
+  skeleton(target,rows=3){
+    const el=typeof target==='string'?$(target):target; if(!el)return;
+    el.setAttribute('aria-busy','true');
+    el.innerHTML=Array.from({length:rows},()=>'<div class="skeleton skeleton--row"></div>').join('');
+  },
+  ready(target){ const el=typeof target==='string'?$(target):target; el?.setAttribute('aria-busy','false'); },
+  loading(btn,on=true){ if(!btn)return; btn.setAttribute('aria-busy',String(on)); btn.disabled=on; },
+  async optimistic(el,apply,revert,commit){
+    el?.setAttribute('data-optimistic','pending'); apply?.();
+    try{ const r=await commit(); el?.setAttribute('data-optimistic','ok'); return r; }
+    catch(err){ revert?.(); el?.setAttribute('data-optimistic','failed'); throw err; }
+  },
+  rescan(){ safe('rescan',()=>{ modals(); tabs(); forms(); countUp(); clipboard(); reveal(); vlist(); }); }
+};
+
+/* ══ 19. BOOT ══ */
+function boot(){
+  safe('shell',shell);
+  if(CFG.theme)      safe('theme',theme);
+  if(CFG.reveal)     safe('reveal',reveal);
+                     safe('scrollSys',scrollSys);
+  if(CFG.parallax)   safe('parallax',parallax);
+  if(CFG.modal)      safe('modals',modals);
+  if(CFG.tabs)       safe('tabs',tabs);
+  if(CFG.forms)      safe('forms',forms);
+  if(CFG.countUp)    safe('countUp',countUp);
+  if(CFG.clipboard)  safe('clipboard',clipboard);
+  if(CFG.netStatus)  safe('netStatus',netStatus);
+  if(CFG.imgGuard)   safe('imgGuard',imgGuard);
+  if(CFG.cmdPalette) safe('cmdPalette',cmdPalette);
+  if(CFG.shortcuts)  safe('shortcuts',shortcuts);
+  if(CFG.idleWarn)   safe('idleWarn',idleWarn);
+  if(CFG.vlist)      safe('vlist',vlist);
+
+  /* รีสแกนอัตโนมัติเมื่อ JS เดิม render รายการใหม่ (debounced) */
+  let rt;
+  new MutationObserver(()=>{ clearTimeout(rt); rt=setTimeout(()=>window.RZDS.rescan(),400); })
+    .observe(document.body,{childList:true,subtree:true});
+
+  if(CFG.errorLog) addEventListener('error',e=>{
+    LOGS.push({m:'window',e:e.message,t:Date.now()}); if(LOGS.length>50)LOGS.shift();
+  });
+  if(CFG.debug) console.info('[RZDS] พร้อมใช้งาน — RZDS.logs() เพื่อดู error ล่าสุด');
+}
+document.readyState==='loading' ? addEventListener('DOMContentLoaded',boot) : boot();
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     RZ DS EXTENSION JS  |  Zero Network · Read-Only Observers
+     ═══════════════════════════════════════════════════════════ -->
+<script id="rz-ds-ext-js">
+(() => {
+'use strict';
+
+/* ─── ผูกกับ BLOCK B ─── */
+const API  = window.RZDS || {};
+const CFG  = Object.assign(API.CONFIG || {}, {
+  goalFx:true, lbDiff:true, solarTheme:true,
+  milestones:[10,25,50,75,100],
+  sparkCount:18,
+  lbSnapshotTTL:43200000,   // 12 ชม.
+  paceWindow:21600000,      // 6 ชม.
+  geo:{lat:13.7563, lon:100.5018, name:'กรุงเทพฯ'}
+});
+const toast = API.toast || (m=>console.log('[RZDS]',m));
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const RM = ()=> matchMedia('(prefers-reduced-motion: reduce)').matches
+             || document.documentElement.dataset.motion==='off';
+const safe=(n,f)=>{ try{ return f(); }catch(e){ if(CFG.debug) console.warn('[RZDS/'+n+']',e); } };
+const S={
+  get(k,d=null){ try{const v=localStorage.getItem('rzds_'+k); return v===null?d:JSON.parse(v);}catch{return d;} },
+  set(k,v){ try{ localStorage.setItem('rzds_'+k,JSON.stringify(v)); }catch{} }
+};
+const num = s => { const m=String(s??'').replace(/[,\s฿]/g,'').match(/-?\d+(\.\d+)?/); return m?+m[0]:null; };
+const baht = n => '฿'+Math.round(n).toLocaleString('th-TH');
+
+/* ═══════════════════════════════════════════════════════
+   1) GOAL MILESTONE  —  อ่าน #gFill อย่างเดียว ไม่เขียนกลับ
+   ═══════════════════════════════════════════════════════ */
+const Goal = (() => {
+  let track=null, fill=null, msEls=[], hit=new Set(), lastPct=-1, metaEl=null, maxSeen=0;
+
+  const pctNow = () => {
+    if(!fill) return 0;
+    const inline = parseFloat(fill.style.width);
+    if(!isNaN(inline)) return Math.max(0,Math.min(100,inline));
+    const w=fill.getBoundingClientRect().width, t=track.getBoundingClientRect().width;
+    return t>0 ? Math.max(0,Math.min(100,w/t*100)) : 0;
+  };
+  const goalMax = () => num($('#gMax')?.textContent) || 0;
+  const goalNow = () => num($('#gNow')?.textContent) || 0;
+
+  function buildTrack(){
+    if(!track) return;
+    let t = track.querySelector('.rzds-ms-track');
+    if(!t){ t=document.createElement('div'); t.className='rzds-ms-track';
+            t.setAttribute('aria-hidden','true'); track.appendChild(t); }
+    const max=goalMax();
+    if(max===maxSeen && t.children.length===CFG.milestones.length) return;
+    maxSeen=max;
+    t.innerHTML='';
+    msEls = CFG.milestones.map(p=>{
+      const d=document.createElement('div');
+      d.className='rzds-ms'; d.style.left=p+'%'; d.dataset.p=p;
+      const lbl=document.createElement('span');
+      lbl.textContent = max>0 ? baht(max*p/100) : p+'%';
+      d.appendChild(lbl); t.appendChild(d);
+      return d;
+    });
+    hit = new Set(S.get('ms_'+max, []));
+    msEls.forEach(e=>{ if(hit.has(+e.dataset.p)) e.classList.add('hit'); });
+  }
+
+  function burst(pctLeft){
+    if(RM()) return;
+    const host = track.querySelector('.rzds-ms-track'); if(!host) return;
+    const ring=document.createElement('div');
+    ring.className='rzds-ring'; ring.style.left=pctLeft+'%';
+    host.appendChild(ring); setTimeout(()=>ring.remove(),950);
+    const colors=['var(--secondary-accent)','var(--primary-accent)','var(--warning)'];
+    for(let i=0;i<CFG.sparkCount;i++){
+      const s=document.createElement('div');
+      s.className='rzds-spark'; s.style.left=pctLeft+'%';
+      s.style.background=colors[i%3];
+      const a=Math.random()*Math.PI*2, r=26+Math.random()*44;
+      s.style.setProperty('--dx',Math.cos(a)*r+'px');
+      s.style.setProperty('--dy',Math.sin(a)*r-14+'px');
+      s.style.animationDelay=(Math.random()*90)+'ms';
+      host.appendChild(s); setTimeout(()=>s.remove(),1250);
+    }
+  }
+
+  function celebrate(p){
+    const el=msEls.find(e=>+e.dataset.p===p); if(!el) return;
+    el.classList.add('hit','pop'); setTimeout(()=>el.classList.remove('pop'),780);
+    burst(p);
+    hit.add(p); S.set('ms_'+goalMax(), [...hit]);
+    const max=goalMax();
+    toast(p>=100 ? '🎯 ถึงเป้าหมายเต็ม 100% แล้ว ขอบคุณทุกคนครับ'
+                 : `ปลดล็อกหมุด ${p}% แล้ว — ${max?baht(max*p/100):''}`, 'good', p>=100?6000:4000);
+  }
+
+  /* Pace & ETA — เก็บตัวอย่างในเครื่องเท่านั้น */
+  function pace(now){
+    const arr=(S.get('pace',[])||[]).filter(x=>Date.now()-x.t < CFG.paceWindow);
+    const last=arr[arr.length-1];
+    if(!last || Math.abs(last.v-now)>0.5) arr.push({t:Date.now(), v:now});
+    while(arr.length>40) arr.shift();
+    S.set('pace',arr);
+    if(arr.length<3) return null;
+    const a=arr[0], b=arr[arr.length-1], dh=(b.t-a.t)/3600000;
+    if(dh<0.08) return null;
+    const rate=(b.v-a.v)/dh;
+    if(rate<=0) return null;
+    const left=Math.max(0, goalMax()-now);
+    return { rate, eta: left>0 ? left/rate : 0 };
+  }
+
+  function meta(p, now){
+    if(!metaEl){
+      metaEl=document.createElement('div');
+      metaEl.className='rzds-goal-meta'; metaEl.setAttribute('aria-live','polite');
+      track.insertAdjacentElement('afterend', metaEl);
+    }
+    const max=goalMax();
+    const next=CFG.milestones.find(m=>m>p+0.01);
+    const parts=[];
+    if(next && max>0) parts.push(`<span class="rzds-next">อีก ${baht(max*next/100-now)} ถึงหมุด ${next}%</span>`);
+    else parts.push('<span class="rzds-next done">ครบทุกหมุดแล้ว</span>');
+    const pc=pace(now);
+    if(pc){
+      parts.push(`<span>อัตรา <b>${baht(pc.rate)}</b>/ชม.</span>`);
+      if(pc.eta>0 && pc.eta<720){
+        const h=Math.floor(pc.eta), m=Math.round((pc.eta-h)*60);
+        parts.push(`<span>ถึงเป้าใน <b>~${h>0?h+' ชม. ':''}${m} นาที</b></span>`);
+      }
+    }
+    metaEl.innerHTML = parts.join('<span class="sep">•</span>');
+  }
+
+  function sync(){
+    if(!track) return;
+    buildTrack();
+    const p=pctNow(), now=goalNow();
+    if(Math.abs(p-lastPct)<0.05 && lastPct>=0) return;
+    const prev = lastPct<0 ? p : lastPct;
+    lastPct = p;
+    track.classList.toggle('rzds-full', p>=99.9);
+    msEls.forEach(e=>{ const v=+e.dataset.p; if(p>=v-0.01) e.classList.add('hit'); });
+    CFG.milestones.forEach(m=>{ if(prev < m-0.01 && p >= m-0.01 && !hit.has(m)) celebrate(m); });
+    meta(p, now);
+  }
+
+  function init(){
+    fill = $('#gFill'); if(!fill) return;
+    track = fill.closest('.goal-t') || fill.parentElement;
+    track.setAttribute('role','progressbar');
+    track.setAttribute('aria-valuemin','0'); track.setAttribute('aria-valuemax','100');
+    buildTrack();
+    new MutationObserver(()=>{ safe('goal',sync); track.setAttribute('aria-valuenow',Math.round(pctNow())); })
+      .observe(fill,{attributes:true,attributeFilter:['style','class']});
+    const gn=$('#gNow'), gm=$('#gMax');
+    [gn,gm].forEach(e=>e && new MutationObserver(()=>safe('goalTxt',sync))
+      .observe(e,{childList:true,characterData:true,subtree:true}));
+    ['#gNow','#gPct','#gCnt','#ogNow','#ogPct'].forEach(s=>$(s)?.setAttribute('data-countup',''));
+    API.rescan?.();
+    setTimeout(sync,260);
+  }
+  return { init, sync };
+})();
+
+/* ═══════════════════════════════════════════════════════
+   2) LEADERBOARD LIVE DIFF  —  เพิ่ม badge อย่างเดียว ไม่ลบของเดิม
+   ═══════════════════════════════════════════════════════ */
+const Board = (() => {
+  let board=null, prev=new Map(), prevTop=new Map(), busy=false, timer=null, leader=null, first=true;
+
+  const keyOf = r => {
+    if(r.dataset.rzdsK) return r.dataset.rzdsK;
+    const c=r.cloneNode(true);
+    c.querySelectorAll('.rk-n,.rk-a,.rzds-lb-badge').forEach(x=>x.remove());
+    const k=(c.textContent||'').replace(/\s+/g,' ').trim().slice(0,64) || ('row'+Math.random());
+    r.dataset.rzdsK=k; return k;
+  };
+  const amtOf = r => num(r.querySelector('.rk-a')?.textContent) ?? 0;
+
+  function badge(row, cls, txt){
+    const b=document.createElement('span');
+    b.className='rzds-lb-badge '+cls; b.textContent=txt;
+    b.setAttribute('aria-label', txt);
+    const anchor=row.querySelector('.rk-a');
+    anchor ? row.insertBefore(b,anchor) : row.appendChild(b);
+    setTimeout(()=>{ b.classList.add('out'); setTimeout(()=>b.remove(),320); }, 5000);
+  }
+
+  function liveDot(){
+    if(!board || board.querySelector('.rzds-live')) return;
+    const host=board.previousElementSibling;
+    if(host && !host.querySelector('.rzds-live')){
+      const s=document.createElement('span');
+      s.className='rzds-live'; s.innerHTML='<i></i>LIVE';
+      s.style.marginLeft='auto';
+      host.appendChild(s);
+    }
+  }
+
+  function pass(){
+    if(!board || busy) return;
+    busy=true;
+    const rows=$$('.rk',board);
+    const cur=new Map(), newTop=new Map();
+    rows.forEach((r,i)=>{
+      const k=keyOf(r);
+      cur.set(k,{rank:i+1, amt:amtOf(r)});
+      newTop.set(k, r.getBoundingClientRect().top);
+    });
+
+    if(!first){
+      rows.forEach(r=>{
+        const k=keyOf(r), c=cur.get(k), p=prev.get(k);
+        if(!p){
+          badge(r,'new','NEW'); r.classList.add('rzds-flash-new');
+          setTimeout(()=>r.classList.remove('rzds-flash-new'),1450);
+          return;
+        }
+        let changed=false;
+        if(c.rank < p.rank){ badge(r,'up','▲'+(p.rank-c.rank)); changed=true; }
+        else if(c.rank > p.rank){ badge(r,'down','▼'+(c.rank-p.rank)); changed=true; }
+        if(c.amt > p.amt){ badge(r,'amt','+'+baht(c.amt-p.amt)); changed=true; }
+        if(changed){ r.classList.add('rzds-flash'); setTimeout(()=>r.classList.remove('rzds-flash'),1300); }
+      });
+
+      /* FLIP */
+      if(!RM()){
+        rows.forEach(r=>{
+          const k=keyOf(r), o=prevTop.get(k); if(o==null) return;
+          const dy=o-newTop.get(k); if(Math.abs(dy)<1.5) return;
+          r.style.transition='none'; r.style.transform=`translateY(${dy}px)`;
+          requestAnimationFrame(()=>{
+            r.style.transition='transform 520ms var(--ease-spring)';
+            r.style.transform='';
+          });
+          setTimeout(()=>{ r.style.transition=''; r.style.transform=''; },600);
+        });
+      }
+
+      /* เปลี่ยนผู้นำ */
+      const top=rows[0] && keyOf(rows[0]);
+      if(top && leader && top!==leader){
+        rows[0].classList.add('rzds-crown');
+        setTimeout(()=>rows[0].classList.remove('rzds-crown'),2600);
+        toast('👑 ผู้นำคนใหม่: '+top,'good',4500);
+      }
+      if(top) leader=top;
+    } else {
+      leader = rows[0] ? keyOf(rows[0]) : null;
+      first=false;
+    }
+
+    prev=cur; prevTop=newTop;
+    S.set('lb',{t:Date.now(), d:[...cur].map(([k,v])=>[k,v.rank,v.amt]), leader});
+    liveDot();
+    setTimeout(()=>{ busy=false; },90);
+  }
+
+  function init(){
+    board=$('#board'); if(!board) return;
+    board.setAttribute('aria-live','polite');
+    board.setAttribute('aria-relevant','additions text');
+    const snap=S.get('lb',null);
+    if(snap && Date.now()-snap.t < CFG.lbSnapshotTTL){
+      prev=new Map(snap.d.map(([k,r,a])=>[k,{rank:r,amt:a}]));
+      leader=snap.leader; first=false;
+    }
+    new MutationObserver(muts=>{
+      if(busy) return;
+      const real = muts.some(m=>[...m.addedNodes,...m.removedNodes]
+        .some(n=>n.nodeType===1 && !n.className?.toString().includes('rzds-')));
+      if(!real && prev.size) return;
+      clearTimeout(timer); timer=setTimeout(()=>safe('lb',pass),70);
+    }).observe(board,{childList:true,subtree:true,characterData:true});
+    setTimeout(()=>safe('lb',pass),320);
+  }
+  return { init, pass };
+})();
+
+/* ═══════════════════════════════════════════════════════
+   3) SOLAR THEME  —  คำนวณดวงอาทิตย์ offline ไม่เรียก API
+   ═══════════════════════════════════════════════════════ */
+const Solar = (() => {
+  const RAD=Math.PI/180;
+  const MODES=['dark','light','auto','time'];
+  const LABEL={dark:'มืด',light:'สว่าง',auto:'ระบบ',time:'เวลา'};
+  const TAG  ={dark:'D',light:'L',auto:'A',time:'T'};
+  let timer=null;
+
+  function times(date, lat, lon){
+    const start=new Date(date.getFullYear(),0,0);
+    const N=Math.floor((date-start)/86400000);
+    const g=2*Math.PI/365*(N-1+(date.getHours()-12)/24);
+    const eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)
+            -0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
+    const dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)
+            -0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)
+            -0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+    const cosH=Math.cos(90.833*RAD)/(Math.cos(lat*RAD)*Math.cos(dec))-Math.tan(lat*RAD)*Math.tan(dec);
+    if(cosH>1)  return {polar:'night'};
+    if(cosH<-1) return {polar:'day'};
+    const ha=Math.acos(cosH)/RAD;
+    const off=-date.getTimezoneOffset();
+    const mk=m=>{ const d=new Date(date); d.setHours(0,0,0,0); d.setMinutes(m+off); return d; };
+    return { sunrise:mk(720-4*(lon+ha)-eq), sunset:mk(720-4*(lon-ha)-eq) };
+  }
+
+  function phase(now=new Date()){
+    const g=S.get('geo',CFG.geo);
+    const t=times(now,g.lat,g.lon);
+    if(t.polar) return { phase:t.polar==='day'?'day':'night', dark:t.polar!=='day', next:null };
+    const EDGE=45*60000;
+    const ms=now.getTime(), sr=t.sunrise.getTime(), ss=t.sunset.getTime();
+    let ph,dark,next;
+    if(ms < sr-EDGE)        { ph='night'; dark=true;  next=new Date(sr-EDGE); }
+    else if(ms < sr+EDGE)   { ph='dawn';  dark=false; next=new Date(sr+EDGE); }
+    else if(ms < ss-EDGE)   { ph='day';   dark=false; next=new Date(ss-EDGE); }
+    else if(ms < ss+EDGE)   { ph='dusk';  dark=false; next=new Date(ss+EDGE); }
+    else                    { ph='night'; dark=true;  next=null; }
+    return { phase:ph, dark, next, sunrise:t.sunrise, sunset:t.sunset };
+  }
+
+  function apply(announce){
+    const H=document.documentElement;
+    const mode=S.get('mode','dark');
+    const btn=$('#rzdsDock button[data-dock="theme"]');
+    if(btn) btn.dataset.mode=TAG[mode]||'D';
+
+    if(mode!=='time'){ H.removeAttribute('data-twilight'); schedule(); return; }
+    const p=phase();
+    H.dataset.twilight=p.phase;
+    const ov=S.get('override',null);
+    if(ov && ov.phase===p.phase){ schedule(p); return; }
+    if(ov) S.set('override',null);
+    H.dataset.theme = p.dark ? 'dark' : 'light';
+    const mt=$('meta[name="theme-color"]');
+    if(mt) mt.content = p.dark ? '#0F172A' : '#FFFFFF';
+    if(announce){
+      const g=S.get('geo',CFG.geo);
+      const f=d=>d?d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):'—';
+      toast(`โหมดตามเวลา (${g.name}) · ขึ้น ${f(p.sunrise)} · ตก ${f(p.sunset)} · ตอนนี้: ${
+        {dawn:'รุ่งสาง',day:'กลางวัน',dusk:'พลบค่ำ',night:'กลางคืน'}[p.phase]}`,'',5600);
+    }
+    if(btn && p.next) btn.title=`เปลี่ยนช่วงถัดไป ${p.next.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})} น.`;
+    schedule(p);
+  }
+
+  function schedule(p){
+    clearTimeout(timer);
+    if(S.get('mode','dark')!=='time') return;
+    const ms = p?.next ? Math.min(Math.max(p.next-Date.now(),1000), 600000) : 600000;
+    timer=setTimeout(()=>apply(false), ms);
+  }
+
+  function cycle(){
+    const cur=S.get('mode','dark');
+    const next=MODES[(MODES.indexOf(cur)+1)%MODES.length];
+    S.set('mode',next); S.set('override',null);
+    if(next==='time'){ apply(true); }
+    else {
+      document.documentElement.removeAttribute('data-twilight');
+      S.set('theme', next==='auto'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light') : next);
+      window.__rzdsApplyTheme?.();
+      apply(false);
+      toast('ธีม: '+LABEL[next]);
+    }
+  }
+
+  function init(){
+    const btn=$('#rzdsDock button[data-dock="theme"]');
+    if(btn){
+      const clone=btn.cloneNode(true);           // ตัด listener เดิมของ BLOCK B
+      btn.replaceWith(clone);
+      clone.addEventListener('click', e=>{
+        if(e.shiftKey && S.get('mode','dark')==='time'){
+          const p=phase();
+          document.documentElement.dataset.theme =
+            document.documentElement.dataset.theme==='dark'?'light':'dark';
+          S.set('override',{phase:p.phase});
+          toast('สลับชั่วคราว — จะกลับไปอัตโนมัติในช่วงเวลาถัดไป','warn',4200);
+          return;
+        }
+        cycle();
+      });
+      clone.title='สลับธีม (Alt+T) · Shift+คลิก = สลับชั่วคราว';
+    }
+    addEventListener('visibilitychange',()=>{ if(!document.hidden) apply(false); });
+    apply(false);
+  }
+  return { init, apply, phase, cycle,
+           setGeo:(lat,lon,name)=>{ S.set('geo',{lat:+lat,lon:+lon,name:name||'กำหนดเอง'}); apply(true); } };
+})();
+
+/* ═══════════════════════════════════════════════════════
+   PUBLIC API เพิ่มเติม
+   ═══════════════════════════════════════════════════════ */
+Object.assign(window.RZDS = window.RZDS || {}, {
+  goal:    { sync:()=>Goal.sync(), reset:()=>{ 
+             Object.keys(localStorage).filter(k=>k.startsWith('rzds_ms_')).forEach(k=>localStorage.removeItem(k));
+             toast('รีเซ็ตสถานะหมุด Milestone แล้ว'); location.reload(); } },
+  board:   { diff:()=>Board.pass() },
+  theme:   Object.assign(API.theme||(()=>{}), {}),
+  solar:   { now:()=>Solar.phase(), mode:m=>{ S.set('mode',m); Solar.apply(true); } },
+  setGeo:  (lat,lon,name)=>Solar.setGeo(lat,lon,name),
+  useMyLocation(){
+    if(!navigator.geolocation) return toast('อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง','bad');
+    navigator.geolocation.getCurrentPosition(
+      p=>{ Solar.setGeo(p.coords.latitude,p.coords.longitude,'ตำแหน่งของคุณ');
+           toast('ตั้งพิกัดตามตำแหน่งปัจจุบันแล้ว','good'); },
+      ()=>toast('ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง — ใช้พิกัดกรุงเทพฯ ต่อไป','warn'));
+  }
+});
+
+/* ═══════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════ */
+function boot(){
+  if(CFG.goalFx)     safe('goalInit',  ()=>Goal.init());
+  if(CFG.lbDiff)     safe('boardInit', ()=>Board.init());
+  if(CFG.solarTheme) safe('solarInit', ()=>Solar.init());
+
+  /* เติมคำสั่งเข้า Command Palette เดิม */
+  const old=window.RZDS.rescan;
+  window.RZDS.rescan=function(){ old?.call(window.RZDS); safe('extRescan',()=>{ Goal.sync(); }); };
+
+  if(CFG.debug) console.info('[RZDS-EXT] Goal FX · LB Diff · Solar Theme พร้อมใช้งาน');
+}
+document.readyState==='loading' ? addEventListener('DOMContentLoaded',boot) : boot();
+})();
+</script>
+
 </body>
 </html
