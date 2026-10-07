@@ -2329,7 +2329,7 @@ html[data-motion="off"] .rzds-ring{ display:none !important }
       <input id="dName" class="inp" maxlength="24" placeholder="RZ | YourName">
       <div class="err" id="eName">!! กรุณาระบุชื่อ</div></div>
      <div><label class="lbl-f" for="dAmt">[02] จำนวนเงิน (THB) <i>*</i></label>
-      <input id="dAmt" class="inp" type="number" inputmode="decimal" min="1" step="1" placeholder="100">
+      <input id="dAmt" class="inp" type="number" inputmode="decimal" min="1" max="1000000" step="1" placeholder="100">
       <div class="err" id="eAmt">!! จำนวนเงินต้องมากกว่า 0</div>
       <div class="flex flex-wrap gap-2 mt-2" id="chips">
        <button type="button" class="chip" data-v="50">฿50</button><button type="button" class="chip" data-v="100">฿100</button>
@@ -2815,13 +2815,49 @@ function emit(type,data){var m={t:type,d:data,i:uid()};
  try{localStorage.setItem(K_BUS,JSON.stringify(m))}catch(e){}
  if(bc)try{bc.postMessage(m)}catch(e){}
  if(ws&&ws.readyState===1)try{ws.send(JSON.stringify(m))}catch(e){}}
-function onMsg(m){if(!m||!m.t)return;
+/* ═══════════ INBOUND MESSAGE HARDENING ═══════════
+   Cross-tab (BroadcastChannel/storage) and relay (WebSocket) messages carry NO sender identity, and the channel
+   key is in the public donor URL, so any peer can post any message. Never trust a payload:
+   - 'donation' records are validated field-by-field and a remote record can only ever arrive as 'pending'
+     (donors always create pending; only the admin 'resolved' message may approve) so nobody can inject an
+     already-approved donation to inflate the goal / fire an alert.
+   - 'cfg' (which carries the PromptPay number) is NEVER applied on the admin page (admin is the source of truth),
+     is whitelisted + validated, and cannot change the receiver while a payment QR is open. */
+var VAL={
+ str:function(v,max){return typeof v==='string'?v.slice(0,max):''},
+ id:function(v){return typeof v==='string'&&/^[A-Za-z0-9_-]{3,40}$/.test(v)?v:null},
+ amount:function(v){var n=Number(v);return isFinite(n)&&n>0&&n<=1000000?Math.round(n*100)/100:null},
+ rec:function(r){
+  if(!r||typeof r!=='object')return null;
+  var id=this.id(r.id),amt=this.amount(r.amount);if(!id||amt===null)return null;
+  var ts=Number(r.ts);if(!isFinite(ts)||ts<1e12||ts>Date.now()+864e5)ts=Date.now();
+  var ref=typeof r.ref==='string'&&/^[A-Za-z0-9-]{3,24}$/.test(r.ref)?r.ref:'RZ-'+id.slice(-6).toUpperCase();
+  var out={id:id,name:this.str(r.name,60)||'ANON',amount:amt,message:this.str(r.message,300),ts:ts,
+           status:'pending',ref:ref,slip:!!r.slip};
+  if(typeof r.sh==='string'&&/^[01]{64}$/.test(r.sh))out.sh=r.sh;
+  if(r.q&&typeof r.q==='object')out.q=r.q;
+  return out},
+ cfg:function(d){
+  if(!d||typeof d!=='object')return null;var o={};
+  if('pp' in d){var t=PP.tgt(d.pp);if(!t)return null;o.pp=String(d.pp).replace(/\D/g,'').slice(0,20)}
+  if('payee' in d)o.payee=this.str(d.payee,40)||'RZ CLAN';
+  if('goal' in d){var g=Number(d.goal);if(isFinite(g)&&g>=0&&g<=1e8)o.goal=g}
+  if('min' in d){var m=Number(d.min);if(isFinite(m)&&m>=1&&m<=1e6)o.min=m}
+  if('reqSlip' in d)o.reqSlip=!!d.reqSlip;
+  if('ed' in d)o.ed=this.str(d.ed,40);
+  return o}
+};
+function onMsg(m){if(!m||typeof m!=='object'||typeof m.t!=='string')return;
  if(m.t==='alert'&&m.d)enqueue(m.d);
  else if(m.t==='donation'&&m.d&&m.d.rec){
-  var ops=[ST.put('don',m.d.rec)];
-  if(m.d.slip)ops.push(ST.put('slip',{id:m.d.rec.id,data:m.d.slip}));
+  var vrec=VAL.rec(m.d.rec);if(!vrec)return;
+  /* never let a remote message overwrite a record we already decided on */
+  var known=DONS.find(function(x){return x.id===vrec.id});if(known&&known.status!=='pending')return;
+  var vslip=(typeof m.d.slip==='string'&&/^data:image\/(jpeg|png|webp);base64,/.test(m.d.slip)&&m.d.slip.length<2.5e6)?m.d.slip:null;
+  var ops=[ST.put('don',vrec)];
+  if(vslip)ops.push(ST.put('slip',{id:vrec.id,data:vslip}));
   Promise.all(ops).then(function(){if(!IS_OBS)refreshPublic();else reload().then(renderOGoal);if(location.hash.indexOf('#admin')===0)adminRefresh()})}
- else if(m.t==='resolved'&&m.d&&m.d.id){
+ else if(m.t==='resolved'&&m.d&&VAL.id(m.d.id)&&(m.d.status==='approved'||m.d.status==='rejected'||m.d.status==='deleted')){
   /* บั๊ก (แก้แล้ว): เดิมทุก 'resolved' ทำ ST.put(rd) เหมือนกันหมด แม้ status==='deleted'
      ทำให้แท็บอื่น (เช่น admin เปิด 2 แท็บ/overlay อีกแท็บในเบราว์เซอร์เดียวกัน — share
      IndexedDB ตัวเดียวกัน) เขียนเรคคอร์ดที่ถูกลบกลับเข้าไปใหม่ด้วย status:'deleted'
@@ -2836,7 +2872,13 @@ function onMsg(m){if(!m||!m.t)return;
    var rd=DONS.find(function(x){return x.id===m.d.id});
    if(rd){rd.status=m.d.status;rd.decided=Date.now();ST.put('don',rd).then(function(){if(location.hash.indexOf('#admin')===0)adminRefresh();if(IS_OBS)reload().then(renderOGoal)})}
   }}
- else if(m.t==='cfg'&&m.d){Object.assign(CFG,m.d);saveCfg();renderGoal();if($('#sPP'))ppHint();toast('▸ อัปเดตการตั้งค่าแล้ว',1)}
+ else if(m.t==='cfg'&&m.d){
+  /* admin page is the source of truth: never overwrite it from the wire */
+  if(location.hash.toLowerCase().indexOf('#admin')===0)return;
+  var vc=VAL.cfg(m.d);if(!vc)return;
+  /* do not swap the receiving account under a donor who already has a QR on screen */
+  if(vc.pp&&vc.pp!==String(CFG.pp||'').replace(/\D/g,'')&&payEl&&payEl.classList.contains('on'))return;
+  Object.assign(CFG,vc);saveCfg();renderGoal();if($('#sPP'))ppHint();toast('▸ อัปเดตการตั้งค่าแล้ว',1)}
  else if(m.t==='sync'){if(IS_OBS)reload().then(renderOGoal);else refreshPublic()}}
 window.addEventListener('storage',function(e){if(e.key!==K_BUS||!e.newValue)return;try{onMsg(JSON.parse(e.newValue))}catch(x){}});
 /* จับตา key 'rzc_db_v4' โดยตรง (แยกจาก K_BUS ด้านบน) — ครอบคลุมทุกจุดที่ store 'don' เปลี่ยน
@@ -3043,6 +3085,10 @@ dForm.addEventListener('submit',function(e){e.preventDefault();
  var n=dName.value.trim(),a=Math.floor(Number(dAmt.value)||0);
  if(!n)return bad(dName,'#eName','กรุณาระบุชื่อ');
  if(!(a>0))return bad(dAmt,'#eAmt','จำนวนเงินต้องมากกว่า 0');
+ /* FIX: the relay/backend silently DROP donations above 1,000,000. Without this cap a donor could generate a QR
+    for e.g. 5,000,000, pay it, and the request would never reach the admin (money sent, nothing recorded). */
+ if(a>1000000)return bad(dAmt,'#eAmt','สูงสุด '+fmt(1000000)+' บาทต่อครั้ง');
+ if(n.length>40)n=n.slice(0,40); /* backend stores max 40 chars; keep what we show identical to what is saved */
  if(a<(CFG.min||1))return bad(dAmt,'#eAmt','ขั้นต่ำ '+fmt(CFG.min)+' บาท');
  var qq=readQ();
  if(qq===false)return bad(dQUid,'#eQUid','UID ต้องเป็นตัวเลข 6-14 หลัก');
@@ -3265,17 +3311,17 @@ function renderQueue(pd){var h=$('#qList');
  if(!pd.length){h.innerHTML='<div class="empty">ไม่มีคำขอรอตรวจสอบ<br>ALL CLEAR</div>';return}
  h.innerHTML=pd.sort(function(a,b){return a.ts-b.ts}).map(function(d){var t=tierOf(d.amount);
   return '<div class="qcard"><div><div class="flex gap-2.5">'+
-   (d.slip?'<img class="slip-th" data-slip="'+d.id+'" alt="slip">':'<div class="slip-th" style="display:grid;place-items:center;color:#556;font-size:.55rem" class="f-tech">NO<br>SLIP</div>')+
+   (d.slip?'<img class="slip-th" data-slip="'+esc(d.id)+'" alt="slip">':'<div class="slip-th" style="display:grid;place-items:center;color:#556;font-size:.55rem" class="f-tech">NO<br>SLIP</div>')+
    '<div class="min-w-0 flex-1"><div class="flex items-baseline gap-2">'+
    '<span class="f-teko text-2xl leading-none text-blood">฿'+fmt(d.amount)+'</span>'+
    '<span class="tag warn">'+t.n+'</span>'+
    (SLIPH.dup(d.sh,DONS,d.id)?'<span class="tag warn" style="color:#fff;background:#ff1f4b" title="สลิปนี้หน้าตาเหมือนสลิปที่เคยส่งมา — ตรวจเลขอ้างอิงธุรกรรมก่อนอนุมัติ">⚠ สลิปคล้ายซ้ำ</span>':'')+'</div>'+
    '<div class="font-semibold text-[.86rem] truncate mt-.5">'+esc(d.name)+'</div>'+
    (d.message?'<div class="text-[.72rem] text-steel break-words">'+esc(d.message)+'</div>':'')+
-   '<div class="f-tech text-[.5rem] tracking-[.12em] text-steel mt-1">'+d.ref+' · '+new Date(d.ts).toLocaleString('th-TH')+'</div>'+
+   '<div class="f-tech text-[.5rem] tracking-[.12em] text-steel mt-1">'+esc(d.ref)+' · '+new Date(d.ts).toLocaleString('th-TH')+'</div>'+
    '</div></div><div class="grid grid-cols-2 gap-2 mt-2.5">'+
-   '<button class="btn-g ok" data-ok="'+d.id+'">✓ APPROVE</button>'+
-   '<button class="btn-g" data-no="'+d.id+'">✕ REJECT</button></div></div></div>'}).join('');
+   '<button class="btn-g ok" data-ok="'+esc(d.id)+'">✓ APPROVE</button>'+
+   '<button class="btn-g" data-no="'+esc(d.id)+'">✕ REJECT</button></div></div></div>'}).join('');
  $$('[data-slip]',h).forEach(function(b){b.addEventListener('click',function(){showSlip(b.dataset.slip)});
   ST.get('slip',b.dataset.slip).then(function(s){if(s)b.src=s.data})});
  $$('[data-ok]',h).forEach(function(b){b.addEventListener('click',function(){decide(b.dataset.ok,'approved')})});
@@ -3300,9 +3346,9 @@ function renderLedger(){var h=$('#lList');if(!h)return;
    '<div class="min-w-0 flex-1"><div class="flex items-baseline gap-2">'+
    '<span class="f-teko text-xl leading-none '+(d.status==='approved'?'':'text-steel')+'" style="'+(d.status==='approved'?'color:var(--ok)':'')+'">฿'+fmt(d.amount)+'</span>'+
    '<span class="font-semibold text-[.82rem] truncate">'+esc(d.name)+'</span></div>'+
-   '<div class="f-tech text-[.48rem] tracking-[.12em] text-steel">'+d.ref+' · '+new Date(d.ts).toLocaleString('th-TH')+'</div></div>'+
-   (d.status==='approved'?'<button class="btn-g !py-1 !px-2 !text-[.8rem]" data-rp="'+d.id+'">REPLAY</button>':'')+
-   '<button class="btn-g !py-1 !px-2 !text-[.8rem]" data-dl="'+d.id+'">DEL</button>'+
+   '<div class="f-tech text-[.48rem] tracking-[.12em] text-steel">'+esc(d.ref)+' · '+new Date(d.ts).toLocaleString('th-TH')+'</div></div>'+
+   (d.status==='approved'?'<button class="btn-g !py-1 !px-2 !text-[.8rem]" data-rp="'+esc(d.id)+'">REPLAY</button>':'')+
+   '<button class="btn-g !py-1 !px-2 !text-[.8rem]" data-dl="'+esc(d.id)+'">DEL</button>'+
    '</div></div>'}).join('');
  $$('[data-rp]',h).forEach(function(b){b.addEventListener('click',function(){
   var d=DONS.find(function(x){return x.id===b.dataset.rp});
@@ -3505,8 +3551,8 @@ try{ var s=JSON.parse(localStorage.getItem(KEY)||'{}');
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(e){} }
 function $(s,r){return (r||document).querySelector(s);}
 function T(s){var e=$(s);return e?e.textContent.trim():'';}
-function esc(s){return String(s).replace(/[&<>"]/g,function(c){
-  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"'`]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c];});}
 
 /* ───── 01 · AUDIO ENGINE — สังเคราะห์สด ไม่ต้องมีไฟล์เสียง ───── */
 var AC=null,MG=null;
@@ -3975,6 +4021,10 @@ if(ADM)D.addEventListener('keydown',function(e){if(!e.altKey||e.repeat)return;
 (() => {
 'use strict';
 
+/* HTML-escape for anything interpolated into innerHTML in this script (palette query/labels, meta line).
+   Local copy: this IIFE cannot see the page script's esc(). */
+const esc = v => String(v == null ? '' : v).replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
+
 /* ══ CONFIG — ปิด/เปิดทีละฟีเจอร์ได้ทันทีตอน production ══ */
 const CFG = {
   theme:true, reveal:true, header:true, parallax:true, mobileNav:true,
@@ -4338,10 +4388,10 @@ function renderCmd(q=''){
   cmdIdx=0;
   list.innerHTML = f.length ? f.map((c,i)=>
     `<li class="rzds-cmd-item" role="option" data-i="${i}" aria-selected="${i===0}">
-       <span style="opacity:.55;font-size:11px">${c.group}</span>
-       <span>${c.label}</span>${c.key?`<span class="k">${c.key}</span>`:''}
+       <span style="opacity:.55;font-size:11px">${esc(c.group)}</span>
+       <span>${esc(c.label)}</span>${c.key?`<span class="k">${esc(c.key)}</span>`:''}
      </li>`).join('')
-    : `<li class="rzds-cmd-empty">ไม่พบคำสั่งที่ตรงกับ "${q}"</li>`;
+    : `<li class="rzds-cmd-empty">ไม่พบคำสั่งที่ตรงกับ "${esc(q)}"</li>`;
   list._f=f;
 }
 function cmdOpen(on){
