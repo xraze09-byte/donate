@@ -2409,6 +2409,17 @@ body:not(.obs) #vDonor .f-tech,body:not(.obs) #vDonor .tag,body:not(.obs) #vDono
 body:not(.obs) #vDonor #gPct,body:not(.obs) #vDonor #gCnt,body:not(.obs) #vDonor #mCnt{font-size:max(11px,1em)}
 body:not(.obs) #vDonor [class*="text-[.4"],body:not(.obs) #vDonor [class*="text-[.5"]{font-size:max(11px,1em)}
 body:not(.obs) #vDonor p.f-tech{font-size:12px;line-height:1.7}
+/* Header: keep it one compact row (the 11px floor made it wrap on phones: 77px -> 110px) */
+body:not(.obs) #vDonor > header .f-tech{font-size:10px;letter-spacing:.2em;white-space:nowrap}
+body:not(.obs) #vDonor > header .tag{font-size:10px;letter-spacing:.14em;white-space:nowrap;flex:none}
+body:not(.obs) #vDonor > header .leading-none{min-width:0}
+/* Wide letter-spacing + larger size made some labels wrap on 360px phones: tighten tracking, keep one line */
+body:not(.obs) #vDonor .f-tech{letter-spacing:min(.2em,.12em + .5px)}
+body:not(.obs) #vDonor #gPct,body:not(.obs) #vDonor #gCnt{white-space:nowrap;letter-spacing:.08em}
+body:not(.obs) #vDonor .f-tech[class*="tracking-[.24em]"],body:not(.obs) #vDonor .f-tech[class*="tracking-[.28em]"]{white-space:nowrap;letter-spacing:.14em}
+/* Panel title rows: keep title + tag on one line */
+body:not(.obs) #vDonor .hdr h3{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space:nowrap;flex:none}
 </style>
 </head>
 <body>
