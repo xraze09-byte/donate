@@ -3129,8 +3129,13 @@ function burst(n){var f=document.createDocumentFragment(),R=window.innerWidth>64
   p.style.setProperty('--x',(Math.cos(a)*v).toFixed(1)+'px');p.style.setProperty('--y',(Math.sin(a)*v-90).toFixed(1)+'px');
   p.style.setProperty('--d',(620+Math.random()*950)+'ms');p.style.setProperty('--s',(2+Math.random()*4).toFixed(1)+'px');f.appendChild(p)}
  sparks.innerHTML='';sparks.appendChild(f);T(function(){sparks.innerHTML=''},1900)}
-function roll(el,from,to,ms){var st=performance.now();(function s(n){var p=cl((n-st)/(ms||800),0,1),e=1-Math.pow(1-p,3);
- el.textContent=fmt(Math.floor(from+(to-from)*e));p<1?requestAnimationFrame(s):el.textContent=fmt(to)})(st)}
+function roll(el,from,to,ms){var st=performance.now(),id=(el.__rollId=(el.__rollId||0)+1);
+ el.dataset.rzdsAnim='1';   /* บั๊ก (แก้แล้ว): countUp() ของ design-system เห็นทุกเฟรมของ roll() เป็น "ค่าใหม่" แล้วเริ่มแอนิเมชันซ้อน ทำให้ยอดค้างขาดไป (RAISED ฿49 ขณะ Top Donators ฿50) */
+ (function s(n){if(el.__rollId!==id)return;   /* roll ใหม่เริ่มแล้ว: ตัวเก่าหยุด */
+  var p=cl((n-st)/(ms||800),0,1),e=1-Math.pow(1-p,3);
+  el.textContent=fmt(Math.floor(from+(to-from)*e));
+  if(p<1)requestAnimationFrame(s);
+  else{el.textContent=fmt(to);el.dataset.rzdsFinal=String(to);setTimeout(function(){if(el.__rollId===id){delete el.dataset.rzdsAnim;el.textContent=fmt(to)}},60)}})(st)}
 function amt(v){var n=parseFloat(String(v==null?'':v).replace(/,/g,'').replace(/[^\d.]/g,''));return isFinite(n)?n:0}
 var TH_TAIL_RE=/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/,TH_LEAD_RE=/[\u0E40-\u0E44]+$/;
 function thSlice(s,n){s=String(s==null?'':s);if(s.length<=n)return s;return s.slice(0,n).replace(TH_TAIL_RE,'').replace(TH_LEAD_RE,'')}
@@ -4448,13 +4453,14 @@ function countUp(){
     const step=t=>{
       const p=Math.min((t-t0)/dur,1), e=1-Math.pow(1-p,3);
       const v=Math.round(from+(to-from)*e);
-      el.textContent = tpl.replace('@', v.toLocaleString('th-TH'));
+      el.textContent = tpl.replace('@', (p<1?v:to).toLocaleString('th-TH'));
       if(p<1) requestAnimationFrame(step); else delete el.dataset.rzdsAnim;
     };
     requestAnimationFrame(step);
   };
   $$('.rk-a,[data-countup],.stat__value,#totAmt,#totCnt').forEach(el=>{
     if(el.dataset.rzdsCu) return; el.dataset.rzdsCu='1';
+    if(el.id==='gNow'||el.id==='aAmt') return;   /* roll() เป็นเจ้าของสองตัวนี้อยู่แล้ว — ห้ามมีตัวนับที่สองมาแย่ง */
     let prev=parse(el.textContent);
     new MutationObserver(()=>{
       if(el.dataset.rzdsAnim) return;
