@@ -5021,5 +5021,94 @@ function patch(){var R=window.RZDS;
 if(d.readyState==='complete')patch();else addEventListener('load',patch);
 })();
 </script>
+<style id="perf-patch-2">
+/* PERF PATCH v2 - measured with Chromium CPU 4x: style recalc dominated (~840ms/3s).
+   Cause: ~20 infinite animations on MAIN-THREAD props (background-position, left, top, height, clip-path, text-shadow)
+   => style+layout+paint every frame even when idle. Fix: stop them / replace with compositor-only equivalents.
+   Visual identity kept (static look unchanged). OBS overlay alert card animations are NOT touched. */
+
+/* 1) panel border shimmer: background-position on EVERY panel, 10s loop -> static (biggest win) */
+body:not(.obs) .panel:not(.modal-box){animation:nf-rise .78s var(--e-out) backwards!important}
+body:not(.obs) .mt-7.max-w-xl{animation:none!important}
+
+/* 2) header sweep + chip sweep animate `left` (layout every frame) -> run only on hover/focus, via transform */
+body:not(.obs) .hdr::after{animation:none!important;left:-36%!important}
+body:not(.obs) .ci::after{animation:none!important}
+
+/* 3) background beam animates `top` (layout) -> compositor transform */
+body:not(.obs) #bgfx::after{animation:pf-beam 9s linear infinite!important;top:-200px!important}
+@keyframes pf-beam{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,calc(100vh + 200px),0)}}
+
+/* 4) glitch clip-path text jitter (always on, many nodes) -> only while hovered; static otherwise */
+body:not(.obs) .glitch::before,body:not(.obs) .glitch::after{animation:none!important}
+@media (hover:hover) and (pointer:fine){
+  body:not(.obs) .glitch:hover::before{animation:g1 2.4s steps(2) infinite!important}
+  body:not(.obs) .glitch:hover::after{animation:g2 3.1s steps(2) infinite!important}
+}
+
+/* 5) text-shadow pulse on amounts (paint every frame) -> static glow */
+body:not(.obs) .ac-a{animation:none!important}
+
+/* 6) tier-bar gradient scroll + equalizer height bars: transform-based or off */
+body:not(.obs) #aTier{animation:none!important}
+body:not(.obs) i[class*="eq"],body:not(.obs) #nf-tts i{animation:pf-eq .55s ease-in-out infinite alternate!important;height:22px!important;transform-origin:bottom;will-change:transform}
+@keyframes pf-eq{from{transform:scaleY(.18)}to{transform:scaleY(1)}}
+
+/* 7) isolate the fixed background so its repaints never touch page content */
+body:not(.obs) #bgfx{contain:strict;transform:translateZ(0)}
+body:not(.obs) .fx-v::before,body:not(.obs) .fx-v::after{will-change:transform}
+
+/* 8) fixed full-screen tickers/spotlight: own layer */
+body:not(.obs) #nf-spot{will-change:opacity;contain:strict}
+</style>
+<style id="perf-patch-3">
+/* PERF PATCH v3 - measured ablation (Chromium, 4x CPU, scroll fps): removing backdrop-filter +66%,
+   #bgfx +79%, .fx-v inset shadow/embers +64%, mix-blend-mode +32%. */
+
+/* 1) 14 live backdrop-filter blurs (panels, headers, sticky header) re-blur every scroll frame.
+      Replace with a slightly denser solid backing so the look stays the same on the dark theme. */
+body:not(.obs) header.sticky,body:not(.obs) .panel-in,body:not(.obs) .hdr{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body:not(.obs) header.sticky{background-color:rgba(8,10,16,.94)!important}
+body:not(.obs) .panel>.panel-in{background-color:#0b0c10!important}
+body:not(.obs) .hdr{background-color:rgba(20,6,10,.96)!important}
+/* modals keep blur only while open (they are display:none otherwise) but cheaper */
+body:not(.obs) #pay,body:not(.obs) #lb,body:not(.obs) #rzdsCmd{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background-color:rgba(0,0,0,.94)!important}
+
+/* 2) vignette: 220px/60px blurred INSET box-shadow over full screen is very costly -> static gradient */
+body:not(.obs) .fx-v{box-shadow:none!important;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,.18) 0%,rgba(0,0,0,.5) 42%,rgba(0,0,0,.86) 74%,rgba(0,0,0,.95) 100%)!important}
+/* embers: one layer instead of two, long cycle */
+body:not(.obs) .fx-v::after{display:none!important}
+
+/* 3) full-screen blend-mode canvas: only exists visually while particles are alive */
+body:not(.obs) #nf-fxc{mix-blend-mode:normal!important;visibility:hidden}
+body:not(.obs) #nf-fxc.pf-live{visibility:visible}
+body:not(.obs) #cracks{mix-blend-mode:normal!important}
+
+/* 4) background group: make it a single cached layer (no re-raster while content scrolls) */
+body:not(.obs) #bgfx{will-change:transform;backface-visibility:hidden}
+body:not(.obs) .fx-a,body:not(.obs) .fx-b{will-change:opacity,transform}
+
+/* 5) skip rendering of anything off-screen in long lists */
+body:not(.obs) #feed>*,body:not(.obs) #board>*,body:not(.obs) .qcard{content-visibility:auto;contain-intrinsic-size:auto 76px}
+/* 6) cheaper scroll: promote only what moves */
+body:not(.obs) #rzdsDock,body:not(.obs) #nf-ticker{contain:layout paint}
+</style>
+<script id="perf-patch-3-js">
+/* show the particle canvas only while particles exist (toggle by watching its drawing) */
+(function(){
+  var tries=0;
+  (function hook(){
+    var cv=document.getElementById('nf-fxc');
+    if(!cv){ if(tries++<40) return setTimeout(hook,250); return }
+    var ctx=cv.getContext&&cv.getContext('2d'); if(!ctx||ctx.__pf) return; ctx.__pf=1;
+    var off=0;
+    function on(){ cv.classList.add('pf-live'); clearTimeout(off); off=setTimeout(function(){cv.classList.remove('pf-live')},4500) }
+    var fc=ctx.fill, ar=ctx.arc;
+    ctx.fill=function(){ on(); return fc.apply(this,arguments) };
+  })();
+})();
+</script>
 </body>
 </html
