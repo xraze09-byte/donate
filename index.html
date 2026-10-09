@@ -1,6 +1,135 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<!-- ═══════════════ LOAD GOVERNOR v1 ═══════════════
+ ระบบคุมการโหลด: วัดสุขภาพเฟรมจริง (rAF) + ความจำเครื่อง แล้วเลือก "ระดับคุณภาพ" ให้เอง
+ tier 3 = FULL (เครื่องแรง) | 2 = BALANCED | 1 = LITE | 0 = MINIMAL (เครื่องอ่อน/แบตต่ำ/แท็บซ่อน)
+ ปรับลงเร็ว (หลังกระตุกต่อเนื่อง ~2 วิ) ปรับขึ้นช้า (หลังลื่น ~12 วิ) เพื่อไม่ให้แกว่ง
+ ใช้ class html.gv-0..3 + CSS variable --gv-* และ API: window.GOV.{tier,set,stats,onChange}
+ OBS overlay (#overlay / body.obs) ไม่ถูกปรับลดคุณภาพ ยกเว้นผู้ใช้สั่งเองด้วย ?gov=N -->
+<style id="governor-css">
+/* ── ทุก tier: แท็บซ่อน/ไม่โฟกัส = หยุด animation วนซ้ำทั้งหมด (ไม่มีใครมองอยู่) ── */
+html.gv-idle body:not(.obs) *,html.gv-idle body:not(.obs) *::before,html.gv-idle body:not(.obs) *::after{animation-play-state:paused!important}
+/* ── tier 3 ก็ตัดแถบกว้าง 2048px ที่แทบมองไม่เห็น (opacity .34) ── */
+html.gv-3 body:not(.obs) .fx-g{display:none!important}
+/* ── tier 2 BALANCED: ตัดของหนักที่คนไม่สังเกต ── */
+html.gv-2 body:not(.obs) .fx-b,html.gv-2 body:not(.obs) .fx-s{display:none!important}
+html.gv-2 body:not(.obs) .fx-v::before{display:none!important}
+/* ── tier 1 LITE: เอฟเฟกต์พื้นหลังทั้งหมดหยุด/ซ่อน ── */
+html.gv-1 body:not(.obs) #bgfx,html.gv-0 body:not(.obs) #bgfx{display:none!important}
+html.gv-1 body:not(.obs) .fx-v,html.gv-0 body:not(.obs) .fx-v{display:none!important}
+html.gv-1 body:not(.obs) #nf-spot,html.gv-0 body:not(.obs) #nf-spot{display:none!important}
+html.gv-1 body:not(.obs) .panel:not(.modal-box){animation:none!important}
+html.gv-1 body:not(.obs) .hdr::after,html.gv-1 body:not(.obs) .ci::after{display:none!important}
+/* ── tier 0 MINIMAL: ไม่มี animation ที่วนซ้ำเลย ── */
+html.gv-0 body:not(.obs) *,html.gv-0 body:not(.obs) *::before,html.gv-0 body:not(.obs) *::after{
+  animation-iteration-count:1!important;transition-duration:.01ms!important;
+  box-shadow:none!important;text-shadow:none!important;filter:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.gv-0 body:not(.obs) #nf-ticker .nf-tk-in{animation:none!important}
+/* ── ปล่อย layer เต็มหน้าที่ค้างหลัง animation เข้าฉากจบ (ประหยัด ~12MB GPU) ── */
+body:not(.obs) #vDonor.gv-settled,body:not(.obs) #vAdmin.gv-settled{animation:none!important;transform:none!important}
+</style>
+<script id="governor-js">
+(function(){'use strict';
+if(window.GOV)return;
+var d=document,root=d.documentElement,nav=navigator;
+var q=(location.search.match(/[?&]gov=([0-3])/)||[])[1];
+var forced=q!=null?+q:(function(){try{var v=localStorage.getItem('gov_force');return v==null?null:+v}catch(e){return null}})();
+var isObs=function(){return d.body&&(d.body.classList.contains('obs')||/^#(overlay|obs)/i.test(location.hash))};
+
+/* ── 1) ประเมินศักยภาพเครื่องตอนเริ่ม ── */
+var mem=nav.deviceMemory||4, cores=nav.hardwareConcurrency||4;
+var conn=nav.connection||{}, saveData=!!conn.saveData;
+var mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(nav.userAgent)||(matchMedia&&matchMedia('(pointer:coarse)').matches&&innerWidth<820);
+var reduced=matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+var start=3;                                  /* เริ่มที่ FULL แล้วให้ "เฟรมจริง" ตัดสิน แม่นกว่าเดาจากสเปก */
+if(mem<=1||cores<=2)start=1;                  /* เครื่องอ่อนมากจริงๆ เท่านั้นที่เริ่มต่ำ */
+else if(mem<=2||mobile)start=2;
+if(saveData||reduced)start=Math.min(start,1);
+if(forced!=null)start=forced;
+
+var tier=start, listeners=[], hist=[], lastChange=0, goodSince=0, badSince=0;
+function apply(t,why){
+  if(t===tier&&root.classList.contains('gv-'+t))return;
+  var old=tier;tier=t;lastChange=performance.now();
+  for(var i=0;i<4;i++)root.classList.remove('gv-'+i);root.classList.add('gv-'+t);
+  root.style.setProperty('--gv-tier',t);
+  hist.push({t:Math.round(lastChange),from:old,to:t,why:why||''});if(hist.length>20)hist.shift();
+  listeners.forEach(function(f){try{f(t,old)}catch(e){}});
+}
+
+/* ── 2) มอนิเตอร์เฟรมจริง: วัดทีละ 1 วินาที ใช้ rAF แบบเบามาก (ไม่ทำงานตอนแท็บซ่อน) ── */
+var frames=0,slow=0,t0=0,running=false,rafId=0,prev=0,emaFps=60,stat={fps:60,slowPct:0,jsHeapMB:0,tier:tier};
+function frame(ts){
+  if(!running)return;
+  if(prev){var dt=ts-prev;frames++;if(dt>34)slow++;}
+  prev=ts;
+  if(!t0)t0=ts;
+  if(ts-t0>=1000){
+    var fps=frames*1000/(ts-t0), sp=frames?slow/frames:0;
+    emaFps=emaFps*.6+fps*.4;stat.fps=Math.round(emaFps);stat.slowPct=Math.round(sp*100);
+    frames=0;slow=0;t0=ts;
+    decide(fps,sp,ts);
+  }
+  rafId=requestAnimationFrame(frame);
+}
+function decide(fps,sp,ts){
+  if(forced!=null)return;
+  if(isObs()&&tier===3){}                        /* OBS: ปล่อยให้เป็น FULL ตามเดิม ลดเฉพาะกรณีหนักจริง */
+  var bad=fps<(isObs()?20:38)||sp>.35;           /* กระตุก */
+  var good=fps>55&&sp<.08;                       /* ลื่น */
+  if(bad){badSince=badSince||ts;goodSince=0;
+    if(ts-badSince>2000&&tier>0&&ts-lastChange>2500){apply(tier-1,'fps '+Math.round(fps));badSince=ts}}
+  else if(good){goodSince=goodSince||ts;badSince=0;
+    if(ts-goodSince>12000&&tier<start&&ts-lastChange>12000){apply(tier+1,'stable');goodSince=ts}}
+  else{badSince=0;goodSince=0}
+}
+function startMon(){if(running)return;running=true;prev=0;t0=0;frames=0;slow=0;rafId=requestAnimationFrame(frame)}
+function stopMon(){running=false;cancelAnimationFrame(rafId)}
+
+/* ── 3) แท็บซ่อน/กลับมา, แบตต่ำ, ออฟสกรีน ── */
+function idle(v){root.classList.toggle('gv-idle',!!v)}
+d.addEventListener('visibilitychange',function(){
+  if(d.hidden){stopMon();idle(1)}else{idle(0);startMon();}
+});
+addEventListener('blur',function(){if(!isObs())idle(1)});
+addEventListener('focus',function(){idle(0)});
+if(nav.getBattery){nav.getBattery().then(function(b){
+  function chk(){if(forced!=null)return;if(!b.charging&&b.level<.2){apply(Math.min(tier,1),'battery')}}
+  b.addEventListener('levelchange',chk);b.addEventListener('chargingchange',chk);chk()}).catch(function(){})}
+
+/* ── 4) เพดาน particle และ canvas ตามระดับ ── */
+var CAP=[0,160,420,900];
+/* ── 5) ปล่อย layer ค้าง: หลัง animation เข้าฉากของ view หลักจบ ── */
+function settle(){['vDonor','vAdmin'].forEach(function(id){var e=d.getElementById(id);if(!e||e.classList.contains('gv-settled'))return;
+  var go=function(){e.classList.add('gv-settled')};
+  var cs=getComputedStyle(e);if(cs.animationName==='none'||!e.getAnimations||!e.getAnimations().length)return go();
+  Promise.all(e.getAnimations().filter(function(a){return a.effect&&a.effect.getTiming().iterations!==Infinity}).map(function(a){return a.finished.catch(function(){})})).then(go)})}
+/* ── 6) ไฟล์รูป/วิดีโอนอกจอ: ตัดการถือหน่วยความจำ ── */
+function lazyMedia(){
+  d.querySelectorAll('img:not([loading])').forEach(function(i){i.loading='lazy';i.decoding='async'});
+  d.querySelectorAll('video').forEach(function(v){if(!v.hasAttribute('preload'))v.preload='none'});
+}
+/* ── 8) heap sampling เบาๆ (Chrome เท่านั้น) ── */
+setInterval(function(){if(performance.memory)stat.jsHeapMB=+(performance.memory.usedJSHeapSize/1048576).toFixed(1)},5000);
+
+/* ── 9) API ── */
+window.GOV={
+  get tier(){return tier},get start(){return start},
+  set:function(t){forced=(t==null?null:Math.max(0,Math.min(3,t|0)));try{forced==null?localStorage.removeItem('gov_force'):localStorage.setItem('gov_force',forced)}catch(e){}apply(forced==null?start:forced,'manual')},
+  stats:function(){stat.tier=tier;return {tier:tier,start:start,fps:stat.fps,slowPct:stat.slowPct,jsHeapMB:stat.jsHeapMB,mem:mem,cores:cores,mobile:mobile,saveData:saveData,history:hist.slice()}},
+  onChange:function(f){listeners.push(f)},
+  cap:function(){return CAP[tier]},
+  particleScale:function(){return [0,.2,.55,1][tier]},
+  allowHeavyFx:function(){return tier>=2}
+};
+root.classList.add('gv-'+tier);root.style.setProperty('--gv-tier',tier);
+function boot(){lazyMedia();setTimeout(settle,1500);setTimeout(settle,5000);startMon()}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+</script>
+
 <script id="perf-patch-early">
 /* PERF PATCH v1 (early): must run before other scripts.
    reveal() observes attributes(class/style/hidden) on the whole body subtree -> feedback loop
@@ -3680,6 +3809,7 @@ function fit(){ if(!cv)return; cv.width=innerWidth; cv.height=innerHeight; }
 function burst(n,x,y){
   if(!cfg.burst||!cv)return;
   if(MOB)n=Math.ceil(n*.25);   /* มือถือ: พาร์ติเคิลเหลือ 1/4 */
+  if(window.GOV){ var gs=GOV.particleScale(); if(gs<=0)return; n=Math.max(3,Math.ceil(n*gs)); }   /* Load Governor */
   x=(x==null)?innerWidth/2:x; y=(y==null)?innerHeight*.42:y;
   for(var i=0;i<n;i++){
     var a=Math.random()*Math.PI*2, sp=2+Math.random()*12;
@@ -3687,7 +3817,7 @@ function burst(n,x,y){
       r:1+Math.random()*3.2,life:1,dec:.008+Math.random()*.015,
       c:PAL[(Math.random()*PAL.length)|0]});
   }
-  if(P.length>900) P.splice(0,P.length-900);
+  var CAPN=window.GOV?GOV.cap():900; if(P.length>CAPN) P.splice(0,P.length-CAPN);
   if(!raf) raf=requestAnimationFrame(loop);
 }
 function loop(){
