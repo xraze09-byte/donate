@@ -822,6 +822,26 @@ input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .chip{font-family:'Teko','Kanit',sans-serif;font-size:1.05rem;padding:.28rem .68rem;clip-path:var(--cut-sm);cursor:pointer;transition:.18s;background:rgba(255,255,255,.05);border:1px solid rgba(154,167,177,.28);color:var(--steel)}
 .chip.on{background:linear-gradient(180deg,var(--red),var(--red-d));color:#fff;border-color:var(--red);box-shadow:0 0 16px rgba(255,0,51,.5)}
+
+/* ===== RANK LOOKUP (supporter rank / badges / streak) ===== */
+.rkl-card{display:none;margin-top:.7rem;padding:.8rem;border:1px solid rgba(255,0,51,.35);background:rgba(255,0,51,.05);clip-path:var(--cut-sm)}
+.rkl-card.on{display:block;animation:rklIn .35s ease}
+@keyframes rklIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.rkl-top{display:flex;align-items:center;gap:.75rem}
+.rkl-ico{width:52px;height:52px;flex:none;display:grid;place-items:center;font-family:'Teko','Kanit',sans-serif;font-size:1.7rem;color:#fff;clip-path:var(--cut-sm);background:linear-gradient(160deg,var(--rc,#ff0033),#0b0b0e);box-shadow:0 0 18px var(--rc,#ff0033)}
+.rkl-name{font-family:'Teko','Kanit',sans-serif;font-size:1.6rem;line-height:1;letter-spacing:.08em;color:var(--rc,#fff)}
+.rkl-bar{height:7px;margin-top:.6rem;background:rgba(255,255,255,.07);clip-path:var(--cut-sm)}
+.rkl-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red-d),var(--red),#fff);box-shadow:0 0 12px var(--red);transition:width .6s}
+.rkl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-top:.6rem}
+.rkl-grid div{background:rgba(255,255,255,.04);padding:.3rem .2rem;text-align:center}
+.rkl-grid i{display:block;font-style:normal;font-size:.5rem;letter-spacing:.16em;color:var(--steel)}
+.rkl-grid b{font-family:'Teko','Kanit',sans-serif;font-size:1.2rem;font-weight:400}
+.rkl-badges{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem}
+.rkl-b{font-size:.62rem;padding:.18rem .5rem;border:1px solid rgba(154,167,177,.25);color:var(--steel);clip-path:var(--cut-sm);opacity:.45}
+.rkl-b.on{opacity:1;color:#fff;border-color:var(--red);background:rgba(255,0,51,.18)}
+.rkl-hint{margin-top:.5rem;font-size:.7rem;color:var(--steel)}
+.rkl-nudge{margin-top:.4rem;font-size:.68rem;color:var(--warn,#ffb300);display:none}
+.rkl-nudge.on{display:block}
 @media(hover:hover){.chip:hover{color:#fff;border-color:var(--red)}}
 
 /* BOARD */
@@ -3037,6 +3057,7 @@ body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space
      <div><label class="lbl-f" for="dAmt">[02] จำนวนเงิน (THB) <i>*</i></label>
       <input id="dAmt" class="inp" type="number" inputmode="decimal" min="1" max="1000000" step="1" placeholder="100">
       <div class="err" id="eAmt">!! จำนวนเงินต้องมากกว่า 0</div>
+      <div class="rkl-nudge" id="rkNudge"></div>
       <div class="flex flex-wrap gap-2 mt-2" id="chips">
        <button type="button" class="chip" data-v="50">฿50</button><button type="button" class="chip" data-v="100">฿100</button>
        <button type="button" class="chip" data-v="300">฿300</button><button type="button" class="chip" data-v="500">฿500</button>
@@ -3082,6 +3103,15 @@ body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space
    <div class="panel"><div class="panel-in">
     <div class="hdr"><span class="dot"></span><h3>Top Donators</h3><span class="ml-auto tag">SEASON 01</span></div>
     <div class="p-3 sm:p-4"><div id="board"></div></div>
+   </div></div>
+   <div class="panel"><div class="panel-in">
+    <div class="hdr"><span class="dot"></span><h3>Rank Lookup</h3><span class="ml-auto tag">ยศผู้สนับสนุน</span></div>
+    <div class="p-3 sm:p-4">
+     <label class="lbl-f" for="rkName">พิมพ์ชื่อที่เคยโดเนท เพื่อดูยศ / เหรียญ / streak</label>
+     <input id="rkName" class="inp" maxlength="24" placeholder="RZ | YourName" autocomplete="off">
+     <div class="rkl-card" id="rkCard" aria-live="polite"></div>
+     <div class="rkl-hint" id="rkHint">ยศนับจากยอดที่แอดมินอนุมัติแล้วเท่านั้น</div>
+    </div>
    </div></div>
    <div class="panel"><div class="panel-in">
     <div class="hdr"><span class="dot"></span><h3>Recent Supporters</h3></div>
@@ -3735,7 +3765,7 @@ function dl(name,blob){var u=URL.createObjectURL(blob),a=document.createElement(
 
 /* ═══════════ PUBLIC RENDER ═══════════ */
 var gShown=0;
-function refreshPublic(){return reload().then(function(){renderBoard();renderFeed();renderGoal()})}
+function refreshPublic(){return reload().then(function(){renderBoard();renderFeed();renderGoal();renderRank();renderNudge()})}
 function agg(){var m={};approved().forEach(function(d){var k=String(d.name).trim().toLowerCase();
  if(!m[k])m[k]={name:String(d.name).trim(),total:0,hits:0};m[k].total+=Number(d.amount)||0;m[k].hits++});
  return Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return b.total-a.total})}
@@ -3759,6 +3789,62 @@ function renderGoal(){var e=$('#gNow');if(!e)return;
  roll(e,gShown,tot,900);gShown=tot;$('#gMax').textContent=fmt(CFG.goal);
  $('#gFill').style.width=pct+'%';$('#gPct').textContent=pct.toFixed(1)+'% COMPLETE';
  $('#gCnt').textContent=agg().length+' SUPPORTERS'}
+/* ═══════════ RANK LOOKUP : ยศ / เหรียญ / streak (คำนวณจากรายการ approved เดิม ไม่ใช้ backend) ═══════════ */
+var RANKS=[
+ {n:'ROOKIE',min:0,c:'#9aa7b1'},{n:'OPERATOR',min:100,c:'#4cc9f0'},{n:'VETERAN',min:500,c:'#06d6a0'},
+ {n:'ELITE',min:1500,c:'#b388ff'},{n:'CHAMPION',min:5000,c:'#ffb300'},{n:'LEGEND',min:15000,c:'#ff0033'}];
+function rankOf(total){var r=RANKS[0],nx=null;
+ for(var i=0;i<RANKS.length;i++){if(total>=RANKS[i].min){r=RANKS[i];nx=RANKS[i+1]||null}}
+ return {r:r,next:nx}}
+function dayKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function streakOf(list){ /* จำนวนวันติดกันล่าสุด (นับถึงวันนี้หรือเมื่อวาน) */
+ var days={};list.forEach(function(d){days[dayKey(d.ts)]=1});
+ var t=new Date();t.setHours(12,0,0,0);var n=0;
+ if(!days[dayKey(t.getTime())]){t=new Date(t.getTime()-864e5)}
+ while(days[dayKey(t.getTime())]){n++;t=new Date(t.getTime()-864e5)}
+ return n}
+function supporterStats(name){
+ var k=String(name||'').trim().toLowerCase();if(!k)return null;
+ var mine=approved().filter(function(d){return String(d.name).trim().toLowerCase()===k});
+ if(!mine.length)return {name:String(name).trim(),none:true};
+ var total=mine.reduce(function(s,d){return s+(Number(d.amount)||0)},0),
+  big=mine.reduce(function(m,d){return Math.max(m,Number(d.amount)||0)},0),
+  board=agg(),pos=0;
+ for(var i=0;i<board.length;i++){if(String(board[i].name).trim().toLowerCase()===k){pos=i+1;break}}
+ var st=streakOf(mine),first=mine.reduce(function(m,d){return Math.min(m,d.ts)},Infinity);
+ return {name:mine[0].name,total:total,hits:mine.length,big:big,pos:pos,of:board.length,streak:st,first:first}}
+function badgesOf(x){return [
+ {n:'FIRST DROP',on:x.hits>=1},{n:'REPEATER ×3',on:x.hits>=3},{n:'REGULAR ×10',on:x.hits>=10},
+ {n:'BIG SHOT ฿500+',on:x.big>=500},{n:'WHALE ฿2,000+',on:x.big>=2000},
+ {n:'STREAK 3 วัน',on:x.streak>=3},{n:'TOP 3',on:x.pos>0&&x.pos<=3},{n:'#1 SUPPORTER',on:x.pos===1}]}
+function renderRank(){
+ var inp=$('#rkName'),card=$('#rkCard'),hint=$('#rkHint');if(!inp||!card)return;
+ var v=inp.value.trim();
+ if(!v){card.className='rkl-card';card.innerHTML='';hint.style.display='';return}
+ var x=supporterStats(v);hint.style.display='none';
+ if(x.none){card.className='rkl-card on';card.style.setProperty('--rc','#9aa7b1');
+  card.innerHTML='<div class="rkl-top"><div class="rkl-ico">?</div><div><div class="rkl-name">ยังไม่พบ &ldquo;'+esc(x.name)+'&rdquo;</div>'+
+   '<div class="text-[.7rem] text-steel">ยังไม่มีรายการที่อนุมัติ &mdash; โดเนทครั้งแรกเพื่อเริ่มที่ยศ ROOKIE (ชื่อต้องตรงกับที่ใช้โดเนท)</div></div></div>';return}
+ var rk=rankOf(x.total),r=rk.r,nx=rk.next,pct=nx?cl((x.total-r.min)/(nx.min-r.min)*100,0,100):100;
+ card.className='rkl-card on';card.style.setProperty('--rc',r.c);
+ card.innerHTML=
+  '<div class="rkl-top"><div class="rkl-ico">'+esc(r.n.charAt(0))+'</div><div class="min-w-0">'+
+  '<div class="rkl-name">'+esc(r.n)+'</div><div class="text-[.78rem] font-semibold truncate">'+esc(x.name)+'</div></div></div>'+
+  '<div class="rkl-bar"><i style="width:'+pct+'%"></i></div>'+
+  '<div class="text-[.68rem] text-steel mt-1">'+(nx?'อีก ฿'+fmt(nx.min-x.total)+' ถึงยศ '+nx.n:'ยศสูงสุดแล้ว')+'</div>'+
+  '<div class="rkl-grid"><div><i>TOTAL</i><b>฿'+fmt(x.total)+'</b></div><div><i>DROPS</i><b>'+x.hits+'</b></div>'+
+  '<div><i>RANK</i><b>#'+x.pos+'<small class="text-steel">/'+x.of+'</small></b></div><div><i>STREAK</i><b>'+x.streak+'d</b></div></div>'+
+  '<div class="rkl-badges">'+badgesOf(x).map(function(b){return '<span class="rkl-b'+(b.on?' on':'')+'">'+(b.on?'✓ ':'🔒 ')+esc(b.n)+'</span>'}).join('')+'</div>'}
+function renderNudge(){ /* ในฟอร์มโดเนท: บอกว่ายอดนี้จะพาไปยศไหน */
+ var el=$('#rkNudge'),nm=$('#dName'),am=$('#dAmt');if(!el||!nm||!am)return;
+ var n=nm.value.trim(),a=Number(am.value)||0;
+ if(!n||a<=0){el.className='rkl-nudge';return}
+ var x=supporterStats(n),cur=x&&!x.none?x.total:0,before=rankOf(cur).r,after=rankOf(cur+a).r;
+ if(after.n!==before.n){el.textContent='▲ ยอดนี้จะเลื่อนยศ '+before.n+' → '+after.n+' !';el.className='rkl-nudge on'}
+ else{var nx=rankOf(cur+a).next;if(nx){el.textContent='อีก ฿'+fmt(nx.min-cur-a)+' จะถึงยศ '+nx.n;el.className='rkl-nudge on'}else{el.className='rkl-nudge'}}}
+(function(){var i=document.getElementById('rkName');if(i)i.addEventListener('input',renderRank);
+ ['dName','dAmt'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('input',renderNudge)});
+ var c=document.getElementById('chips');if(c)c.addEventListener('click',function(){setTimeout(renderNudge,0)})})();
 function renderOGoal(){var e=$('#ogFill');if(!e||!IS_OBS)return;
  var goal=Number(P('goal'))||CFG.goal||1,tot=approved().reduce(function(s,d){return s+(Number(d.amount)||0)},0),
   pct=cl(tot/goal*100,0,100),left=Math.max(0,goal-tot);
