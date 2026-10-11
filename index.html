@@ -4118,6 +4118,8 @@ window.addEventListener('hashchange',function(){location.reload()});
 
 /* ═══════════ BOOT ═══════════ */
 ST.open().then(function(){route();if(!IS_OBS)refreshPublic();else reload().then(renderOGoal)});
+/* RZX bridge: read-only handles for the donor-extras module (it lives in its own <script>). No ST/slips exposed. */
+try{window.__RZX={cfg:function(){return CFG},approved:function(){return approved()},agg:function(){return agg()},saveCfg:function(){return saveCfg()},buildDon:function(){return buildDon()},toast:function(m,g){return toast(m,g)}}}catch(e){}
 })();
 </script>
 
@@ -5730,5 +5732,298 @@ body:not(.obs) #rzdsDock,body:not(.obs) #nf-ticker{contain:layout paint}
   })();
 })();
 </script>
+<!-- RZX DONOR EXTRAS v1: additive. Overlay-editor button (admin), live status + countdown, milestones, ranks, donor wall, share card.
+     Reads only approved() / agg() / CFG. OBS overlay (#overlay / body.obs) is never touched. -->
+<style id="rzx-extras-css">
+.rzx-sec{max-width:64rem;margin:0 auto;padding:0 1rem 1.25rem}
+.rzx-live{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;justify-content:center;margin:.9rem auto 0;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.16em}
+.rzx-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .7rem;border:1px solid rgba(255,35,64,.45);background:rgba(255,35,64,.08);clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.rzx-pill i{width:8px;height:8px;border-radius:50%;background:#7a7f8c;display:inline-block}
+.rzx-pill.on i{background:#ff2340}
+.rzx-cd{color:#c9ced9}
+.rzx-ms{display:grid;gap:.45rem}
+.rzx-m{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-left:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.025)}
+.rzx-m b{font-family:Teko,sans-serif;font-size:1.2rem;line-height:1;min-width:5.2rem;color:#9aa1b2}
+.rzx-m span{font-size:.78rem;color:#9aa1b2;flex:1;min-width:0}
+.rzx-m em{font-style:normal;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.14em;color:#9aa1b2}
+.rzx-m.done{border-left-color:#ff2340;background:rgba(255,35,64,.07)}
+.rzx-m.done b,.rzx-m.done span,.rzx-m.done em{color:#fff}
+.rzx-m.next{border-left-color:#ff627a}
+.rzx-bar{height:4px;background:rgba(255,255,255,.07);margin-top:.35rem}
+.rzx-bar>div{height:100%;background:#ff2340;width:0}
+.rzx-rank{display:inline-block;margin-left:.4rem;padding:0 .4rem;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.14em;border:1px solid currentColor;vertical-align:middle}
+.rk-bronze{color:#c98a55}.rk-silver{color:#c4cad6}.rk-gold{color:#f2c14e}.rk-plat{color:#7fd6e8}.rk-legend{color:#ff627a}
+.rzx-wall{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:baseline;justify-content:center;padding:.4rem .2rem;line-height:1.15}
+.rzx-wall span{white-space:nowrap;color:#c9ced9}
+.rzx-share{display:flex;gap:.5rem;flex-wrap:wrap}
+.rzx-btn{flex:1 1 9rem;padding:.6rem .8rem;border:1px solid rgba(255,35,64,.5);background:rgba(255,35,64,.1);color:#fff;font-family:Teko,sans-serif;font-size:1.15rem;letter-spacing:.12em;cursor:pointer}
+.rzx-btn:hover{background:rgba(255,35,64,.2)}
+#rzxCardOut{display:none;margin-top:.7rem;text-align:center}
+#rzxCardOut img{max-width:100%;height:auto;border:1px solid rgba(255,35,64,.4)}
+body.obs .rzx-sec,body.obs .rzx-live{display:none!important}
+</style>
+<script id="rzx-extras-js">
+(function(){
+'use strict';
+if(window.__rzxExtras)return;window.__rzxExtras=1;
+var d=document;
+function $(s,r){return (r||d).querySelector(s)}
+function isObs(){return d.body.classList.contains('obs')||['#overlay','#obs'].indexOf((location.hash||'').split('?')[0].toLowerCase())>=0}
+if(isObs())return;
+function X(s){return String(s==null?'':s).replace(/[&<>"'`]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]})}
+function F(n){return(+n||0).toLocaleString('th-TH',{maximumFractionDigits:2})}
+function hp(k){try{var h=location.hash||'',i=h.indexOf('?');var a=new URLSearchParams(i>=0?h.slice(i+1):'');var b=new URLSearchParams(location.search);return a.get(k)!==null?a.get(k):b.get(k)}catch(e){return null}}
+function cfg(){try{return window.__RZX?window.__RZX.cfg():{}}catch(e){return {}}}
+function apr(){try{return window.__RZX?window.__RZX.approved():[]}catch(e){return []}}
+function agg2(){try{return window.__RZX?window.__RZX.agg():[]}catch(e){return []}}
+
+/* ---------- settings (admin sets, donor link carries) ---------- */
+function setting(k){ /* link param wins on donor side; admin CFG is source of truth */
+  var v=hp(k); if(v!==null&&v!=='')return v;
+  var c=cfg(); return c[k]==null?'':String(c[k]);
+}
+function liveOn(){return setting('live')==='1'}
+function nextTs(){var v=Number(setting('next'));return isFinite(v)&&v>0?v:0}
+function streamUrl(){var u=setting('stream');return /^https:\/\/[^\s"'<>]{3,300}$/.test(u)?u:''}
+
+/* ---------- ranks (by cumulative total) ---------- */
+var RANKS=[{m:0,n:'',c:''},{m:100,n:'BRONZE',c:'rk-bronze'},{m:500,n:'SILVER',c:'rk-silver'},{m:1000,n:'GOLD',c:'rk-gold'},{m:3000,n:'PLATINUM',c:'rk-plat'},{m:5000,n:'LEGEND',c:'rk-legend'}];
+function rankOf(t){return RANKS.reduce(function(r,x){return t>=x.m?x:r},RANKS[0])}
+function rankHtml(t){var r=rankOf(t);return r.n?'<span class="rzx-rank '+r.c+'">'+r.n+'</span>':''}
+
+/* ---------- live status + countdown ---------- */
+function cdText(ms){
+  if(ms<=0)return 'STARTING SOON';
+  var s=Math.floor(ms/1000),dd=Math.floor(s/86400);s%=86400;
+  var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;
+  var p=function(n){return (n<10?'0':'')+n};
+  return (dd?dd+'D ':'')+p(h)+':'+p(m)+':'+p(s);
+}
+function ensureLive(){
+  var el=$('#rzxLive');
+  if(!el){
+    var sec=d.querySelector('#vDonor > section'); if(!sec)return null;
+    el=d.createElement('div');el.id='rzxLive';el.className='rzx-live';
+    var p=sec.querySelector('p');(p&&p.parentNode?p.parentNode:sec).insertBefore(el,p?p.nextSibling:null);
+  }
+  return el;
+}
+function renderLive(){
+  var el=ensureLive(); if(!el)return;
+  var on=liveOn(),nt=nextTs(),su=streamUrl(),h='';
+  if(on){
+    h='<span class="rzx-pill on"><i></i>LIVE NOW</span>';
+    if(su)h+='<a class="rzx-pill" href="'+X(su)+'" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none">WATCH &#9656;</a>';
+  }else{
+    h='<span class="rzx-pill"><i></i>OFFLINE</span>';
+    if(nt>Date.now())h+='<span class="rzx-cd" id="rzxCd">NEXT STREAM IN '+cdText(nt-Date.now())+'</span>';
+    else if(nt)h+='<span class="rzx-cd">NEXT STREAM: SOON</span>';
+  }
+  if(el.__h!==h){el.innerHTML=h;el.__h=h}
+}
+setInterval(function(){
+  var c=$('#rzxCd'),nt=nextTs(); if(c&&nt)c.textContent='NEXT STREAM IN '+cdText(nt-Date.now());
+  if(!liveOn()&&nt&&nt<=Date.now()&&c)renderLive();
+},1000);
+
+/* ---------- mounting new donor panels ---------- */
+function panel(id,title,tag,inner){
+  return '<div class="panel" id="'+id+'"><div class="panel-in"><div class="hdr"><span class="dot"></span><h3>'+title+'</h3>'+(tag?'<span class="ml-auto tag">'+tag+'</span>':'')+'</div><div class="p-3 sm:p-4">'+inner+'</div></div></div>';
+}
+function mount(){
+  if($('#rzxSec'))return true;
+  var foot=d.querySelector('#vDonor > footer'); if(!foot)return false;
+  var s=d.createElement('section');s.id='rzxSec';s.className='rzx-sec space-y-5';
+  s.innerHTML=
+    panel('rzxMsP','Goal Milestones','UNLOCK','<div class="rzx-ms" id="rzxMs"></div>')+
+    panel('rzxWallP','Donor Wall','ALL SUPPORTERS','<div class="rzx-wall" id="rzxWall"></div>')+
+    panel('rzxShP','Share Card','SHOW YOUR SUPPORT',
+      '<p class="text-steel text-xs mb-2">สร้างการ์ด "ฉันสนับสนุน" เป็นรูปภาพ ดาวน์โหลดหรือแชร์ได้</p>'+
+      '<div class="grid gap-2 sm:grid-cols-2 mb-2"><input id="rzxShName" class="inp" maxlength="24" placeholder="ชื่อของคุณ">'+
+      '<input id="rzxShAmt" class="inp" type="number" inputmode="numeric" min="0" max="1000000" placeholder="จำนวนเงิน (ไม่บังคับ)"></div>'+
+      '<div class="rzx-share"><button type="button" class="rzx-btn" id="rzxMk">CREATE CARD</button>'+
+      '<button type="button" class="rzx-btn" id="rzxDl" style="display:none">DOWNLOAD</button>'+
+      '<button type="button" class="rzx-btn" id="rzxSh" style="display:none">SHARE</button></div>'+
+      '<div id="rzxCardOut"></div>');
+  foot.parentNode.insertBefore(s,foot);
+  bindShare();return true;
+}
+
+/* ---------- milestones ---------- */
+function milestones(){
+  var goal=Number(cfg().goal)||50000;
+  var def=[0.1,0.25,0.5,0.75,1].map(function(f){return Math.round(goal*f)});
+  var custom=(setting('ms')||'').split(',').map(Number).filter(function(n){return isFinite(n)&&n>0&&n<=1e8});
+  var arr=(custom.length?custom:def).slice(0,8);
+  arr.sort(function(a,b){return a-b});
+  return arr.filter(function(v,i){return i===0||v!==arr[i-1]});
+}
+function renderMs(){
+  var el=$('#rzxMs'); if(!el)return;
+  var tot=apr().reduce(function(s,x){return s+(Number(x.amount)||0)},0);
+  var ms=milestones(),nextSet=false;
+  el.innerHTML=ms.map(function(v,i){
+    var done=tot>=v,cls='rzx-m';
+    if(done)cls+=' done';else if(!nextSet){cls+=' next';nextSet=true}
+    var pct=done?100:Math.max(0,Math.min(100,tot/v*100));
+    return '<div class="'+cls+'"><b>&#3647;'+F(v)+'</b><span>MILESTONE '+(i+1)+(done?' &middot; UNLOCKED':'')+
+      '<div class="rzx-bar"><div style="width:'+pct.toFixed(1)+'%"></div></div></span><em>'+(done?'DONE':pct.toFixed(0)+'%')+'</em></div>';
+  }).join('');
+}
+
+/* ---------- ranks in Top Donators + Recent feed ---------- */
+function decorateBoard(){
+  var rows=d.querySelectorAll('#board .rk'),a=agg2();
+  for(var i=0;i<rows.length&&i<a.length;i++){
+    var n=rows[i].querySelector('.font-semibold'); if(!n||n.querySelector('.rzx-rank'))continue;
+    n.insertAdjacentHTML('beforeend',rankHtml(a[i].total));
+  }
+}
+
+/* ---------- donor wall (font size scales with total) ---------- */
+function renderWall(){
+  var el=$('#rzxWall'); if(!el)return;
+  var a=agg2().slice(0,60);
+  if(!a.length){el.innerHTML='<div class="empty">ยังไม่มีผู้สนับสนุน</div>';return}
+  var max=a[0].total||1;
+  el.innerHTML=a.map(function(x){
+    var sz=12+Math.round(14*Math.sqrt(x.total/max));
+    return '<span style="font-size:'+sz+'px" title="&#3647;'+F(x.total)+'">'+X(x.name)+'</span>';
+  }).join('');
+}
+
+/* ---------- share card (canvas, no external requests) ---------- */
+var lastBlob=null;
+function wrap(ctx,t,x,y,w,lh,max){
+  var words=String(t).split(''),line='',n=0;
+  for(var i=0;i<words.length;i++){
+    var tl=line+words[i];
+    if(ctx.measureText(tl).width>w&&line){ctx.fillText(line,x,y);line=words[i];y+=lh;if(++n>=max-1){break}}
+    else line=tl;
+  }
+  ctx.fillText(line,x,y);
+}
+function makeCard(name,amt){
+  var W=1080,H=1080,c=d.createElement('canvas');c.width=W;c.height=H;var g=c.getContext('2d');
+  if(!g)return null;
+  var bg=g.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#080A10');bg.addColorStop(1,'#1B2130');g.fillStyle=bg;g.fillRect(0,0,W,H);
+  var gl=g.createRadialGradient(W/2,H*0.42,20,W/2,H*0.42,560);gl.addColorStop(0,'rgba(255,35,64,.35)');gl.addColorStop(1,'rgba(255,35,64,0)');g.fillStyle=gl;g.fillRect(0,0,W,H);
+  g.strokeStyle='#FF2340';g.lineWidth=6;g.strokeRect(40,40,W-80,H-80);
+  g.textAlign='center';g.fillStyle='#FF2340';g.font='700 56px Teko, Impact, sans-serif';g.fillText('RZ CLAN',W/2,150);
+  g.fillStyle='#9aa1b2';g.font='28px "Share Tech Mono", monospace';g.fillText('// SUPPORTER',W/2,200);
+  g.fillStyle='#fff';g.font='700 120px Teko, Impact, sans-serif';g.fillText('I SUPPORT',W/2,430);
+  g.fillStyle='#FF2340';g.font='700 150px Teko, Impact, sans-serif';g.fillText('THE SQUAD',W/2,570);
+  g.fillStyle='#fff';g.font='700 84px Teko, "Noto Sans Thai", sans-serif';wrap(g,name||'SUPPORTER',W/2,720,W-200,90,2);
+  var tot=0;agg2().forEach(function(x){if(String(x.name).trim().toLowerCase()===String(name).trim().toLowerCase())tot=x.total});
+  var shown=Number(amt)>0?Number(amt):tot;
+  if(shown>0){
+    g.fillStyle='#FF627A';g.font='700 110px Teko, Impact, sans-serif';g.fillText('\u0e3f'+F(shown),W/2,860);
+    var r=rankOf(Math.max(tot,shown));
+    if(r.n){g.fillStyle='#c9ced9';g.font='34px "Share Tech Mono", monospace';g.fillText('RANK: '+r.n,W/2,920)}
+  }
+  g.fillStyle='#9aa1b2';g.font='26px "Share Tech Mono", monospace';g.fillText(location.host,W/2,1000);
+  return c;
+}
+function bindShare(){
+  var mk=$('#rzxMk'),dl=$('#rzxDl'),sh=$('#rzxSh'),out=$('#rzxCardOut');
+  if(!mk)return;
+  var nm=$('#dName'),am=$('#dAmt'),sn=$('#rzxShName'),sa=$('#rzxShAmt');
+  try{if(nm&&nm.value&&!sn.value)sn.value=nm.value;if(am&&am.value&&!sa.value)sa.value=am.value}catch(e){}
+  mk.addEventListener('click',function(){
+    var name=(sn.value||'').trim().slice(0,24)||'SUPPORTER';
+    var c=makeCard(name,sa.value);
+    if(!c){out.style.display='block';out.textContent='เบราว์เซอร์นี้สร้างรูปไม่ได้';return}
+    c.toBlob(function(b){
+      if(!b)return;lastBlob=b;var u=URL.createObjectURL(b);
+      out.style.display='block';out.innerHTML='<img alt="Share card" src="'+u+'">';
+      dl.style.display='';if(navigator.canShare)sh.style.display='';
+    },'image/png');
+  });
+  dl.addEventListener('click',function(){
+    if(!lastBlob)return;var u=URL.createObjectURL(lastBlob),a=d.createElement('a');
+    a.href=u;a.download='rz-clan-supporter.png';d.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(u);a.remove()},1500);
+  });
+  sh.addEventListener('click',function(){
+    if(!lastBlob)return;
+    try{var f=new File([lastBlob],'rz-clan-supporter.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],title:'RZ CLAN'}).catch(function(){})}catch(e){}
+  });
+}
+
+/* ---------- refresh loop (cheap, no observers => no feedback loops) ---------- */
+var lastSig='';
+function sig(){var a=apr();return a.length+':'+a.reduce(function(s,x){return s+(Number(x.amount)||0)},0)+':'+(cfg().goal||0)+':'+setting('live')+setting('next')+setting('ms')}
+function tick(){
+  if(d.hidden)return;
+  if(!mount())return;
+  renderLive();
+  var s=sig();
+  if(s!==lastSig){lastSig=s;renderMs();renderWall()}
+  decorateBoard();
+}
+setInterval(tick,1500);
+d.addEventListener('visibilitychange',function(){if(!d.hidden)tick()});
+if(d.readyState!=='loading')setTimeout(tick,300);else d.addEventListener('DOMContentLoaded',function(){setTimeout(tick,300)});
+
+/* ---------- admin: overlay editor button + live/countdown/milestone settings ---------- */
+function overlayEditorUrl(){
+  var c=cfg();var u=location.href.split('#')[0].split('?')[0]+'?edit=1#overlay?k='+encodeURIComponent(c.key||'');
+  if(c.logo)u+='&logo='+encodeURIComponent(c.logo);
+  if(c.video)u+='&video='+encodeURIComponent(c.video);
+  if(c.ws)u+='&ws='+encodeURIComponent(c.ws);
+  u+='&goal='+encodeURIComponent(c.goal||50000);
+  return u;
+}
+function pad(n){return (n<10?'0':'')+n}
+function toLocalInput(ts){if(!ts)return '';var t=new Date(ts);return t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate())+'T'+pad(t.getHours())+':'+pad(t.getMinutes())}
+function adminMount(){
+  var pane=$('#pY'); if(!pane||$('#rzxAdm'))return;
+  var box=d.createElement('div');box.id='rzxAdm';box.className='space-y-3';
+  box.innerHTML=
+   '<hr style="border-color:rgba(255,0,51,.2)">'+
+   '<div><div class="lbl-f">OVERLAY EDITOR</div>'+
+   '<button type="button" class="btn-x go w-full !text-[1.2rem] !py-2.5" id="rzxEdBtn"><span class="lbl">OPEN OVERLAY EDITOR &#8599;</span></button>'+
+   '<p class="f-tech text-[.5rem] tracking-[.1em] text-steel mt-1.5 leading-relaxed">เปิดหน้า Layout Editor (?edit=1) ของ OBS overlay ในแท็บใหม่ ลิงก์สร้างจาก SECRET KEY ของเครื่องนี้ อย่าแชร์ต่อ</p></div>'+
+   '<hr style="border-color:rgba(255,0,51,.2)">'+
+   '<div><div class="lbl-f">STREAM STATUS (แสดงบนหน้า donate)</div>'+
+   '<div class="flex items-center gap-2 mt-1"><input type="checkbox" id="rzxLiveCk" style="width:18px;height:18px;accent-color:#ff0033"><label for="rzxLiveCk" class="text-xs text-steel">LIVE NOW</label></div>'+
+   '<label class="lbl-f mt-2" for="rzxNext">NEXT STREAM (เวลาเริ่มสตรีมถัดไป)</label><input id="rzxNext" type="datetime-local" class="inp !py-1.5">'+
+   '<label class="lbl-f mt-2" for="rzxStreamUrl">STREAM LINK (https, ไม่บังคับ)</label><input id="rzxStreamUrl" class="inp !py-1.5" placeholder="https://...">'+
+   '<label class="lbl-f mt-2" for="rzxMsIn">MILESTONES (บาท คั่นด้วย , เว้นว่าง = อัตโนมัติจาก goal)</label><input id="rzxMsIn" class="inp !py-1.5" placeholder="500,1000,2500,5000">'+
+   '<button type="button" class="btn-g w-full mt-2" id="rzxSaveX">SAVE &amp; UPDATE DONATE LINK</button>'+
+   '<p class="f-tech text-[.5rem] tracking-[.1em] text-steel mt-1.5 leading-relaxed">ค่าเหล่านี้ถูกฝังใน DONATE LINK (live / next / stream / ms) ต้องแชร์ลิงก์ใหม่หลังเปลี่ยน</p></div>';
+  pane.appendChild(box);
+  var c=cfg();
+  $('#rzxLiveCk').checked=String(c.live)==='1';
+  $('#rzxNext').value=toLocalInput(Number(c.next)||0);
+  $('#rzxStreamUrl').value=c.stream||'';
+  $('#rzxMsIn').value=c.ms||'';
+  $('#rzxEdBtn').addEventListener('click',function(){window.open(overlayEditorUrl(),'_blank','noopener')});
+  $('#rzxSaveX').addEventListener('click',function(){
+    var c=cfg(),su=($('#rzxStreamUrl').value||'').trim();
+    if(su&&!/^https:\/\/[^\s"'<>]{3,300}$/.test(su)){try{window.__RZX.toast('!! STREAM LINK ต้องขึ้นต้น https://')}catch(e){}return}
+    var ms=($('#rzxMsIn').value||'').split(',').map(function(s){return Number(s.trim())}).filter(function(n){return isFinite(n)&&n>0&&n<=1e8}).slice(0,8);
+    var nv=$('#rzxNext').value,nts=nv?new Date(nv).getTime():0;
+    c.live=$('#rzxLiveCk').checked?'1':'0';c.next=isFinite(nts)&&nts>0?nts:0;c.stream=su;c.ms=ms.join(',');
+    try{window.__RZX.saveCfg()}catch(e){}
+    try{window.__RZX.buildDon()}catch(e){}
+    try{window.__RZX.toast('\u2713 SAVED',1)}catch(e){}
+  });
+}
+/* append extra params onto the DONATE LINK after the app builds it */
+function patchDonLink(){
+  var i=$('#donUrl'); if(!i||!i.value)return;
+  var c=cfg(),u=i.value.replace(/&(live|next|stream|ms)=[^&]*/g,'');
+  if(c.live==='1')u+='&live=1';
+  if(Number(c.next)>0)u+='&next='+Number(c.next);
+  if(c.stream)u+='&stream='+encodeURIComponent(c.stream);
+  if(c.ms)u+='&ms='+encodeURIComponent(c.ms);
+  if(u!==i.value)i.value=u;
+}
+setInterval(function(){if(d.hidden)return;adminMount();patchDonLink()},1200);
+})();
+</script>
+
 </body>
 </html
