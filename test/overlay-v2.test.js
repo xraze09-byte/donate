@@ -9,6 +9,8 @@ function boot(url,pre){
  const socks=[];
  const dom=new JSDOM(HTML,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://donate.test/'+url,virtualConsole:vc,
   beforeParse(w){
+   /* jsdom has no media playback; real browsers do. Stub so TTS unlock/play on click doesn't surface as a jsdom 'Not implemented' error */
+   w.HTMLMediaElement.prototype.play=function(){return Promise.resolve()};w.HTMLMediaElement.prototype.pause=function(){};
    class WS{constructor(u){this.url=u;this.readyState=1;this._l={};socks.push(this);setTimeout(()=>this.onopen&&this.onopen({}),0)}
      send(){}close(){this.readyState=3}addEventListener(t,f){(this._l[t]=this._l[t]||[]).push(f)}removeEventListener(){}
      _emit(d){const ev={data:JSON.stringify(d)};this.onmessage&&this.onmessage(ev);(this._l.message||[]).forEach(f=>f(ev))}}

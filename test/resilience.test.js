@@ -8,6 +8,8 @@ function boot({hash='#overlay?k=testkey123',ws='wss://relay.test/ws'}={}){
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(String(e.message||e)));
  const dom=new JSDOM(HTML,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://donate.test/'+hash,virtualConsole:vc,
   beforeParse(w){
+   /* jsdom has no media playback; real browsers do. Stub so TTS unlock/play on click doesn't surface as a jsdom 'Not implemented' error */
+   w.HTMLMediaElement.prototype.play=function(){return Promise.resolve()};w.HTMLMediaElement.prototype.pause=function(){};
    // Behaves like a real WebSocket: on* are accessor props backed by addEventListener (the overlay wraps the socket, so a plain-property mock loses onclose)
    class FakeWS extends w.EventTarget{constructor(u){super();this.url=u;this.readyState=0;this._h={};this.raw=/rawConnect/.test(new Error().stack);sockets.push(this);setTimeout(()=>{this.readyState=1;this.dispatchEvent(new w.Event('open'))},0)}
     send(){}close(){this.readyState=3;setTimeout(()=>this.dispatchEvent(new w.Event('close')),0)}}

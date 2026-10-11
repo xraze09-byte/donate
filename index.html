@@ -4316,18 +4316,38 @@ var SFX={
 var TTS_EP='https://donate-backend-60hc.onrender.com/tts';
 var TTS={
   ok:true, q:[], busy:false, timer:null, audio:null,
+  pend:null,   /* เสียงที่ autoplay บล็อกไว้ — เล่นต่อเมื่อปลดล็อกได้ (เดิมทิ้งเงียบๆ ทำให้ "ไม่มีเสียง TTS") */
   boot:function(){
     TTS.audio=new Audio();
     TTS.audio.addEventListener('ended',function(){TTS._done&&TTS._done();});
     TTS.audio.addEventListener('error',function(){TTS._done&&TTS._done();});
-    /* ปลดล็อก autoplay ของเบราว์เซอร์/OBS ด้วย interaction แรกของผู้ใช้ */
-    ['pointerdown','keydown','touchstart'].forEach(function(ev){
-      addEventListener(ev,TTS.unlock,{once:true,passive:true}); });
+    TTS.audio.addEventListener('playing',function(){ TTS.unlocked=true; TTS.blocked=false; TTS.pend=null; var h=document.getElementById('nf-tts'); if(h)h.classList.remove('blocked'); });
+    /* ปลดล็อก autoplay ของเบราว์เซอร์/OBS ด้วย interaction แรกของผู้ใช้ (ไม่ใช้ once: ถ้ารอบแรกยังไม่ผ่าน ต้องลองใหม่ได้) */
+    ['pointerdown','keydown','touchstart','click'].forEach(function(ev){
+      addEventListener(ev,TTS.unlock,{passive:true}); });
+    /* บางที่ (OBS CEF / เบราว์เซอร์ที่ตั้งอนุญาตเสียง) ปลดล็อก AudioContext ได้เองโดยไม่ต้องคลิก — ลองตอนบูต (เฉพาะ resume ไม่แตะ <audio>) */
+    setTimeout(function(){ var a=ctx(); if(a&&a.state==='suspended'){ try{a.resume().catch(function(){});}catch(e){} } },300);
   },
+  unlocked:false,
   unlock:function(){
-    ctx();
-    try{ TTS.audio.muted=true; TTS.audio.play().catch(function(){}); 
-         setTimeout(function(){ TTS.audio.pause(); TTS.audio.muted=false; },50); }catch(e){}
+    var a=ctx(); if(a&&a.state==='suspended'){ try{a.resume().catch(function(){});}catch(e){} }
+    if(TTS.pend){ var p=TTS.pend; TTS.pend=null; TTS.playUrl(p.url,p.done); return; }   /* มีเสียงที่ถูกบล็อกค้างอยู่ -> เล่นเลย */
+    if(TTS.unlocked||TTS.busy) return;                                                  /* ปลดล็อกแล้ว/กำลังเล่น: ไม่ต้องแตะ <audio> อีก */
+    try{ TTS.audio.muted=true; var pr=TTS.audio.play();
+         var ok=function(){ TTS.unlocked=true; setTimeout(function(){ if(!TTS.busy){ try{TTS.audio.pause();}catch(e){} } TTS.audio.muted=false; },50); };
+         if(pr&&pr.then) pr.then(ok,function(){ TTS.audio.muted=false; }); else ok();
+    }catch(e){ TTS.audio.muted=false; }
+  },
+  playUrl:function(url,done){
+    TTS.audio.muted=false; TTS.audio.src=url; TTS.audio.volume=1;
+    var pr; try{ pr=TTS.audio.play(); }catch(e){ pr=Promise.reject(e); }
+    if(pr&&pr.catch) pr.catch(function(e){
+      /* ถูกบล็อก: เก็บไว้เล่นเมื่อมี interaction/ปลดล็อก แทนที่จะทิ้ง; ถ้ารอนานเกินจะถูก timer ของคิวตัดเอง */
+      console.warn('[tts] play blocked — รอปลดล็อก (คลิกหน้านี้ 1 ครั้ง หรือเปิด "Control audio via OBS"/อนุญาตเสียงใน Browser Source)',e&&e.name);
+      TTS.pend={url:url,done:done}; TTS.blocked=true;
+      var h=document.getElementById('nf-tts'); if(h) h.classList.add('blocked');
+    });
+    else if(TTS.blocked){ TTS.blocked=false; }
   },
   stop:function(){
     try{ TTS.audio.pause(); TTS.audio.removeAttribute('src'); }catch(e){}
@@ -4358,6 +4378,7 @@ var TTS={
     var fin=false;
     var done=function(){
       if(fin)return; fin=true; clearTimeout(TTS.timer);
+      if(TTS.pend&&TTS.pend.done===done) TTS.pend=null;   /* คิวนี้หมดเวลาแล้ว ไม่ต้องเล่นย้อนหลังตอนปลดล็อก */
       TTS.busy=false; eq(false);
       setTimeout(function(){ TTS.run(); },220);
     };
@@ -4373,9 +4394,8 @@ var TTS={
     }).then(function(b){
       if(!b||b.size<800) throw new Error('audio ว่าง ('+(b&&b.size)+' bytes)');
       var o=URL.createObjectURL(b);
-      TTS.audio.src=o; TTS.audio.volume=1;
       eq(true); SFX.blip();
-      TTS.audio.play().catch(function(e){ console.warn('[tts] play blocked',e); done(); });
+      TTS.playUrl(o,done);
     }).catch(function(e){ console.warn('[tts]',e.message); done(); });
   }
 };

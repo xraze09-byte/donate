@@ -9,6 +9,8 @@ function boot({health='ok',hash='',pp='0812345678'}={}){
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(String(e.message||e)));
  const dom=new JSDOM(HTML,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://donate.test/'+hash,virtualConsole:vc,
   beforeParse(w){
+   /* jsdom has no media playback; real browsers do. Stub so TTS unlock/play on click doesn't surface as a jsdom 'Not implemented' error */
+   w.HTMLMediaElement.prototype.play=function(){return Promise.resolve()};w.HTMLMediaElement.prototype.pause=function(){};
    class FakeWS{constructor(u){this.url=u;this.readyState=1;FakeWS.all.push(this);setTimeout(()=>this.onopen&&this.onopen(),0)}send(d){sent.push(JSON.parse(d))}close(){this.readyState=3}}
    FakeWS.all=[];w.WebSocket=FakeWS;
    w.fetch=(u)=>{fetched.push(String(u));
