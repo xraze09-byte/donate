@@ -116,5 +116,31 @@ function boot(url,pre){
  t.d.querySelector('[data-a="reset"]').click();await sleep(100);
  ok(t.R.style.getPropertyValue('--aw')==='440px','reset layout restores 440px');
 
+ // 8) regression: donation bookkeeping (widgets=top,last)
+ {
+  const t=boot('?widgets=top,last#overlay?k=k123');await sleep(600);
+  const hist=()=>JSON.parse(t.w.localStorage.getItem('rzx_hist')||'[]');
+  // same donor + same amount + no id, twice within 20s => two donations, not one
+  t.socks[0]._emit({t:'alert',d:{name:'Aom',amount:100,message:'a'}});
+  t.socks[0]._emit({t:'alert',d:{name:'Aom',amount:100,message:'b'}});
+  await sleep(150);
+  ok(hist().length===2,'two identical-looking donations without id are both recorded ('+hist().length+')');
+  const topTxt=t.d.querySelector('#rzx-top .rzx-ol').textContent;
+  ok(/฿200/.test(topTxt),'Top Donors sums both donations to 200 ('+topTxt+')');
+  // relay re-sending the SAME id must still dedupe
+  t.socks[0]._emit({t:'alert',d:{id:'dup1',name:'Z',amount:40,message:''}});
+  t.socks[0]._emit({t:'alert',d:{id:'dup1',name:'Z',amount:40,message:''}});
+  await sleep(150);
+  ok(hist().filter(x=>x.k==='dup1').length===1,'same id delivered twice is recorded once');
+  // negative / garbage amounts never become positive money
+  t.socks[0]._emit({t:'alert',d:{id:'neg1',name:'Neg',amount:'-500',message:''}});
+  await sleep(100);
+  ok(hist().filter(x=>x.k==='neg1')[0].a===0,'"-500" is not turned into +500');
+  t.socks[0]._emit({t:'alert',d:{id:'cm1',name:'Comma',amount:'1,250.50',message:''}});
+  await sleep(100);
+  ok(hist().filter(x=>x.k==='cm1')[0].a===1250.5,'"1,250.50" parses to 1250.5');
+  ok(t.errors.length===0,'bookkeeping: 0 script errors '+(t.errors[0]||''));
+ }
+
  console.log('\n'+pass+' passed, '+fail+' failed');process.exit(fail?1:0);
 })().catch(e=>{console.log('TEST CRASH',e);process.exit(2)});

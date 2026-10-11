@@ -212,12 +212,16 @@ function clean(s,max){
   return s;
 }
 function pick(d,keys){for(var i=0;i<keys.length;i++){var v=d[keys[i]];if(v!=null&&v!=='')return v}return null}
+var SEQ=0;
 function norm(d){
-  var name=pick(d,K_NAME),amt=parseFloat(String(pick(d,K_AMT)||0).replace(/[^\d.]/g,''))||0,msg=pick(d,K_MSG)||'',id=pick(d,K_ID);
+  var name=pick(d,K_NAME),raw=String(pick(d,K_AMT)||0),amt=parseFloat(raw.replace(/[^\d.]/g,''))||0,msg=pick(d,K_MSG)||'',id=pick(d,K_ID);
+  if(/^\s*-/.test(raw))amt=0;   /* ยอดติดลบห้ามกลายเป็นบวก (เดิม "-500" ถูกอ่านเป็น 500) */
   name=name?String(name):'ไม่ระบุชื่อ';
-  return{name:name,amount:amt,msg:String(msg),k:id?String(id):(name+'|'+amt+'|'+Math.floor(Date.now()/20000)),t:Date.now()};
+  /* ไม่มี id จากรีเลย์ = แยกแต่ละรายการด้วยตัวนับ (เดิมคนเดิม+ยอดเดิมภายใน 20 วิถูกรวมเป็นรายการเดียว ทำให้ Top/Timer ตกหล่น)
+     การส่งซ้ำของรีเลย์ตัวเดียวกันถูกกันที่ชั้น MEMO (WeakMap ต่อ event) อยู่แล้ว */
+  return{name:name,amount:amt,msg:String(msg),k:id?String(id):(name+'|'+amt+'|'+Date.now()+'|'+(++SEQ)),t:Date.now()};
 }
-var MEMO=new WeakMap(),TESTING=false,AQ=[],SEEN={};
+var MEMO=new WeakMap(),TESTING=false,AQ=[],SEEN={},SEENN=0;
 function process(m){
   var d=m.d;if(!d||typeof d!=='object')return true;
   K_NAME.forEach(function(k){if(typeof d[k]==='string')d[k]=clean(d[k],40)});
@@ -225,7 +229,7 @@ function process(m){
   var info=norm(d);
   if(!TESTING){
     try{localStorage.setItem('rzx_tpl',JSON.stringify(d));localStorage.setItem('rzx_last',JSON.stringify(m))}catch(e){}
-    if(!SEEN[info.k]){SEEN[info.k]=1;record(info);if(activeWidgets().indexOf('timer')>=0)tAdd(info.amount*C.spb)}
+    if(!SEEN[info.k]){SEEN[info.k]=1;if(++SEENN>2000){SEEN={};SEENN=0}record(info);if(activeWidgets().indexOf('timer')>=0)tAdd(info.amount*C.spb)}
   }
   if(SHOW_ALERT){AQ.push(info);if(AQ.length>30)AQ.shift()}
   return SHOW_ALERT;

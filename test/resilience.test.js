@@ -8,8 +8,11 @@ function boot({hash='#overlay?k=testkey123',ws='wss://relay.test/ws'}={}){
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(String(e.message||e)));
  const dom=new JSDOM(HTML,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://donate.test/'+hash,virtualConsole:vc,
   beforeParse(w){
-   class FakeWS{constructor(u){this.url=u;this.readyState=0;this.raw=/rawConnect/.test(new Error().stack);sockets.push(this);setTimeout(()=>{this.readyState=1;this.onopen&&this.onopen()},0)}
-    send(){}close(){this.readyState=3;setTimeout(()=>this.onclose&&this.onclose(),0)}}
+   // Behaves like a real WebSocket: on* are accessor props backed by addEventListener (the overlay wraps the socket, so a plain-property mock loses onclose)
+   class FakeWS extends w.EventTarget{constructor(u){super();this.url=u;this.readyState=0;this._h={};this.raw=/rawConnect/.test(new Error().stack);sockets.push(this);setTimeout(()=>{this.readyState=1;this.dispatchEvent(new w.Event('open'))},0)}
+    send(){}close(){this.readyState=3;setTimeout(()=>this.dispatchEvent(new w.Event('close')),0)}}
+   for(const n of ['onopen','onclose','onerror','onmessage'])Object.defineProperty(FakeWS.prototype,n,{configurable:true,get(){return this._h[n]||null},
+    set(fn){if(this._h[n])this.removeEventListener(n.slice(2),this._h[n]);this._h[n]=typeof fn==='function'?fn:null;if(this._h[n])this.addEventListener(n.slice(2),this._h[n])}});
    w.WebSocket=FakeWS;
    w.fetch=()=>Promise.reject(new Error('blocked'));
    w.matchMedia=w.matchMedia||(()=>({matches:false,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}}));
