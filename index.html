@@ -822,6 +822,23 @@ input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .chip{font-family:'Teko','Kanit',sans-serif;font-size:1.05rem;padding:.28rem .68rem;clip-path:var(--cut-sm);cursor:pointer;transition:.18s;background:rgba(255,255,255,.05);border:1px solid rgba(154,167,177,.28);color:var(--steel)}
 .chip.on{background:linear-gradient(180deg,var(--red),var(--red-d));color:#fff;border-color:var(--red);box-shadow:0 0 16px rgba(255,0,51,.5)}
+/* ===== SHIELD + INSIGHTS ===== */
+.shd-warn{display:none;margin-top:.35rem;font-size:.68rem;color:var(--warn,#ffb300)}
+.shd-warn.on{display:block}
+.qcard.flag{border-color:#ff1f4b!important;box-shadow:0 0 0 1px rgba(255,31,75,.5),0 0 18px rgba(255,31,75,.25)}
+.shd-tag{display:inline-block;margin-left:.4rem;padding:.05rem .4rem;font-size:.55rem;letter-spacing:.12em;background:#ff1f4b;color:#fff;clip-path:var(--cut-sm)}
+.ins-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem}
+.ins-grid .stat b{font-size:1.35rem}
+.ins-bars{display:flex;align-items:flex-end;gap:3px;height:92px;margin-top:.4rem}
+.ins-bars div{flex:1;min-width:0;background:linear-gradient(180deg,var(--red),var(--red-d));min-height:2px}
+.ins-bars div.z{background:rgba(255,255,255,.08)}
+.ins-lab{display:flex;gap:3px;margin-top:2px}
+.ins-lab span{flex:1;min-width:0;text-align:center;font-size:.45rem;color:var(--steel);overflow:hidden}
+.ins-row{display:flex;align-items:center;gap:.5rem;margin:.28rem 0;font-size:.72rem}
+.ins-row .nm{width:5.2rem;flex:none;color:var(--steel);letter-spacing:.08em;font-size:.62rem}
+.ins-row .tr{flex:1;height:6px;background:rgba(255,255,255,.07)}
+.ins-row .tr i{display:block;height:100%;background:var(--red)}
+.ins-row .v{width:3.6rem;text-align:right;flex:none}
 
 /* ===== RANK LOOKUP (supporter rank / badges / streak) ===== */
 .rkl-card{display:none;margin-top:.7rem;padding:.8rem;border:1px solid rgba(255,0,51,.35);background:rgba(255,0,51,.05);clip-path:var(--cut-sm)}
@@ -3053,7 +3070,7 @@ body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space
     <form id="dForm" class="p-4 sm:p-5 space-y-4" novalidate autocomplete="off">
      <div><label class="lbl-f" for="dName">[01] ชื่อที่จะขึ้นจอ <i>*</i></label>
       <input id="dName" class="inp" maxlength="24" placeholder="RZ | YourName">
-      <div class="err" id="eName">!! กรุณาระบุชื่อ</div></div>
+      <div class="err" id="eName">!! กรุณาระบุชื่อ</div><div class="shd-warn" id="shName"></div></div>
      <div><label class="lbl-f" for="dAmt">[02] จำนวนเงิน (THB) <i>*</i></label>
       <input id="dAmt" class="inp" type="number" inputmode="decimal" min="1" max="1000000" step="1" placeholder="100">
       <div class="err" id="eAmt">!! จำนวนเงินต้องมากกว่า 0</div>
@@ -3065,7 +3082,7 @@ body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space
       </div></div>
      <div><label class="lbl-f" for="dMsg">[03] ข้อความถึงสตรีมเมอร์</label>
       <textarea id="dMsg" class="inp" rows="3" maxlength="120" placeholder="พิมพ์ข้อความที่จะขึ้นจอ..."></textarea>
-      <div class="text-right mt-1 f-tech text-[.54rem] text-steel"><span id="mCnt">0</span>/120</div></div>
+      <div class="shd-warn" id="shMsg"></div><div class="text-right mt-1 f-tech text-[.54rem] text-steel"><span id="mCnt">0</span>/120</div></div>
      <div id="qWrap" class="border border-blood/30 p-3" style="clip-path:var(--cut-sm)">
       <label class="flex items-center gap-2 cursor-pointer select-none">
        <input type="checkbox" id="dQ" style="width:18px;height:18px;accent-color:#ff0033">
@@ -3172,7 +3189,7 @@ body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space
      <button class="tab on" data-p="q">QUEUE<span class="cnt" id="tabCnt" style="display:none">0</span></button>
      <button class="tab" data-p="l">LEDGER</button>
      <button class="tab" data-p="s">SETTINGS</button>
-     <button class="tab" data-p="y">SYSTEM</button>
+     <button class="tab" data-p="i">INSIGHTS</button><button class="tab" data-p="y">SYSTEM</button>
     </div>
 
     <div class="p-3 sm:p-4">
@@ -3212,6 +3229,26 @@ body:not(.obs) #vDonor .hdr .tag{font-size:10px;letter-spacing:.14em;white-space
      </div>
 
      <!-- SYSTEM -->
+     <div class="pane space-y-4" id="pI">
+       <div class="ins-grid" id="insKpi"></div>
+       <div><div class="lbl-f">ยอดรายวัน 14 วันล่าสุด (บาท)</div><div class="ins-bars" id="insDay"></div><div class="ins-lab" id="insDayL"></div></div>
+       <div><div class="lbl-f">ช่วงเวลาทอง (ยอดรวมตามชั่วโมง)</div><div class="ins-bars" id="insHr"></div><div class="ins-lab" id="insHrL"></div></div>
+       <div><div class="lbl-f">สัดส่วนผู้สนับสนุนตามยศ</div><div id="insRank"></div></div>
+       <div><div class="lbl-f">Top ผู้บริจาคกลับมาซ้ำ</div><div id="insRep"></div></div>
+       <hr style="border-color:rgba(255,0,51,.2)">
+       <div><div class="lbl-f">CONTENT SHIELD — คำ/ชื่อต้องห้าม (เพิ่มจากค่าเริ่มต้น)</div>
+        <textarea id="shWords" class="inp f-tech !text-[.72rem]" rows="3" placeholder="คั่นด้วยคอมมา เช่น คำหยาบ1, คำหยาบ2"></textarea>
+        <div class="lbl-f mt-2">BLACKLIST ชื่อ (ห้ามโดเนท/ห้ามขึ้นจอ)</div>
+        <textarea id="shNames" class="inp f-tech !text-[.72rem]" rows="2" placeholder="คั่นด้วยคอมมา"></textarea>
+        <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="shOn" checked style="width:18px;height:18px;accent-color:#ff0033">
+         <label for="shOn" class="text-xs text-steel">เปิดตัวกรองคำหยาบ (ขึ้นจอเป็น ***)</label></div>
+        <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="shCd" checked style="width:18px;height:18px;accent-color:#ff0033">
+         <label for="shCd" class="text-xs text-steel">กันสแปมฟอร์ม (หน่วง 20 วิ / ค้างได้ไม่เกิน 3 คำขอ ต่อเครื่อง)</label></div>
+        <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="shNt" checked style="width:18px;height:18px;accent-color:#ff0033">
+         <label for="shNt" class="text-xs text-steel">แจ้งเตือนแอดมินเมื่อมีคำขอใหม่ (เสียง + แท็บกะพริบ)</label></div>
+        <button type="button" class="btn-x alt w-full mt-2 !text-[1.1rem] !py-2" id="bShield"><span class="lbl">SAVE SHIELD</span></button>
+        <p class="f-tech text-[.5rem] tracking-[.1em] text-steel mt-1.5 leading-relaxed">ตัวกรองทำงาน 3 ชั้น: ฟอร์มผู้บริจาค (เตือน) → การ์ดแอดมิน (ติดธง) → จอ OBS (ปิดคำหยาบก่อนขึ้นจอ/อ่านเสียง)</p></div>
+     </div>
      <div class="pane space-y-4" id="pY">
       <div><div class="lbl-f">OBS OVERLAY URL <i>*</i></div>
        <div class="flex gap-2"><input id="obsUrl" class="inp f-tech !text-[.66rem]" readonly>
@@ -3696,6 +3733,7 @@ function rs(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c)
    (BroadcastChannel + storage event + WebSocket ส่งข้อความเดียวกันมาหลายทางพร้อมกัน) */
 var ALERT_SEEN={};
 function enqueue(d){d=d||{};
+ if(typeof SHIELD!=='undefined'){d=Object.assign({},d);if(SHIELD.nameBanned(d.name)){return}d.name=SHIELD.mask(d.name);d.message=SHIELD.mask(d.message)}
  var now=Date.now(),k=[d.name,amt(d.amount),d.message].join('|');
  for(var x in ALERT_SEEN)if(now-ALERT_SEEN[x]>8000)delete ALERT_SEEN[x];
  if(ALERT_SEEN[k]&&!d.force)return;ALERT_SEEN[k]=now;
@@ -3845,6 +3883,115 @@ function renderNudge(){ /* ในฟอร์มโดเนท: บอกว่
 (function(){var i=document.getElementById('rkName');if(i)i.addEventListener('input',renderRank);
  ['dName','dAmt'].forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('input',renderNudge)});
  var c=document.getElementById('chips');if(c)c.addEventListener('click',function(){setTimeout(renderNudge,0)})})();
+/* ═══════════ CONTENT SHIELD / ANTI-SPAM / INSIGHTS / ADMIN ALERT ═══════════
+   ฝั่งเบราว์เซอร์ล้วน ไม่แตะ backend. ค่าเริ่มต้นกรองเสมอแม้ไม่เคยตั้งค่า; แอดมินเพิ่มคำ/ชื่อเองได้ (เก็บใน localStorage 'rzc_shield') */
+var SHIELD=(function(){
+ var BASE=['ควย','เหี้ย','สัส','ไอ้สัตว์','อีสัตว์','อีดอก','ดอกทอง','แม่ง','มึงตาย','ไปตาย','เย็ด','หี','ชาติหมา','fuck','shit','bitch','asshole','dick','cunt','nigger','nigga','faggot','porn','xxx'];
+ /* คำสั้น/กำกวมต้องเป็น "คำเดี่ยว" เท่านั้น กันกรองพลาดคำปกติ เช่น "หีบ" */
+ var EXACT={'หี':1,'แม่ง':1};
+ function isLatin(w){return /^[a-z0-9]+$/.test(w)}
+ function esc2(w){return w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+ function norm(t){var x=String(t==null?'':t).toLowerCase();try{x=x.normalize('NFKC')}catch(e){}return x}
+ function squash(t){return norm(t).replace(/[\s.\-_*,'"`~!@#$%^&()+=\[\]{}|\\\/:;<>?]+/g,'').replace(/0/g,'o').replace(/@/g,'a').replace(/[1!|]/g,'i').replace(/\$/g,'s').replace(/3/g,'e').replace(/(.)\1{2,}/g,'$1$1')}
+ function cfg(){var c={};try{c=JSON.parse(localStorage.getItem('rzc_shield')||'{}')||{}}catch(e){}
+  function list(x){return String(x||'').split(',').map(function(v){return v.trim().toLowerCase()}).filter(Boolean)}
+  return {on:c.on!==false,cd:c.cd!==false,nt:c.nt!==false,words:list(c.words),names:list(c.names)}}
+ var BND='[^a-z0-9\\u0E00-\\u0E7F]';
+ function hit(text){var c=cfg();if(!c.on)return null;var t=norm(text),q=squash(text);if(!t.trim())return null;
+  var all=BASE.concat(c.words);
+  for(var i=0;i<all.length;i++){var w=all[i];if(!w)continue;
+   if(EXACT[w]||isLatin(w)){
+    if(new RegExp('(^|'+BND+')'+esc2(w)+'s?($|'+BND+')','i').test(t))return w;
+    /* หลบด้วยการแยกตัวอักษร/แทนสัญลักษณ์ (f.u.c.k, sh1t): เทียบหลังบีบ แต่ต้องเป็นข้อความสั้นที่มีคำนี้เป็นทั้งคำ */
+    if(isLatin(w)&&q===squash(w))return w;
+    var parts=t.split(new RegExp(BND+'+')).filter(Boolean);
+    for(var j=0;j<parts.length;j++){if(squash(parts[j])===squash(w))return w}
+    /* ตัวอักษรเดี่ยวสะกดแยก เช่น "f u c k" / "f.u.c.k" */
+    var single=t.match(new RegExp('(?:^|'+BND+')(?:[a-z0-9@$!|](?:'+BND+'|$)){3,}','i'));
+    if(single&&isLatin(w)&&squash(single[0])===squash(w))return w;
+    continue}
+   if(t.indexOf(w)>=0||q.indexOf(squash(w))>=0)return w}
+  return null}
+ function nameBanned(n){var c=cfg(),k=norm(n).trim();if(!k)return false;
+  return c.names.some(function(b){return b&&(k===b||k.indexOf(b)>=0)})}
+ function mask(text){var c=cfg(),out=String(text==null?'':text);if(!c.on)return out;
+  BASE.concat(c.words).forEach(function(w){if(!w)return;
+   if(EXACT[w]||isLatin(w))out=out.replace(new RegExp('(^|'+BND+')('+esc2(w)+'s?)(?=$|'+BND+')','ig'),function(m,p){return p+'***'});
+   else out=out.replace(new RegExp(esc2(w),'ig'),'***')});
+  /* ยังเหลือรูปแบบหลบ (เว้นวรรค/สัญลักษณ์แทรก) → ปิดทั้งข้อความ */
+  if(hit(out.replace(/\*\*\*/g,' ')))return '***';
+  return out}
+ return {hit:hit,nameBanned:nameBanned,mask:mask,cfg:cfg,BASE:BASE}})();
+
+var SPAM=(function(){var K='rzc_spam';
+ function load(){try{return JSON.parse(localStorage.getItem(K)||'[]')||[]}catch(e){return []}}
+ function save(a){try{localStorage.setItem(K,JSON.stringify(a))}catch(e){}}
+ return {
+  check:function(){if(!SHIELD.cfg().cd)return null;var now=Date.now(),a=load().filter(function(t){return now-t<600000});
+   if(a.length&&now-a[a.length-1]<20000)return 'ส่งถี่เกินไป รออีก '+Math.ceil((20000-(now-a[a.length-1]))/1000)+' วินาที';
+   var pend=0;try{pend=DONS.filter(function(d){return d.status==='pending'&&now-d.ts<600000}).length}catch(e){}
+   if(pend>=3)return 'มีคำขอรอตรวจสอบหลายรายการแล้ว กรุณารอแอดมินอนุมัติก่อน';
+   return null},
+  mark:function(){var now=Date.now(),a=load().filter(function(t){return now-t<600000});a.push(now);save(a)}}})();
+
+var ANOT=(function(){var base=document.title,tm=null,seen=0,first=true;
+ function beep(){try{var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();
+  o.type='sine';o.frequency.value=880;g.gain.value=.08;o.connect(g);g.connect(a.destination);o.start();
+  o.frequency.setValueAtTime(1180,a.currentTime+.12);o.stop(a.currentTime+.28)}catch(e){}}
+ function flash(n){clearInterval(tm);var on=false;tm=setInterval(function(){on=!on;document.title=on?'🔔 ('+n+') คำขอใหม่!':base},900)}
+ function stop(){clearInterval(tm);tm=null;document.title=base}
+ document.addEventListener('visibilitychange',function(){if(!document.hidden)stop()});
+ return {
+  ask:function(){try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}},
+  tick:function(n){if(first){first=false;seen=n;return}
+   if(n>seen&&SHIELD.cfg().nt){beep();if(document.hidden)flash(n);
+    try{if('Notification' in window&&Notification.permission==='granted'&&document.hidden)new Notification('RZ CLAN: มีคำขอโดเนทใหม่',{body:'รอตรวจสอบ '+n+' รายการ'})}catch(e){}}
+   if(n<seen||!n)stop();seen=n}}})();
+
+function insights(){
+ var ap=approved(),all=DONS,now=new Date(),D=864e5;
+ var sum=ap.reduce(function(s,d){return s+(Number(d.amount)||0)},0);
+ var rej=all.filter(function(d){return d.status==='rejected'}).length;
+ var by={};ap.forEach(function(d){var k=String(d.name).trim().toLowerCase();by[k]=by[k]||{name:d.name,n:0,t:0};by[k].n++;by[k].t+=Number(d.amount)||0});
+ var ppl=Object.keys(by).map(function(k){return by[k]}),rep=ppl.filter(function(x){return x.n>1});
+ var avg=ap.length?Math.round(sum/ap.length):0,mx=ap.reduce(function(m,d){return Math.max(m,Number(d.amount)||0)},0);
+ var days=[];for(var i=13;i>=0;i--){var d0=new Date(now);d0.setHours(0,0,0,0);d0=new Date(d0.getTime()-i*D);days.push({t:d0.getTime(),v:0,l:d0.getDate()+'/'+(d0.getMonth()+1)})}
+ ap.forEach(function(d){for(var i=0;i<days.length;i++){if(d.ts>=days[i].t&&d.ts<days[i].t+D){days[i].v+=Number(d.amount)||0;break}}});
+ var hrs=[];for(var h=0;h<24;h++)hrs.push({v:0,l:String(h)});
+ ap.forEach(function(d){hrs[new Date(d.ts).getHours()].v+=Number(d.amount)||0});
+ var rk={};RANKS.forEach(function(r){rk[r.n]={c:r.c,n:0}});ppl.forEach(function(x){rk[rankOf(x.t).r.n].n++});
+ var best=hrs.reduce(function(b,x,i){return x.v>hrs[b].v?i:b},0);
+ return {sum:sum,count:ap.length,people:ppl.length,rep:rep.sort(function(a,b){return b.t-a.t}).slice(0,5),repPct:ppl.length?Math.round(rep.length/ppl.length*100):0,
+  avg:avg,max:mx,rej:rej,rejPct:(ap.length+rej)?Math.round(rej/(ap.length+rej)*100):0,days:days,hrs:hrs,rk:rk,bestHour:hrs[best].v>0?best:-1}}
+function bars(el,lab,arr){var mx=Math.max.apply(null,arr.map(function(x){return x.v}).concat([1]));
+ el.innerHTML=arr.map(function(x){return '<div class="'+(x.v?'':'z')+'" style="height:'+Math.max(2,Math.round(x.v/mx*100))+'%" title="'+esc(x.l)+': ฿'+fmt(x.v)+'"></div>'}).join('');
+ lab.innerHTML=arr.map(function(x,i){return '<span>'+(arr.length>14&&i%3?'':esc(x.l))+'</span>'}).join('')}
+function renderInsights(){var k=$('#insKpi');if(!k)return;var x=insights();
+ function st(i,b,c){return '<div class="stat"><i>'+i+'</i><b'+(c?' style="color:'+c+'"':'')+'>'+b+'</b></div>'}
+ k.innerHTML=st('AVG / ครั้ง','฿'+fmt(x.avg))+st('สูงสุดต่อครั้ง','฿'+fmt(x.max))+st('ผู้สนับสนุน',x.people)+
+  st('กลับมาซ้ำ',x.repPct+'%','var(--ok)')+st('อัตราปฏิเสธ',x.rejPct+'%',x.rejPct>30?'var(--warn)':'')+
+  st('ช่วงทอง',x.bestHour<0?'-':(x.bestHour+':00'));
+ bars($('#insDay'),$('#insDayL'),x.days);bars($('#insHr'),$('#insHrL'),x.hrs);
+ var tot=Math.max(1,x.people);
+ $('#insRank').innerHTML=RANKS.map(function(r){var v=x.rk[r.n].n;return '<div class="ins-row"><span class="nm" style="color:'+r.c+'">'+r.n+'</span><span class="tr"><i style="width:'+Math.round(v/tot*100)+'%;background:'+r.c+'"></i></span><span class="v">'+v+' คน</span></div>'}).join('');
+ $('#insRep').innerHTML=x.rep.length?x.rep.map(function(r){return '<div class="ins-row"><span class="nm" style="width:8rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.name)+'</span><span class="v" style="flex:1;text-align:left;color:var(--steel)">'+r.n+' ครั้ง</span><span class="v">฿'+fmt(r.t)+'</span></div>'}).join(''):'<div class="empty">ยังไม่มีผู้บริจาคซ้ำ</div>'}
+/* test hook: lets automated tests drive the pure helpers (no secrets, no privileges) */
+try{window.__RZ_SHIELD={SHIELD:SHIELD,SPAM:SPAM,ANOT:ANOT,insights:insights}}catch(e){}
+(function(){var b=document.getElementById('bShield');if(!b)return;
+ function fill(){var c=SHIELD.cfg(),l={};try{l=JSON.parse(localStorage.getItem('rzc_shield')||'{}')||{}}catch(e){}
+  document.getElementById('shWords').value=l.words||'';document.getElementById('shNames').value=l.names||'';
+  document.getElementById('shOn').checked=c.on;document.getElementById('shCd').checked=c.cd;document.getElementById('shNt').checked=c.nt}
+ fill();
+ b.addEventListener('click',function(){var o={words:document.getElementById('shWords').value.slice(0,2000),names:document.getElementById('shNames').value.slice(0,1000),
+   on:document.getElementById('shOn').checked,cd:document.getElementById('shCd').checked,nt:document.getElementById('shNt').checked};
+  try{localStorage.setItem('rzc_shield',JSON.stringify(o))}catch(e){}
+  if(o.nt)ANOT.ask();toast('✓ บันทึก Shield แล้ว',1);adminRefresh()})})();
+(function(){var n=document.getElementById('dName'),m=document.getElementById('dMsg'),wn=document.getElementById('shName'),wm=document.getElementById('shMsg');
+ if(!n||!m||!wn||!wm)return;
+ function chk(){var a=SHIELD.nameBanned(n.value)?'ชื่อนี้ไม่สามารถใช้ได้':(SHIELD.hit(n.value)?'ชื่อมีคำที่ไม่เหมาะสม กรุณาแก้ไข':'');
+  var b=SHIELD.hit(m.value)?'ข้อความมีคำที่ไม่เหมาะสม ระบบจะปิดคำนั้นบนจอเป็น ***':'';
+  wn.textContent=a?'!! '+a:'';wn.classList.toggle('on',!!a);wm.textContent=b?'▸ '+b:'';wm.classList.toggle('on',!!b)}
+ n.addEventListener('input',chk);m.addEventListener('input',chk)})();
 function renderOGoal(){var e=$('#ogFill');if(!e||!IS_OBS)return;
  var goal=Number(P('goal'))||CFG.goal||1,tot=approved().reduce(function(s,d){return s+(Number(d.amount)||0)},0),
   pct=cl(tot/goal*100,0,100),left=Math.max(0,goal-tot);
@@ -3887,6 +4034,9 @@ dForm.addEventListener('submit',function(e){e.preventDefault();
  if(a>1000000)return bad(dAmt,'#eAmt','สูงสุด '+fmt(1000000)+' บาทต่อครั้ง');
  if(n.length>40)n=n.slice(0,40); /* backend stores max 40 chars; keep what we show identical to what is saved */
  if(a<(CFG.min||1))return bad(dAmt,'#eAmt','ขั้นต่ำ '+fmt(CFG.min)+' บาท');
+ if(SHIELD.nameBanned(n))return bad(dName,'#eName','ชื่อนี้ไม่สามารถใช้ได้');
+ if(SHIELD.hit(n))return bad(dName,'#eName','ชื่อมีคำที่ไม่เหมาะสม');
+ var spamMsg=SPAM.check();if(spamMsg)return toast('!! '+spamMsg);
  var qq=readQ();
  if(qq===false)return bad(dQUid,'#eQUid','UID ต้องเป็นตัวเลข 6-14 หลัก');
  var EDU=edUrl();
@@ -3982,6 +4132,7 @@ $('#bSubmit').addEventListener('click',function(){
  if(slipData)ops.push(ST.put('slip',{id:rec.id,data:slipData}));
  Promise.all(ops).then(function(){
   emit('donation',{rec:rec,slip:slipData||null});
+  SPAM.mark();
   emit('sync',{});closePay();dForm.reset();$('#mCnt').textContent='0';$('#qFields').style.display='none';
   $$('#chips .chip').forEach(function(x){x.classList.remove('on')});upTier();
   pend=null;slipData='';slipHash='';b.disabled=false;
@@ -4094,7 +4245,7 @@ function enterAdmin(){$('#gate').style.display='none';$('#adm').style.display=''
 $$('.tab').forEach(function(t){t.addEventListener('click',function(){
  $$('.tab').forEach(function(x){x.classList.remove('on')});t.classList.add('on');
  $$('.pane').forEach(function(p){p.classList.remove('on')});
- $('#p'+t.dataset.p.toUpperCase()).classList.add('on');if(t.dataset.p==='l')renderLedger()})});
+ $('#p'+t.dataset.p.toUpperCase()).classList.add('on');if(t.dataset.p==='l')renderLedger();if(t.dataset.p==='i')renderInsights()})});
 function adminRefresh(){return reload().then(function(){
  var pd=DONS.filter(function(d){return d.status==='pending'}),ap=approved();
  var sum=ap.reduce(function(s,d){return s+d.amount},0);
@@ -4103,17 +4254,18 @@ function adminRefresh(){return reload().then(function(){
  $('#kPend').textContent=pd.length;$('#kApp').textContent=ap.length;
  $('#kSum').textContent='฿'+fmt(sum);$('#kToday').textContent='฿'+fmt(td);
  var c=$('#tabCnt');c.textContent=pd.length;c.style.display=pd.length?'':'none';
- renderQueue(pd);renderLedger();renderBoard();renderFeed();renderGoal()})}
+ renderQueue(pd);renderLedger();renderBoard();renderFeed();renderGoal();renderInsights();ANOT.tick(pd.length)})}
 function renderQueue(pd){var h=$('#qList');
  if(!pd.length){h.innerHTML='<div class="empty">ไม่มีคำขอรอตรวจสอบ<br>ALL CLEAR</div>';return}
  h.innerHTML=pd.sort(function(a,b){return a.ts-b.ts}).map(function(d){var t=tierOf(d.amount);
-  return '<div class="qcard"><div><div class="flex gap-2.5">'+
+  var flg=SHIELD.nameBanned(d.name)||SHIELD.hit(d.name)||SHIELD.hit(d.message);
+  return '<div class="qcard'+(flg?' flag':'')+'"><div><div class="flex gap-2.5">'+
    (d.slip?'<img class="slip-th" data-slip="'+esc(d.id)+'" alt="slip">':'<div class="slip-th" style="display:grid;place-items:center;color:#556;font-size:.55rem" class="f-tech">NO<br>SLIP</div>')+
    '<div class="min-w-0 flex-1"><div class="flex items-baseline gap-2">'+
    '<span class="f-teko text-2xl leading-none text-blood">฿'+fmt(d.amount)+'</span>'+
    '<span class="tag warn">'+t.n+'</span>'+
    (SLIPH.dup(d.sh,DONS,d.id)?'<span class="tag warn" style="color:#fff;background:#ff1f4b" title="สลิปนี้หน้าตาเหมือนสลิปที่เคยส่งมา — ตรวจเลขอ้างอิงธุรกรรมก่อนอนุมัติ">⚠ สลิปคล้ายซ้ำ</span>':'')+'</div>'+
-   '<div class="font-semibold text-[.86rem] truncate mt-.5">'+esc(d.name)+'</div>'+
+   '<div class="font-semibold text-[.86rem] truncate mt-.5">'+esc(d.name)+(flg?'<span class="shd-tag">⚠ คำไม่เหมาะสม</span>':'')+'</div>'+
    (d.message?'<div class="text-[.72rem] text-steel break-words">'+esc(d.message)+'</div>':'')+
    '<div class="f-tech text-[.5rem] tracking-[.12em] text-steel mt-1">'+esc(d.ref)+' · '+new Date(d.ts).toLocaleString('th-TH')+'</div>'+
    '</div></div><div class="grid grid-cols-2 gap-2 mt-2.5">'+
