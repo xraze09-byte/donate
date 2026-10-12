@@ -3621,7 +3621,7 @@ var VAL={
   return o}
 };
 function onMsg(m){if(!m||typeof m!=='object'||typeof m.t!=='string')return;
- if(m.t==='alert'&&m.d)enqueue(m.d);
+ if(m.t==='alert'&&m.d)enqueue(m.d,typeof m.i==='string'?m.i.slice(0,64):'');
  else if(m.t==='donation'&&m.d&&m.d.rec){
   var vrec=VAL.rec(m.d.rec);if(!vrec)return;
   /* never let a remote message overwrite a record we already decided on */
@@ -3684,7 +3684,11 @@ function wsConnect(){if(!WSU)return;
 window.addEventListener('online',function(){wsTries=0;if(wsTimer){clearTimeout(wsTimer);wsTimer=null}wsConnect()});
 /* สายตายเงียบ: ซ็อกเก็ตค้าง OPEN แต่ไม่มีข้อมูลเข้าเลย 90 วิ (รีเลย์ส่ง ping เอง) → ปิดเพื่อต่อใหม่
    ไม่ส่งข้อความ ping แปลกๆ ไปรีเลย์ เพราะ server อาจไม่รู้จัก */
-setInterval(function(){if(ws&&ws.readyState===1&&wsLastRx&&Date.now()-wsLastRx>90000){try{ws.close()}catch(e){}}},15000);
+/* (แก้บัค) เดิมตัดซ็อกเก็ตทิ้งเมื่อ "ไม่มีข้อความเข้า 90 วิ" แต่ relay ส่งแค่ ping ระดับโปรโตคอล (JS มองไม่เห็น) และส่งข้อมูลเฉพาะเมื่อมีเหตุการณ์
+   → ตอนไม่มีโดเนท ซ็อกเก็ตที่ปกติดีถูกตัดแล้วต่อใหม่ทุก 90 วิ ช่วงต่อใหม่ alert อาจหลุด
+   ตอนนี้: ตรวจเฉพาะสถานะจริง (ไม่ OPEN/CONNECTING = ต่อใหม่) + ตื่นจากหลับ/แท็บกลับมา/เน็ตกลับ = เช็กและต่อทันที */
+setInterval(function(){if(!ws||ws.readyState>1){ws=null;wsRetry()}},15000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&(!ws||ws.readyState>1)){ws=null;wsTries=0;if(wsTimer){clearTimeout(wsTimer);wsTimer=null}wsConnect()}});
 wsConnect();
 
 /* ═══════════ SOUND ═══════════ */
@@ -3732,14 +3736,22 @@ function rs(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c)
 /* กัน alert เด้งซ้ำ: ข้อความเดียวกัน (ชื่อ+ยอด+ข้อความ) ภายใน 8 วิ = ตัดทิ้ง
    (BroadcastChannel + storage event + WebSocket ส่งข้อความเดียวกันมาหลายทางพร้อมกัน) */
 var ALERT_SEEN={};
-function enqueue(d){d=d||{};
+function enqueue(d,mid){d=d||{};
  /* ANIMATION + เสียง alert เล่นเฉพาะใน Overlay (OBS) เท่านั้น — หน้าเว็บโดเนท/แอดมินไม่เล่น (แอดมินยังสั่งยิง/พรีวิวได้ ระบบจะส่งไปเล่นที่ overlay) */
  var _hb=(location.hash||'').split('?')[0].toLowerCase();
  if(!(IS_OBS||_hb==='#overlay'||_hb==='#obs'))return;
  if(typeof SHIELD!=='undefined'){d=Object.assign({},d);if(SHIELD.nameBanned(d.name)){return}d.name=SHIELD.mask(d.name);d.message=SHIELD.mask(d.message)}
- var now=Date.now(),k=[d.name,amt(d.amount),d.message].join('|');
- for(var x in ALERT_SEEN)if(now-ALERT_SEEN[x]>8000)delete ALERT_SEEN[x];
- if(ALERT_SEEN[k]&&!d.force)return;ALERT_SEEN[k]=now;
+ /* ยอดต้องเป็นตัวเลขบวกจริง: ยอดลบ/0/NaN/Infinity/ไม่ใช่ตัวเลข = ไม่ขึ้นจอ (เดิม amt() ตัดเครื่องหมายลบทิ้ง → -500 โชว์เป็น 500) */
+ var rawA=Number(String(d.amount==null?'':d.amount).replace(/,/g,''));
+ if(!isFinite(rawA)||rawA<=0)return;
+ d=Object.assign({},d);d.amount=Math.min(rawA,99999999);
+ var now=Date.now();
+ /* กันซ้ำ: ข้อความเดียวกันที่มาหลายช่องทาง (storage+BroadcastChannel+WebSocket) มี id เดียวกัน → ตัดตาม id
+    ไม่เดาจากเนื้อหา เพราะโดเนทจริงของคนเดิม/ยอดเดิม/ข้อความเดิมห่างกันไม่กี่วินาทีต้องขึ้นจอทั้งคู่
+    (ไม่มี id = fallback เดิมแบบเนื้อหา 2 วิ กัน echo เท่านั้น) */
+ var k=mid?('id:'+mid):('c:'+[d.name,d.amount,d.message].join('|')),win=mid?60000:2000;
+ for(var x in ALERT_SEEN)if(now-ALERT_SEEN[x]>60000)delete ALERT_SEEN[x];
+ if(ALERT_SEEN[k]&&now-ALERT_SEEN[k]<win&&!d.force)return;ALERT_SEEN[k]=now;
  if(Q.length>=30)Q.shift(); /* คิวไม่โตไม่จำกัดตอนโดนสแปม */
  Q.push(d);pump()}
 var pumpTimer=null;
@@ -3904,7 +3916,7 @@ var SHIELD=(function(){
   var all=BASE.concat(c.words);
   for(var i=0;i<all.length;i++){var w=all[i];if(!w)continue;
    if(EXACT[w]||isLatin(w)){
-    if(new RegExp('(^|'+BND+')'+esc2(w)+'s?($|'+BND+')','i').test(t))return w;
+    if(new RegExp('(^|'+BND+')'+esc2(w)+'(?:s|es|ed|er|ers|ing|in|y|ty|head|face)?($|'+BND+')','i').test(t))return w;
     /* หลบด้วยการแยกตัวอักษร/แทนสัญลักษณ์ (f.u.c.k, sh1t): เทียบหลังบีบ แต่ต้องเป็นข้อความสั้นที่มีคำนี้เป็นทั้งคำ */
     if(isLatin(w)&&q===squash(w))return w;
     var parts=t.split(new RegExp(BND+'+')).filter(Boolean);
@@ -3919,7 +3931,7 @@ var SHIELD=(function(){
   return c.names.some(function(b){return b&&(k===b||k.indexOf(b)>=0)})}
  function mask(text){var c=cfg(),out=String(text==null?'':text);if(!c.on)return out;
   BASE.concat(c.words).forEach(function(w){if(!w)return;
-   if(EXACT[w]||isLatin(w))out=out.replace(new RegExp('(^|'+BND+')('+esc2(w)+'s?)(?=$|'+BND+')','ig'),function(m,p){return p+'***'});
+   if(EXACT[w]||isLatin(w))out=out.replace(new RegExp('(^|'+BND+')('+esc2(w)+'(?:s|es|ed|er|ers|ing|in|y|ty|head|face)?)(?=$|'+BND+')','ig'),function(m,p){return p+'***'});
    else out=out.replace(new RegExp(esc2(w),'ig'),'***')});
   /* ยังเหลือรูปแบบหลบ (เว้นวรรค/สัญลักษณ์แทรก) → ปิดทั้งข้อความ */
   if(hit(out.replace(/\*\*\*/g,' ')))return '***';
@@ -4753,24 +4765,37 @@ function pParam(k){
       hp=new URLSearchParams(i>=0?h.slice(i+1):''), sp=new URLSearchParams(location.search);
   return hp.get(k)!==null?hp.get(k):sp.get(k);
 }
-var RAW={ws:null,up:false,tryN:0};
+var RAW={ws:null,up:false,tryN:0,lastRx:0},RAWSEEN={};
 function rawConnect(){
+  if(RAW.ws&&RAW.ws.readyState<=1)return;   /* มีสายอยู่แล้ว (กำลังต่อ/เปิด) = ห้ามเปิดซ้อน */
+  clearTimeout(RAW.rt);
   try{
     var base=(window.__RZ&&window.__RZ.ws)||'wss://donate-backend-60hc.onrender.com/ws';  /* relay เดียวกับแอปหลัก */
     var ch=(window.__RZ&&window.__RZ.ch)||('rzc_'+(pParam('k')||'fce4afe701527d17fbef394d'));  /* ห้องเดียวกับแอปหลักเสมอ */
-    RAW.ws=new WebSocket(base+'?ch='+encodeURIComponent(ch));
-    RAW.ws.onopen=function(){RAW.up=true;RAW.tryN=0};
+    var _s=RAW.ws=new WebSocket(base+'?ch='+encodeURIComponent(ch));
+    RAW.ws.onopen=function(){RAW.up=true;RAW.tryN=0;RAW.lastRx=Date.now()};
     RAW.ws.onmessage=function(e){
+      RAW.lastRx=Date.now();
       try{
         var m=JSON.parse(e.data);
-        if(m&&m.t==='alert'&&m.d) onRawAlert(m.d);
+        if(m&&m.t==='alert'&&m.d) onRawAlert(m.d,typeof m.i==='string'?m.i.slice(0,64):'');
       }catch(x){}
     };
-    RAW.ws.onclose=function(){RAW.up=false;RAW.tryN++;
-      setTimeout(rawConnect,Math.min(30000,2000*RAW.tryN))};
-    RAW.ws.onerror=function(){try{RAW.ws.close()}catch(x){}};
-  }catch(e){setTimeout(rawConnect,5000)}
+    RAW.ws.onclose=function(){if(RAW.ws!==_s)return;   /* สายเก่าที่ถูกแทนที่แล้วปิด = ไม่ต้องนัดต่อใหม่ซ้ำ */
+      RAW.up=false;RAW.tryN++;
+      clearTimeout(RAW.rt);RAW.rt=setTimeout(rawConnect,Math.min(30000,2000*RAW.tryN))};
+    RAW.ws.onerror=function(){try{_s.close()}catch(x){}};
+  }catch(e){clearTimeout(RAW.rt);RAW.rt=setTimeout(rawConnect,5000)}
 }
+/* RAW feed (เสียง TTS): ตรวจสถานะจริงเป็นระยะ + ต่อใหม่ทันทีเมื่อเน็ตกลับ/แท็บกลับมา — เดิมถ้าสายหลุดโดยไม่มี onclose เสียงจะเงียบตลอดโดยไม่มีใครรู้ */
+(function(){var pend=false;
+ function heal(force){var w=RAW.ws;if(w&&w.readyState<=1&&!force)return;if(pend)return;pend=true;
+  try{if(w&&w.readyState<=1)w.close()}catch(x){}
+  setTimeout(function(){pend=false;if(!RAW.ws||RAW.ws.readyState>1)rawConnect()},400)}
+ setInterval(function(){if(!RAW.ws||RAW.ws.readyState>1)heal(false)},15000);
+ addEventListener('online',function(){RAW.tryN=0;heal(true)});
+ document.addEventListener('visibilitychange',function(){if(!document.hidden)heal(false)});
+})();
 
 /* แปลงยอดเป็นคำอ่านไทย — ส่ง "หนึ่งพันสองร้อยห้าสิบบาท" แทน "1250 บาท"
    เพื่อไม่ต้องพึ่งให้ TTS ตีความตัวเลข (บางเครื่องอ่าน "ห้า ห้า ห้า") */
@@ -4797,6 +4822,7 @@ function _block(v){
 }
 function bahtText(n){
   n=num(n); if(!isFinite(n)||n<0)n=0;
+  if(n>=1e9)return 'จำนวนมาก';   /* เกินพันล้าน: อ่านสั้นๆ แทนที่จะอ่านคำว่า undefined */
   /* แก้บัคอ่านยอดผิด: เดิม Math.round ปัดเศษสตางค์แล้วทิ้งไปเงียบ ๆ ทำให้บางยอด
      (เช่น 300.30 → ปัดเป็น 300 หรือ 999.60 → ปัดเป็น 1000) อ่านเป็นยอดที่ไม่ตรงกับที่โดเนทจริง
      ตอนนี้แยกบาท/สตางค์ให้ถูกต้อง แล้วอ่านสตางค์ต่อเมื่อมีจริง */
@@ -4845,10 +4871,21 @@ function nameSpeak(s){
 }
 
 /* ได้ข้อมูลดิบ: ชื่อ/ยอด/ข้อความ ตรง ๆ — คำนวณคำอ่านทันที แล้วหน่วงเวลาคงที่ */
-function onRawAlert(d){
-  var name=String(d.name||'').trim()||'ผู้ไม่ประสงค์ออกนาม';
-  var amt=num(d.amount);
-  var msg=String(d.message||'').trim();
+function onRawAlert(d,mid){
+  d=d||{};
+  /* ต้องผ่านด่านเดียวกับการ์ด: ยอดไม่ถูกต้อง/ชื่อแบล็กลิสต์ = ไม่พูด ไม่ขึ้น ticker; คำหยาบถูกปิดเป็น *** ก่อนอ่าน
+     (เดิม RAW feed รับจาก socket ตรงๆ ข้าม Content Shield → อ่านคำหยาบออกเสียงจริง) */
+  var rawA=Number(String(d.amount==null?'':d.amount).replace(/,/g,''));
+  if(!isFinite(rawA)||rawA<=0)return;
+  if(mid){ if(RAWSEEN[mid])return; RAWSEEN[mid]=Date.now(); }
+  var _n=Date.now(); for(var _k in RAWSEEN) if(_n-RAWSEEN[_k]>60000) delete RAWSEEN[_k];
+  if(window.__RZ_SHIELD){
+    if(__RZ_SHIELD.SHIELD.nameBanned(d.name))return;
+    d=Object.assign({},d,{name:__RZ_SHIELD.SHIELD.mask(d.name),message:__RZ_SHIELD.SHIELD.mask(d.message)});
+  }
+  var name=String(d.name||'').trim().replace(/<(script|style)[^>]*>[\s\S]*?(<\/\1>|$)/gi,' ').replace(/<[^>]*>/g,' ').replace(/\*+/g,' ').replace(/\s+/g,' ').trim()||'ผู้ไม่ประสงค์ออกนาม';
+  var amt=Math.min(rawA,99999999);
+  var msg=String(d.message||'').trim().replace(/<(script|style)[^>]*>[\s\S]*?(<\/\1>|$)/gi,' ').replace(/<[^>]*>/g,' ').replace(/\*+/g,' ').replace(/\s+/g,' ').trim();
 
   /* ticker ใช้ค่าดิบทันที ไม่ต้องรออนิเมชัน */
   push(name,'฿'+amt.toLocaleString('th-TH'));
