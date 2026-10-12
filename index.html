@@ -3729,7 +3729,7 @@ $('#aud').addEventListener('click',function(){SFX.init();SFX.tick();this.classLi
 var stage=$('#stage'),shaker=$('#shaker'),card=$('#card'),flash=$('#flash'),aName=$('#aName'),aAmt=$('#aAmt'),
  aMsg=$('#aMsg'),aTier=$('#aTier'),sparks=$('#sparks'),sk1=$('#sk1'),sk2=$('#sk2'),cracks=$('#cracks'),
  strk=$('#strk'),lw=$('#logoWrap'),lVid=$('#lVid'),lImg=$('#lImg'),lSvg=$('#lSvg');
-var Q=[],busy=false,typer=null,TM=[];
+var Q=[],busy=false,typer=null,TM=[],SPEECH_MAX_WAIT=30000;
 function T(f,m){TM.push(setTimeout(f,m))}
 function clr(){TM.forEach(clearTimeout);TM=[];if(typer){clearInterval(typer);typer=null}}
 function rs(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c)}
@@ -3758,7 +3758,7 @@ var pumpTimer=null;
 function pumpDone(){clearTimeout(pumpTimer);pumpTimer=null;busy=false;T(pump,420)}
 function pump(){if(busy||!Q.length)return;busy=true;
  /* watchdog: play() ค้าง (วิดีโอโหลดไม่ขึ้น/exception) เกิน 18 วิ = ปลดล็อกเดินต่อ ไม่ต้อง F5 */
- clearTimeout(pumpTimer);pumpTimer=setTimeout(function(){try{clr()}catch(e){}stage.classList.remove('active');pumpDone()},18000);
+ clearTimeout(pumpTimer);pumpTimer=setTimeout(function(){try{clr()}catch(e){}stage.classList.remove('active');pumpDone()},SPEECH_MAX_WAIT+20000);
  try{play(Q.shift(),pumpDone)}catch(e){pumpDone()}}
 function prep(){var v=P('video')||CFG.video,g=P('logo')||CFG.logo;
  [lVid,lImg,lSvg].forEach(function(e){e.classList.remove('on')});
@@ -3797,7 +3797,13 @@ function play(d,done){clr();var t=tierOf(amt(d.amount)),nm=thSlice(String(d.name
  T(function(){lw.classList.add('dock');card.style.opacity='';rs(card,'in')},780);
  T(function(){roll(aAmt,0,amt(d.amount),950)},1150);
  T(function(){typeIn(aMsg,thSlice(String(d.message||''),120),26)},1480);
- T(function(){card.classList.remove('in');card.classList.add('out');lw.classList.remove('dock');lw.classList.add('out');
+ /* การ์ดไม่หายจนกว่าเสียงอ่านจะจบ: ถึงเวลาปิดปกติ (780+t.h) แล้วถ้าเสียงยังพูด/รอพูดอยู่ ให้รอต่อ (เช็กทุก 200ms)
+    มีเพดาน SPEECH_MAX_WAIT กันค้างถ้า TTS ล่ม/ถูกบล็อก/ไม่ยิง ended — หมดเพดานแล้วปิดตามปกติ */
+ var closeT0=0;
+ T(function closeCard(){
+  if(!closeT0)closeT0=Date.now();
+  if(window.__RZ_SPEAKING&&window.__RZ_SPEAKING()&&Date.now()-closeT0<SPEECH_MAX_WAIT){T(closeCard,200);return}
+  card.classList.remove('in');card.classList.add('out');lw.classList.remove('dock');lw.classList.add('out');
   T(function(){stage.classList.remove('active');lw.classList.remove('go','dock','out');
    try{lVid.pause()}catch(e){}done&&done()},470)},780+t.h)}
 
@@ -4637,8 +4643,10 @@ var TTS={
     };
     TTS._done=done;
     clearTimeout(TTS.timer);
-    /* กันค้าง ถ้า backend ไม่ตอบ/audio ไม่ยิง ended เลย */
-    TTS.timer=setTimeout(done, 4000+text.length*140);
+    /* กันค้าง 2 ชั้น (แก้บัค: เดิมตั้ง timer เดียวตั้งแต่ก่อนโหลดเสียง ด้วยเวลาเดาจากจำนวนตัวอักษร → เสียงที่ยังเล่นอยู่ถูกตัดกลางประโยค)
+       ชั้น 1 = ระหว่างรอ backend สังเคราะห์/โหลด หรือเสียงถูกบล็อก: 4 วิ + 140ms ต่อตัวอักษร แล้วข้าม
+       ชั้น 2 = เริ่มนับเมื่อเสียง "เริ่มเล่นจริง" (event playing): ความยาวไฟล์จริง + เผื่อ 4 วิ (ไม่รู้ความยาว = ประมาณจากตัวอักษร, สูงสุด 60 วิ) */
+    TTS.timer=setTimeout(done, 4000+text.length*140);   /* ชั้น 1 คงสูตรเดิม: ครอบคลุมทั้งรอโหลดและกรณีถูก autoplay บล็อก (ไม่มี 'playing') */
     fetch(url).then(function(r){
       if(!r.ok) throw new Error('http '+r.status+' '+(r.headers.get('x-tts-error')||''));
       var ct=r.headers.get('content-type')||'';
@@ -4648,11 +4656,26 @@ var TTS={
       if(!b||b.size<800) throw new Error('audio ว่าง ('+(b&&b.size)+' bytes)');
       var o=URL.createObjectURL(b);
       eq(true); SFX.blip();
+      var armed=false,arm=function(){
+        if(armed||fin)return; armed=true;
+        var dur=TTS.audio&&isFinite(TTS.audio.duration)&&TTS.audio.duration>0?TTS.audio.duration*1000:text.length*180;
+        clearTimeout(TTS.timer);
+        TTS.timer=setTimeout(done,Math.min(60000,dur+4000));
+      };
+      TTS.audio.addEventListener('playing',arm,{once:true});
       TTS.playUrl(o,done);
     }).catch(function(e){ console.warn('[tts]',e.message); done(); });
   }
 };
 function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.toggle('on',!!on); }
+/* บอกการ์ดว่า "ยังอ่านไม่จบ": มีคิวเสียง / กำลังสังเคราะห์-เล่น / รอ SPEAK_DELAY ก่อนเริ่มพูด
+   ถ้าเสียงถูกบล็อก autoplay (รอคลิก) ไม่นับว่ากำลังพูด — ไม่งั้นการ์ดจะค้างรอเสียงที่ไม่มีวันมา */
+var PENDING_SAY=0;
+window.__RZ_SPEAKING=function(){
+  if(!cfg.tts)return false;
+  if(TTS.blocked)return false;
+  return PENDING_SAY>0||TTS.busy||TTS.q.length>0;
+};
 
 /* ───── 03 · PARTICLE BURST ──────────────────────────────────── */
 var cv,cx,P=[],raf=0;
@@ -4897,7 +4920,8 @@ function onRawAlert(d,mid){
      ซึ่งเครื่องอ่านเสียงสังเคราะห์มักอ่านลื่นไถลผิดจังหวะถ้าไม่มีเครื่องหมายคั่นให้หยุดหายใจ */
   var line=nameSpeak(name)+', บริจาค '+bahtText(amt)+',';
   if(msg) line+=' ข้อความว่า, '+msg;
-  setTimeout(function(){ TTS.say(line); }, SPEAK_DELAY);
+  PENDING_SAY++;
+  setTimeout(function(){ PENDING_SAY=Math.max(0,PENDING_SAY-1); TTS.say(line); }, SPEAK_DELAY);
 }
 if(OBS) rawConnect();   /* RAW feed (TTS/ticker) เปิดเฉพาะ overlay — หน้าโดเนทไม่ต่อ/ไม่พูด */
 
