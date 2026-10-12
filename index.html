@@ -3733,6 +3733,9 @@ function rs(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c)
    (BroadcastChannel + storage event + WebSocket ส่งข้อความเดียวกันมาหลายทางพร้อมกัน) */
 var ALERT_SEEN={};
 function enqueue(d){d=d||{};
+ /* ANIMATION + เสียง alert เล่นเฉพาะใน Overlay (OBS) เท่านั้น — หน้าเว็บโดเนท/แอดมินไม่เล่น (แอดมินยังสั่งยิง/พรีวิวได้ ระบบจะส่งไปเล่นที่ overlay) */
+ var _hb=(location.hash||'').split('?')[0].toLowerCase();
+ if(!(IS_OBS||_hb==='#overlay'||_hb==='#obs'))return;
  if(typeof SHIELD!=='undefined'){d=Object.assign({},d);if(SHIELD.nameBanned(d.name)){return}d.name=SHIELD.mask(d.name);d.message=SHIELD.mask(d.message)}
  var now=Date.now(),k=[d.name,amt(d.amount),d.message].join('|');
  for(var x in ALERT_SEEN)if(now-ALERT_SEEN[x]>8000)delete ALERT_SEEN[x];
@@ -4859,7 +4862,7 @@ function onRawAlert(d){
   if(msg) line+=' ข้อความว่า, '+msg;
   setTimeout(function(){ TTS.say(line); }, SPEAK_DELAY);
 }
-rawConnect();
+if(OBS) rawConnect();   /* RAW feed (TTS/ticker) เปิดเฉพาะ overlay — หน้าโดเนทไม่ต่อ/ไม่พูด */
 
 /* เอฟเฟกต์ภาพยังผูกกับการ์ดจริง (ไม่เกี่ยวกับเสียง/ยอด) */
 function watchAlert(){
@@ -4934,7 +4937,8 @@ function init(){
     add('nf-tts','<i></i><i></i><i></i><i></i><i></i>');
     if(ADM) dock();   /* FX console: admin เท่านั้น (มือถือแขกไม่ต้องมีปุ่มตั้งค่า) */
   }
-  TTS.boot(); watchAlert(); watchGoal();
+  if(OBS){ TTS.boot(); watchAlert(); }   /* เสียง/เอฟเฟกต์ alert เฉพาะ overlay */
+  watchGoal();
   window.NFX={cfg:cfg,say:function(t){TTS.say(t);},burst:burst,sfx:SFX,
               test:fire,shake:shake,milestone:mile};
 }
