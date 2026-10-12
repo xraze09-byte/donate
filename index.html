@@ -4623,6 +4623,7 @@ var TTS={
   },
   say:function(t){
     if(!cfg.tts)return;
+    if(pParam('mute')==='1')return;   /* ?mute=1 = เงียบทั้งหมด รวมเสียงพูด (เดิมปิดแค่ SFX) */
     t=TTS.clean(t); if(!t)return;
     if(TTS.q.length>4) TTS.q.shift();
     TTS.q.push(t); TTS.run();
@@ -4673,6 +4674,7 @@ function eq(on){ var e=document.getElementById('nf-tts'); if(e) e.classList.togg
 var PENDING_SAY=0;
 window.__RZ_SPEAKING=function(){
   if(!cfg.tts)return false;
+  if(pParam('mute')==='1')return false;
   if(TTS.blocked)return false;
   return PENDING_SAY>0||TTS.busy||TTS.q.length>0;
 };
@@ -4924,6 +4926,24 @@ function onRawAlert(d,mid){
   setTimeout(function(){ PENDING_SAY=Math.max(0,PENDING_SAY-1); TTS.say(line); }, SPEAK_DELAY);
 }
 if(OBS) rawConnect();   /* RAW feed (TTS/ticker) เปิดเฉพาะ overlay — หน้าโดเนทไม่ต่อ/ไม่พูด */
+/* (แก้บัค "ไม่มีเสียงในหน้า overlay test") เดิมเสียงพูด/ticker ฟังจาก relay (WebSocket) ทางเดียว ขณะที่การ์ดฟังทั้ง relay + BroadcastChannel + storage
+   → เปิด overlay ในเบราว์เซอร์เดียวกับแอดมินแล้วกด PREVIEW/SIMULATE/REPLAY (ส่งผ่านช่องทางในเครื่อง) หรือตอน relay หลับ/ออฟไลน์ การ์ดขึ้นแต่เสียงเงียบ
+   ตอนนี้ฟังช่องทางในเครื่องด้วย ส่งเข้า onRawAlert ตัวเดิม: กันซ้ำด้วย id ข้อความ (มาทั้ง relay และในเครื่อง = พูดครั้งเดียว) + ผ่านด่าน Shield เดียวกัน */
+if(OBS){
+  (function(){
+    function fromBus(m){
+      try{ if(m&&m.t==='alert'&&m.d) onRawAlert(m.d,typeof m.i==='string'?m.i.slice(0,64):''); }catch(e){}
+    }
+    try{
+      var chn=(window.__RZ&&window.__RZ.ch)||('rzc_'+(pParam('k')||'x'));
+      if(window.BroadcastChannel){ var lbc=new BroadcastChannel(chn); lbc.addEventListener('message',function(e){ fromBus(e.data); }); }
+    }catch(e){}
+    addEventListener('storage',function(e){
+      if(e.key!=='rzc_bus_v4'||!e.newValue)return;
+      try{ fromBus(JSON.parse(e.newValue)); }catch(x){}
+    });
+  })();
+}
 
 /* เอฟเฟกต์ภาพยังผูกกับการ์ดจริง (ไม่เกี่ยวกับเสียง/ยอด) */
 function watchAlert(){
