@@ -1,0 +1,12 @@
+{
+  "name": "donate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RZ CLAN donation page, admin queue and OBS alert overlay (single-file static app)",
+  "scripts": {
+    "test": "node test/run-all.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}
