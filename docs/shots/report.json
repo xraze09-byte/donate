@@ -1,0 +1,1016 @@
+[
+  {
+    "skin": "universal",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/universal-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "universal",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/universal-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 667
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "universal",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/universal-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "universal",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/universal-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1461
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "universal",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/universal-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "universal",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/universal-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "fps",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/fps-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "fps",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/fps-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 668
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "clipped",
+        "el": "button#bGen.btn-x"
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "fps",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/fps-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "fps",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/fps-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1461
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "fps",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/fps-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "fps",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/fps-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "rpg",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/rpg-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "rpg",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/rpg-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "rpg",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/rpg-admin-390.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "rpg",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/rpg-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 671
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "rpg",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/rpg-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "rpg",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/rpg-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "roblox",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/roblox-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "roblox",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/roblox-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "roblox",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/roblox-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "roblox",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/roblox-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "roblox",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/roblox-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "roblox",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/roblox-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "block",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/block-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "block",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/block-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1459
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "block",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/block-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "block",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/block-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "block",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/block-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "block",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/block-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "cyber",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/cyber-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "cyber",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/cyber-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "cyber",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/cyber-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "cyber",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/cyber-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "cyber",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/cyber-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "cyber",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/cyber-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "light",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/light-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "light",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/light-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "light",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/light-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "light",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/light-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "light",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/light-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "light",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/light-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "horror",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/horror-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "horror",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/horror-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1459
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "horror",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/horror-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "horror",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/horror-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "horror",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/horror-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "horror",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/horror-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "space",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/space-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "space",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/space-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1460
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "space",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/space-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "space",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/space-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 673
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1463
+      }
+    ]
+  },
+  {
+    "skin": "space",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/space-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "space",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/space-overlay-1280.png",
+    "issues": []
+  },
+  {
+    "skin": "custom",
+    "page": "donor",
+    "w": 390,
+    "file": "docs/shots/custom-donor-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 33
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      },
+      {
+        "type": "clipped",
+        "el": "h3"
+      }
+    ]
+  },
+  {
+    "skin": "custom",
+    "page": "donor",
+    "w": 1280,
+    "file": "docs/shots/custom-donor-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 666
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1459
+      },
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 89
+      }
+    ]
+  },
+  {
+    "skin": "custom",
+    "page": "admin",
+    "w": 390,
+    "file": "docs/shots/custom-admin-390.png",
+    "issues": [
+      {
+        "type": "overflow-x",
+        "el": "span.sheen",
+        "right": 39
+      }
+    ]
+  },
+  {
+    "skin": "custom",
+    "page": "admin",
+    "w": 1280,
+    "file": "docs/shots/custom-admin-1280.png",
+    "issues": [
+      {
+        "type": "clipped",
+        "el": "div#bgfx"
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-a",
+        "right": 670
+      },
+      {
+        "type": "overflow-x",
+        "el": "div.fx-b",
+        "right": 1462
+      },
+      {
+        "type": "clipped",
+        "el": "button#gBtn.btn-x"
+      }
+    ]
+  },
+  {
+    "skin": "custom",
+    "page": "overlay",
+    "w": 390,
+    "file": "docs/shots/custom-overlay-390.png",
+    "issues": []
+  },
+  {
+    "skin": "custom",
+    "page": "overlay",
+    "w": 1280,
+    "file": "docs/shots/custom-overlay-1280.png",
+    "issues": []
+  }
+]
