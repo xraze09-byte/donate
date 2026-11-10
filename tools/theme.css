@@ -1,0 +1,96 @@
+/* tools/theme.css — Universal pixel theme. ค่า --u-* ตั้งโดย tools/brand.js; ด้านล่างคือ fallback ของ universal */
+:root{
+  --u-bg:#0d0f14;--u-surface:#171a22;--u-ink:#f1f3f8;--u-muted:#aab1c2;
+  --u-line:#000;--u-shadow:#000;--u-halo:#000;
+  --u-a1:#ffcc00;--u-a2:#00d1ff;--u-on-a1:#000;--u-on-a2:#000;--u-a1-text:#ffcc00;--u-a2-text:#00d1ff;
+  --u-bw:3px;--u-depth:4px;--u-radius:0px;
+  --u-font:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,"Noto Sans Thai","Sarabun",monospace;
+  --u-bevel:inset 0 3px 0 rgb(255 255 255/.10),inset 0 -3px 0 rgb(0 0 0/.28);
+}
+/* ธีมใหม่ที่ไม่มี CSS เดิม: ผูกตัวแปรเดิมของ UI ให้ตามธีม (ตรวจ contrast ด้วย shoot.mjs) */
+html[data-skin="horror"],html[data-skin="space"],html[data-skin="custom"]{
+  --red:var(--u-a1);--tc:var(--u-a1);--surface-1:var(--u-surface);--ui-radius:var(--u-radius);
+}
+
+/* ---------- ปุ่ม 3D ---------- */
+.u-btn{position:relative;font:700 13px/1 var(--u-font);letter-spacing:.06em;text-transform:uppercase;
+  color:var(--u-on-a1);background:var(--u-a1);border:var(--u-bw) solid var(--u-line);border-radius:var(--u-radius);
+  padding:12px 16px;min-height:44px;cursor:pointer;
+  box-shadow:var(--u-depth) var(--u-depth) 0 var(--u-shadow),var(--u-bevel);transition:transform .08s linear}
+.u-btn--alt{color:var(--u-on-a2);background:var(--u-a2)}
+.u-btn:hover{transform:translate(-1px,-1px)}
+.u-btn:active{transform:translate(var(--u-depth),var(--u-depth));box-shadow:0 0 0 var(--u-shadow),var(--u-bevel)}
+.u-btn:focus-visible,.u-sw:focus-visible{outline:3px solid var(--u-a2);outline-offset:3px}
+
+/* ---------- การ์ด 3D ---------- */
+.u-card{background:var(--u-surface);color:var(--u-ink);border:var(--u-bw) solid var(--u-line);border-radius:var(--u-radius);
+  box-shadow:var(--u-depth) var(--u-depth) 0 var(--u-shadow),var(--u-bevel);padding:14px;display:grid;gap:6px}
+.u-card p{margin:0;color:var(--u-ink)}
+.u-tier{justify-self:start;font-size:11px;letter-spacing:.12em;padding:3px 6px;background:var(--u-a1);color:var(--u-on-a1)}
+.u-name{font-size:20px;color:var(--u-a1-text)}
+.u-amt{font-size:26px;font-weight:800;color:var(--u-a2-text)}
+@media (hover:hover) and (pointer:fine){
+  html[data-u-motion="on"] .u-tilt{transition:transform .2s ease-out}
+  html[data-u-motion="on"] .u-tilt:hover{transform:perspective(700px) rotateX(6deg) rotateY(-8deg)}
+}
+
+/* ---------- แผงตั้งค่าธีม (#admin เท่านั้น) ---------- */
+#u-theme{font-family:var(--u-font);color:var(--u-ink);background:var(--u-bg);
+  border:var(--u-bw) solid var(--u-line);border-radius:var(--u-radius);
+  box-shadow:var(--u-depth) var(--u-depth) 0 var(--u-shadow),var(--u-bevel);
+  padding:16px;margin:16px 0;display:grid;gap:18px;max-width:100%;box-sizing:border-box;grid-column:1/-1;min-width:0}
+#u-theme *{box-sizing:border-box}
+#u-theme h2{margin:0;font-size:18px;letter-spacing:.08em;color:var(--u-ink)}
+#u-theme h3{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--u-ink)}
+.u-step{display:grid;gap:10px}
+.u-hint{margin:0;font-size:12px;color:var(--u-muted)}
+.u-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.u-sw{display:grid;padding:0;cursor:pointer;background:var(--u-bg);color:var(--u-ink);font:700 12px var(--u-font);
+  border:var(--u-bw) solid var(--u-line);border-radius:var(--u-radius);overflow:hidden;
+  box-shadow:3px 3px 0 var(--u-shadow);transition:transform .08s linear}
+.u-sw i{display:block;height:30px;border-bottom:var(--u-bw) solid var(--u-line);
+  background:linear-gradient(90deg,var(--c1) 50%,var(--c2) 50%)}
+.u-sw span{padding:8px 4px}
+.u-sw:hover{transform:translate(-1px,-1px)}
+.u-sw[aria-pressed="true"]{outline:3px solid var(--u-a1);outline-offset:2px;transform:translate(-2px,-2px)}
+.u-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.u-field{display:grid;gap:4px;flex:1 1 140px;min-width:0;font-size:12px;color:var(--u-muted)}
+.u-field input[type=color]{width:100%;height:44px;padding:0;border:var(--u-bw) solid var(--u-line);background:none;cursor:pointer}
+.u-field input[type=range]{width:100%;accent-color:var(--u-a1)}
+.u-field input[type=checkbox]{width:24px;height:24px;accent-color:var(--u-a1)}
+.u-field select,.u-io{width:100%;min-height:44px;font:inherit;font-size:13px;color:var(--u-ink);background:var(--u-surface);
+  border:var(--u-bw) solid var(--u-line);border-radius:var(--u-radius);padding:8px}
+.u-io{min-height:96px;resize:vertical}
+.u-badges{display:flex;flex-wrap:wrap;gap:6px}
+.u-badge{font-size:11px;padding:4px 6px;border:2px solid var(--u-line);background:var(--u-surface);color:var(--u-ink)}
+.u-badge.bad{background:#000;color:#ffb4b4;border-color:#ff5c5c}
+.u-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;max-width:90vw;
+  font:700 13px var(--u-font);padding:10px 14px;background:var(--u-ink);color:var(--u-bg);
+  border:var(--u-bw) solid var(--u-line);box-shadow:4px 4px 0 var(--u-shadow)}
+@media (max-width:480px){#u-theme{padding:12px;margin-left:-20px;margin-right:-20px;max-width:none}.u-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* หัวข้อพาเนลบนมือถือ: ให้ขึ้นบรรทัดใหม่แทนการตัดเป็น "…" (เห็นใน Chrome จริงที่ 390px: Donor Wall / Share Card) */
+@media (max-width:480px){#vDonor .hdr{flex-wrap:wrap;row-gap:4px}#vDonor .hdr h3{overflow:visible;text-overflow:clip;white-space:normal;min-width:0}}
+
+/* ---------- ลดแอนิเมชัน ---------- */
+html[data-u-motion="off"] .u-btn,html[data-u-motion="off"] .u-sw,html[data-u-motion="off"] .u-tilt{transition:none!important}
+@media (prefers-reduced-motion:reduce){.u-btn,.u-sw,.u-tilt{transition:none!important}.u-tilt:hover{transform:none!important}}
+
+/* @overlay-start — แก้แค่สี/เงา ห้ามมีคุณสมบัติที่เปลี่ยนขนาดหรือตำแหน่ง (กติกาข้อ 4, ตรวจโดย test/overlay-css.test.js) */
+html.u-overlay, html.u-overlay body{background:transparent!important}
+html.u-overlay #card{background-color:var(--u-surface);border-radius:var(--u-radius);
+  box-shadow:0 0 0 var(--u-bw) var(--u-line),var(--u-depth) var(--u-depth) 0 var(--u-bw) var(--u-shadow),inset 0 4px 0 rgb(255 255 255/.10),inset 0 -4px 0 rgb(0 0 0/.30)}
+html.u-overlay #card .ci{background-image:none;background-color:var(--u-surface)}
+html.u-overlay #card .ac-t{color:var(--u-muted);text-shadow:none}
+html.u-overlay #card .vb, html.u-overlay #card .ac-a{color:var(--u-ink);text-shadow:none}
+html.u-overlay #card .ac-a{color:var(--u-a2-text)}
+html.u-overlay #aud, html.u-overlay #aud .lbl{background-color:var(--u-a1);color:var(--u-on-a1)}
+html.u-overlay #aName{color:var(--u-a1-text)}
+html.u-overlay #aAmt{color:var(--u-a2-text)}
+html.u-overlay #aMsg{color:var(--u-ink)}
+html.u-overlay .ac-tier{background-color:var(--u-a1);color:var(--u-on-a1)}
+html.u-overlay .ac-b{background-color:var(--u-a2)}
+html.u-overlay .og-t{background-color:var(--u-surface);box-shadow:0 0 0 var(--u-bw) var(--u-line),var(--u-depth) var(--u-depth) 0 var(--u-bw) var(--u-shadow)}
+html.u-overlay .og-f{background-color:var(--u-a1)}
+html.u-overlay .og-a, html.u-overlay .og-s{color:var(--u-ink);text-shadow:2px 0 var(--u-halo),-2px 0 var(--u-halo),0 2px var(--u-halo),0 -2px var(--u-halo)}
+/* @overlay-end */
