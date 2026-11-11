@@ -57,12 +57,12 @@ for (const skin of SKINS) for (const [name, hash] of Object.entries(PAGES)) for 
   if (name === 'overlay') {
     const a = await alphaStats(p, buf.toString('base64'));
     if (a.transparentRatio < 0.5 || a.topLeftAlpha !== 0) issues.push({ type:'overlay-not-transparent', ...a });
-    const g = await ctx.newPage();   // ทดสอบพื้นเขียว
+    // ทดสอบพื้นเขียว: ใช้ภาพโปร่งใสจริงที่โหลดแบบ top-level (เหมือน OBS) แล้ววางทับ #00ff00
+    // (ห้ามใช้ iframe: ไม่เข้าโหมด body.obs ทำให้เห็นเอฟเฟกต์พื้นหลังที่ OBS ไม่มี)
+    const g = await ctx.newPage();
     await g.setViewportSize({ width: w, height: 1080 });
-    await g.setContent(`<body style="margin:0;background:#00ff00"><iframe src="${BASE}${hash}" style="border:0;width:100vw;height:100vh"></iframe></body>`);
-    await g.waitForTimeout(800);
-    await g.frames()[1]?.evaluate(() => (window.RZX && window.RZX.test ? window.RZX.test(500) : (window.testAlert && window.testAlert())));
-    await g.waitForTimeout(900);
+    await g.setContent(`<body style="margin:0;background:#00ff00"><img style="display:block;width:${w}px;height:1080px" src="data:image/png;base64,${buf.toString('base64')}"></body>`);
+    await g.waitForTimeout(300);
     await g.screenshot({ path: `docs/shots/${skin}-overlay-green-${w}.png` });
   }
   report.push({ skin, page: name, w, file, issues });
