@@ -35,11 +35,12 @@
     cyber:  { base: 'dark', bg: '#07060f', surface: '#120f24', a1: '#ff2bd6', a2: '#22f0ff' },
     light:  { base: 'light', a1: '#e63946', a2: '#1d6fd8' },
     horror: { base: 'dark', bg: '#0b0708', surface: '#1a0f10', ink: '#f2e8e4', muted: '#b9a6a2', a1: '#ff3b3b', a2: '#9be564' }, // D
-    space:  { base: 'dark', bg: '#070b1a', surface: '#101735', ink: '#eef2ff', muted: '#a9b4d6', a1: '#7cc4ff', a2: '#ffd166' }  // D
+    space:  { base: 'dark', bg: '#070b1a', surface: '#101735', ink: '#eef2ff', muted: '#a9b4d6', a1: '#7cc4ff', a2: '#ffd166' }, // D
+    persona: { base: 'dark', bg: '#000000', surface: '#0d0d0d', ink: '#ffffff', muted: '#c9c9c9', line: '#ffffff', shadow: '#e60012', a1: '#e60012', a2: '#ffffff' } // P5: crimson / black / white
   };
   const SKINS = [...Object.keys(PRESETS), 'custom'];
   const NAMES = { universal: 'Universal', fps: 'FPS', rpg: 'RPG', roblox: 'Brick', block: 'Block', cyber: 'Cyber',
-                  light: 'Light', horror: 'Horror', space: 'Space', custom: 'Custom' };
+                  light: 'Light', horror: 'Horror', space: 'Space', persona: 'Persona', custom: 'Custom' };
   const DEFAULT = { skin: 'universal', base: 'dark', a1: '#ffcc00', a2: '#00d1ff', depth: 4, radius: 0, bw: 3, motion: true, sfx: 'auto' };
 
   /* ---------- state ---------- */
@@ -95,7 +96,7 @@
   const SFX_PACKS = ['auto', 'classic', 'coin', 'laser', 'levelup'];
   const SFX_LABEL = { auto: 'อัตโนมัติตามธีม', classic: 'เสียงเดิมของระบบ', coin: '8-bit Coin', laser: 'Laser', levelup: 'Level-up' };
   const AUTO_SFX = { universal: 'coin', fps: 'laser', rpg: 'levelup', roblox: 'coin', block: 'coin', cyber: 'laser',
-                     light: 'coin', horror: 'laser', space: 'levelup', custom: 'coin' };
+                     light: 'coin', horror: 'laser', space: 'levelup', persona: 'levelup', custom: 'coin' };
   const PACKS = { // [wave, freqStart, freqEnd, at(s), dur(s)] — เพิ่มชุดใหม่ได้ด้วยการเพิ่มแถว
     coin:    [['square', 988, 988, 0, 0.08], ['square', 1319, 1319, 0.08, 0.30]],
     laser:   [['sawtooth', 1400, 110, 0, 0.32], ['square', 700, 55, 0.03, 0.28]],

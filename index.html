@@ -3118,6 +3118,151 @@ html.u-overlay .og-a, html.u-overlay .og-s{color:var(--u-ink);text-shadow:2px 0 
 /* @overlay-end */
 </style>
 <!-- @u-theme-css:end -->
+<!-- @p5-css:start -->
+<style id="p5-css">
+/* tools/p5.css — "Persona" skin: crimson #E60012 / black #000 / white #FFF.
+   ทุกกฎผูกกับ html[data-skin="persona"] เท่านั้น → ธีมอื่นไม่ได้รับผลกระทบ
+   ส่วน @p5-overlay-safe ใช้ได้เฉพาะคุณสมบัติที่ไม่เปลี่ยนขนาด/ตำแหน่งการ์ด (ตรวจโดย test/p5-overlay.test.js) */
+
+/* ---------- ฟอนต์ ransom-note / punk (ไม่โหลดไฟล์เพิ่ม: ใช้ฟอนต์ที่หน้าเว็บมีอยู่แล้ว + system fallback) ---------- */
+html[data-skin="persona"]{
+  --p5-red:#e60012;--p5-ink:#000;--p5-paper:#fff;
+  --p5-display:'Teko','Anton','Impact','Arial Narrow Bold','Haettenschweiler',sans-serif;
+  --p5-mx:0;--p5-my:0;                      /* ตำแหน่งเมาส์ -1..1 (ตั้งโดย p5.js) */
+  --u-font:'Kanit','Noto Sans Thai',system-ui,sans-serif;
+}
+
+/* ---------- พื้นหลัง: halftone + เส้นทแยง ---------- */
+html[data-skin="persona"] body{background-color:#000}
+html[data-skin="persona"] #bgfx{background:
+  radial-gradient(circle at 1px 1px,rgb(230 0 18/.38) 1.1px,transparent 1.6px) 0 0/9px 9px,
+  linear-gradient(115deg,transparent 0 46%,rgb(230 0 18/.16) 46% 54%,transparent 54%),#000}
+html[data-skin="persona"] #bgfx>*{opacity:.18}
+
+/* ---------- หัวข้อใหญ่: ransom-note (ตัวอักษรสลับพื้น/เอียง) ---------- */
+html[data-skin="persona"] .p5-ransom{display:inline-flex;flex-wrap:wrap;gap:.08em .04em;justify-content:center;line-height:1}
+html[data-skin="persona"] .p5-ransom>span{display:inline-block;font-family:var(--p5-display);font-weight:700;
+  padding:.02em .1em;transform:rotate(var(--r,0deg)) translateY(var(--y,0));text-transform:uppercase}
+html[data-skin="persona"] .p5-ransom>span:nth-child(4n+1){background:#fff;color:#000;--r:-3deg}
+html[data-skin="persona"] .p5-ransom>span:nth-child(4n+2){background:#e60012;color:#fff;--r:2deg;--y:.05em}
+html[data-skin="persona"] .p5-ransom>span:nth-child(4n+3){background:#000;color:#fff;box-shadow:inset 0 0 0 .06em #fff;--r:-1.5deg}
+html[data-skin="persona"] .p5-ransom>span:nth-child(4n){background:#fff;color:#e60012;--r:3.5deg;--y:-.04em}
+html[data-skin="persona"] .p5-ransom>span:nth-child(4n)::selection{background:#000;color:#fff}
+
+/* ---------- แผง/การ์ด: กรอบทแยง clip-path + เงาแดงแข็ง ---------- */
+html[data-skin="persona"] .panel,html[data-skin="persona"] .u-card,html[data-skin="persona"] #u-theme{
+  clip-path:polygon(0 8px,14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%);
+  border:3px solid #fff;background:linear-gradient(180deg,#0d0d0d,#000);
+  box-shadow:6px 6px 0 #e60012}
+html[data-skin="persona"] .panel-in{background:transparent}
+html[data-skin="persona"] .hdr{background:#e60012;color:#fff;transform:skewX(-8deg);margin:-3px 14px 0 -10px;padding-left:22px;
+  clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+html[data-skin="persona"] .hdr>*{transform:skewX(8deg);color:#fff}
+html[data-skin="persona"] .hdr h3{font-family:var(--p5-display);letter-spacing:.12em;text-transform:uppercase;text-shadow:2px 2px 0 #000}
+
+/* ---------- ช่องกรอก: เอียง + เงาชดเชยตามเมาส์ ---------- */
+html[data-skin="persona"] .inp{background:#fff;color:#000;border:3px solid #000;border-radius:0;
+  box-shadow:calc(5px + var(--p5-mx)*-4px) calc(5px + var(--p5-my)*-4px) 0 #e60012;
+  transition:transform .09s cubic-bezier(.2,1.6,.4,1),box-shadow .09s linear;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%)}
+html[data-skin="persona"] .inp::placeholder{color:#4d4d4d}
+html[data-skin="persona"] .inp:hover{transform:rotate(-.6deg) translateY(-1px)}
+html[data-skin="persona"] .inp:focus{outline:none;transform:rotate(.8deg) scale(1.015);background:#fff;
+  box-shadow:calc(8px + var(--p5-mx)*-6px) calc(8px + var(--p5-my)*-6px) 0 #e60012,0 0 0 3px #fff}
+html[data-skin="persona"] .lbl-f{color:#fff;font-family:var(--p5-display);letter-spacing:.14em;text-transform:uppercase;
+  display:inline-block;background:#000;padding:1px 8px;transform:skewX(-10deg);border-left:4px solid #e60012}
+html[data-skin="persona"] .err{color:#fff;background:#e60012;padding:2px 8px;display:none;transform:rotate(-.8deg)}
+html[data-skin="persona"] .err.on{display:inline-block}
+
+/* ---------- ปุ่ม: เอียง + เด้ง (snappy) ---------- */
+html[data-skin="persona"] .btn-x,html[data-skin="persona"] .u-btn,html[data-skin="persona"] .chip{
+  font-family:var(--p5-display);letter-spacing:.14em;text-transform:uppercase;border:3px solid #fff;border-radius:0;
+  background:#e60012;color:#fff;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+  box-shadow:calc(5px + var(--p5-mx)*-4px) calc(5px + var(--p5-my)*-4px) 0 #000,calc(7px + var(--p5-mx)*-4px) calc(7px + var(--p5-my)*-4px) 0 #fff;
+  transition:transform .08s cubic-bezier(.2,1.8,.4,1)}
+html[data-skin="persona"] .btn-x:hover,html[data-skin="persona"] .u-btn:hover,html[data-skin="persona"] .chip:hover{
+  transform:skewX(-6deg) translate(-2px,-2px) scale(1.04);background:#fff;color:#000}
+html[data-skin="persona"] .btn-x:active,html[data-skin="persona"] .u-btn:active,html[data-skin="persona"] .chip:active{
+  transform:skewX(-3deg) translate(3px,3px) scale(.97);box-shadow:0 0 0 #000}
+html[data-skin="persona"] .btn-x:focus-visible,html[data-skin="persona"] .chip:focus-visible,html[data-skin="persona"] .u-btn:focus-visible{
+  outline:3px solid #fff;outline-offset:3px;transform:skewX(-6deg) scale(1.04)}
+html[data-skin="persona"] .chip.on{background:#fff;color:#000}
+html[data-skin="persona"] .btn-x .lbl{color:inherit}
+
+/* ---------- splatter + halftone มุมการ์ด (ตกแต่ง ไม่รับ pointer) ---------- */
+html[data-skin="persona"] .panel{position:relative}
+html[data-skin="persona"] .panel::before{content:"";position:absolute;right:-18px;top:-18px;width:90px;height:90px;pointer-events:none;z-index:1;
+  background:radial-gradient(circle at 30% 40%,#e60012 0 34%,transparent 35%),radial-gradient(circle at 68% 30%,#e60012 0 14%,transparent 15%),
+  radial-gradient(circle at 55% 72%,#e60012 0 18%,transparent 19%),radial-gradient(circle at 12% 78%,#e60012 0 8%,transparent 9%);
+  mix-blend-mode:normal;opacity:.9}
+html[data-skin="persona"] .panel::after{content:"";position:absolute;left:0;bottom:0;width:110px;height:70px;pointer-events:none;
+  background:radial-gradient(circle at 2px 2px,#fff 1.2px,transparent 1.7px) 0 0/8px 8px;
+  -webkit-mask-image:linear-gradient(45deg,#000,transparent 70%);mask-image:linear-gradient(45deg,#000,transparent 70%);opacity:.35}
+
+/* ---------- canvas 3D (หน้าโดเนทเท่านั้น) ---------- */
+#p5-3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
+html[data-skin="persona"]:not(.u-overlay) #p5-3d.on{display:block}
+#vDonor,#vAdmin{position:relative}
+
+/* ---------- INTRO LOADER (หน้าโดเนทเท่านั้น; ไม่ทำงานบน #overlay/#admin) ---------- */
+#p5-intro{position:fixed;inset:0;z-index:100000;background:#000;overflow:hidden;display:none;pointer-events:all}
+#p5-intro.on{display:block}
+#p5-intro .p5-stripe{position:absolute;left:-20%;width:140%;height:22%;background:#e60012;transform:translateX(-120%) skewY(-8deg);
+  animation:p5-rip .62s cubic-bezier(.7,0,.2,1) forwards;animation-delay:var(--d,0s)}
+#p5-intro .p5-stripe:nth-child(even){background:#fff;height:10%}
+#p5-intro .p5-stripe:nth-child(3n){background:#000;box-shadow:0 0 0 4px #fff inset}
+@keyframes p5-rip{to{transform:translateX(0) skewY(-8deg)}}
+#p5-intro .p5-chain{position:absolute;left:-10%;width:120%;height:26px;transform:rotate(var(--a,-12deg)) translateX(-110%);
+  background:repeating-linear-gradient(90deg,#fff 0 22px,#000 22px 26px,#bdbdbd 26px 40px,#000 40px 46px);
+  border-block:3px solid #000;animation:p5-chain .8s cubic-bezier(.6,0,.2,1) forwards;animation-delay:var(--d,.2s)}
+@keyframes p5-chain{to{transform:rotate(var(--a,-12deg)) translateX(0)}}
+#p5-intro .p5-word{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-6deg);text-align:center;width:92vw;
+  font:700 clamp(2.6rem,13vw,9rem)/.9 var(--p5-display);color:#fff;letter-spacing:.04em;text-transform:uppercase;
+  text-shadow:4px 4px 0 #e60012,8px 8px 0 #000;opacity:0;animation:p5-word .5s cubic-bezier(.2,1.7,.4,1) .55s forwards}
+#p5-intro .p5-word em{font-style:normal;background:#e60012;padding:0 .12em;display:inline-block;transform:skewX(-10deg)}
+@keyframes p5-word{from{opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(2.4)}to{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}}
+#p5-intro .p5-bar{position:absolute;left:8vw;right:8vw;bottom:14vh;height:16px;background:#000;border:3px solid #fff;transform:skewX(-14deg)}
+#p5-intro .p5-bar>i{display:block;height:100%;width:0;background:#e60012;animation:p5-load var(--dur,1.5s) cubic-bezier(.5,0,.2,1) .35s forwards}
+@keyframes p5-load{to{width:100%}}
+#p5-intro .p5-pct{position:absolute;right:8vw;bottom:calc(14vh + 26px);font:700 clamp(1rem,4vw,1.6rem) var(--p5-display);color:#fff;letter-spacing:.2em}
+/* รอยแยกหน้าจอ: สองครึ่งเลื่อนแยกตามเส้นทแยง */
+#p5-intro.slash .p5-half{animation:none}
+#p5-intro .p5-half{position:absolute;inset:0;background:#000;display:none}
+#p5-intro.slash{background:transparent}
+#p5-intro.slash>*:not(.p5-half){opacity:0;transition:opacity .08s}
+#p5-intro.slash .p5-half{display:block}
+#p5-intro.slash .p5-half.a{clip-path:polygon(0 0,100% 0,0 100%);background:#e60012;animation:p5-sa .55s cubic-bezier(.7,0,.2,1) forwards}
+#p5-intro.slash .p5-half.b{clip-path:polygon(100% 0,100% 100%,0 100%);background:#000;animation:p5-sb .55s cubic-bezier(.7,0,.2,1) forwards}
+#p5-intro.slash::after{content:"";position:absolute;left:-10%;top:50%;width:120%;height:6px;background:#fff;box-shadow:0 0 18px #fff,0 0 40px #e60012;
+  transform:rotate(-35deg) scaleX(0);animation:p5-cut .35s ease-out forwards}
+@keyframes p5-sa{to{transform:translate(-110%,-110%)}}
+@keyframes p5-sb{to{transform:translate(110%,110%)}}
+@keyframes p5-cut{to{transform:rotate(-35deg) scaleX(1)}}
+
+/* ---------- ลดแอนิเมชัน ---------- */
+html[data-u-motion="off"] #p5-intro,html[data-u-motion="off"] #p5-3d{display:none!important}
+@media (prefers-reduced-motion:reduce){
+  #p5-intro,#p5-3d{display:none!important}
+  html[data-skin="persona"] .inp,html[data-skin="persona"] .btn-x,html[data-skin="persona"] .chip,html[data-skin="persona"] .u-btn{transition:none!important}
+}
+@media (max-width:480px){
+  html[data-skin="persona"] .panel,html[data-skin="persona"] .u-card{box-shadow:4px 4px 0 #e60012}
+  html[data-skin="persona"] .panel::before{width:60px;height:60px;right:-10px;top:-12px}
+}
+
+/* @p5-overlay-safe-start — ใช้ได้เฉพาะสี/เงา/ฟิลเตอร์ที่ไม่ขยับเลย์เอาต์ ห้าม width/height/margin/padding/position/transform บนการ์ดเอง */
+html.u-overlay[data-skin="persona"] #card{box-shadow:0 0 0 var(--u-bw) #fff,8px 8px 0 var(--u-bw) #e60012,inset 0 4px 0 rgb(255 255 255/.12)}
+html.u-overlay[data-skin="persona"] #card .ci{background-color:#000}
+html.u-overlay[data-skin="persona"] #aName{color:#fff;text-shadow:3px 3px 0 #e60012}
+html.u-overlay[data-skin="persona"] #aAmt{color:#fff;text-shadow:3px 3px 0 #e60012}
+html.u-overlay[data-skin="persona"] .ac-tier{background-color:#e60012;color:#fff}
+html.u-overlay[data-skin="persona"] .ac-b{background-color:#e60012}
+html.u-overlay[data-skin="persona"] #card .ac-t{color:#fff}
+html.u-overlay[data-skin="persona"] #card .vb{color:#fff;text-shadow:2px 2px 0 #e60012}
+/* @p5-overlay-safe-end */
+</style>
+<!-- @p5-css:end -->
 </head>
 <body>
 
@@ -3840,6 +3985,8 @@ function enqueue(d,mid){d=d||{};
  /* ANIMATION + เสียง alert เล่นเฉพาะใน Overlay (OBS) เท่านั้น — หน้าเว็บโดเนท/แอดมินไม่เล่น (แอดมินยังสั่งยิง/พรีวิวได้ ระบบจะส่งไปเล่นที่ overlay) */
  var _hb=(location.hash||'').split('?')[0].toLowerCase();
  if(!(IS_OBS||_hb==='#overlay'||_hb==='#obs'))return;
+ /* P5 integrity gate: โครงสร้าง/ชนิด/ขนาด payload ต้องผ่าน DonationGuard.verifyAlert ก่อนขึ้นจอ (กัน proto-pollution, ชนิดผิด, ข้อความยาวเกิน) ; ไม่มี guard = ใช้ทางเดิม */
+ try{if(window.DonationGuard&&window.DonationGuard.verifyAlert){var _vg=window.DonationGuard.verifyAlert(d);if(!_vg.ok)return}}catch(_e){}
  if(typeof SHIELD!=='undefined'){d=Object.assign({},d);if(SHIELD.nameBanned(d.name)){return}d.name=SHIELD.mask(d.name);d.message=SHIELD.mask(d.message)}
  /* ยอดต้องเป็นตัวเลขบวกจริง: ยอดลบ/0/NaN/Infinity/ไม่ใช่ตัวเลข = ไม่ขึ้นจอ (เดิม amt() ตัดเครื่องหมายลบทิ้ง → -500 โชว์เป็น 500) */
  var rawA=Number(String(d.amount==null?'':d.amount).replace(/,/g,''));
@@ -6600,11 +6747,12 @@ setInterval(function(){if(d.hidden)return;adminMount();patchDonLink()},1200);
     cyber:  { base: 'dark', bg: '#07060f', surface: '#120f24', a1: '#ff2bd6', a2: '#22f0ff' },
     light:  { base: 'light', a1: '#e63946', a2: '#1d6fd8' },
     horror: { base: 'dark', bg: '#0b0708', surface: '#1a0f10', ink: '#f2e8e4', muted: '#b9a6a2', a1: '#ff3b3b', a2: '#9be564' }, // D
-    space:  { base: 'dark', bg: '#070b1a', surface: '#101735', ink: '#eef2ff', muted: '#a9b4d6', a1: '#7cc4ff', a2: '#ffd166' }  // D
+    space:  { base: 'dark', bg: '#070b1a', surface: '#101735', ink: '#eef2ff', muted: '#a9b4d6', a1: '#7cc4ff', a2: '#ffd166' }, // D
+    persona: { base: 'dark', bg: '#000000', surface: '#0d0d0d', ink: '#ffffff', muted: '#c9c9c9', line: '#ffffff', shadow: '#e60012', a1: '#e60012', a2: '#ffffff' } // P5: crimson / black / white
   };
   const SKINS = [...Object.keys(PRESETS), 'custom'];
   const NAMES = { universal: 'Universal', fps: 'FPS', rpg: 'RPG', roblox: 'Brick', block: 'Block', cyber: 'Cyber',
-                  light: 'Light', horror: 'Horror', space: 'Space', custom: 'Custom' };
+                  light: 'Light', horror: 'Horror', space: 'Space', persona: 'Persona', custom: 'Custom' };
   const DEFAULT = { skin: 'universal', base: 'dark', a1: '#ffcc00', a2: '#00d1ff', depth: 4, radius: 0, bw: 3, motion: true, sfx: 'auto' };
 
   /* ---------- state ---------- */
@@ -6660,7 +6808,7 @@ setInterval(function(){if(d.hidden)return;adminMount();patchDonLink()},1200);
   const SFX_PACKS = ['auto', 'classic', 'coin', 'laser', 'levelup'];
   const SFX_LABEL = { auto: 'อัตโนมัติตามธีม', classic: 'เสียงเดิมของระบบ', coin: '8-bit Coin', laser: 'Laser', levelup: 'Level-up' };
   const AUTO_SFX = { universal: 'coin', fps: 'laser', rpg: 'levelup', roblox: 'coin', block: 'coin', cyber: 'laser',
-                     light: 'coin', horror: 'laser', space: 'levelup', custom: 'coin' };
+                     light: 'coin', horror: 'laser', space: 'levelup', persona: 'levelup', custom: 'coin' };
   const PACKS = { // [wave, freqStart, freqEnd, at(s), dur(s)] — เพิ่มชุดใหม่ได้ด้วยการเพิ่มแถว
     coin:    [['square', 988, 988, 0, 0.08], ['square', 1319, 1319, 0.08, 0.30]],
     laser:   [['sawtooth', 1400, 110, 0, 0.32], ['square', 700, 55, 0.03, 0.28]],
@@ -6811,5 +6959,455 @@ setInterval(function(){if(d.hidden)return;adminMount();patchDonLink()},1200);
 // @u-theme-end
 </script>
 <!-- @u-theme-js:end -->
+<!-- @guard-js:start -->
+<script id="guard-js">
+// @guard-start — Donation Guard: sanitize, validate, honeypot, CSRF token, link filter, payload integrity.
+// ADDITIVE ONLY: ไม่แก้ SHIELD / SPAM / socket / TTS / queue / SLIPH เดิม — ทำงานเป็นด่านเสริมก่อนและหลังของเดิม
+(function (root) {
+  'use strict';
+
+  /* ---------- 1) sanitize: ตัดเป็นข้อความล้วน ไม่มีทางกลายเป็น DOM ---------- */
+  const CTRL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g; // control + zero-width + bidi override
+  const TAGS = /<(script|style|iframe|object|embed|svg|math)[^>]*>[\s\S]*?(<\/\1\s*>|$)/gi;
+  function cleanText(v, max) {
+    let s = String(v == null ? '' : v);
+    try { s = s.normalize('NFKC'); } catch (e) { /* ok */ }
+    s = s.replace(CTRL, '').replace(TAGS, ' ').replace(/<[^>]*>?/g, ' ')
+         .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, ' ')            // entity อำพราง เช่น &lt;script&gt;
+         .replace(/(?:javascript|data|vbscript)\s*:/gi, ' ')     // scheme อันตราย
+         .replace(/\bon[a-z]{3,}\s*=/gi, ' ')                    // onerror= onclick=
+         .replace(/[<>`]/g, ' ')
+         .replace(/\s+/g, ' ').trim();
+    return max ? Array.from(s).slice(0, max).join('') : s;      // นับเป็นตัวอักษร ไม่ตัดกลาง surrogate/วรรณยุกต์ไทย
+  }
+  // escape สำหรับกรณีจำเป็นต้องใส่ลง innerHTML (เช่น ticker เดิม) — ใช้คู่กับ cleanText
+  const escapeHtml = v => String(v == null ? '' : v).replace(/[&<>"'`=\/]/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;', '=': '&#61;', '/': '&#47;' }[c]));
+
+  /* ---------- 2) ตัวกรองลิงก์/URL (ตั้งค่าได้) ---------- */
+  const DEFAULT_LINK = { on: true, mode: 'block', allow: [] };   // mode: 'block' = เปลี่ยนเป็น [ลิงก์ถูกซ่อน] | 'drop' = ทิ้งทั้งข้อความ
+  const URLISH = new RegExp([
+    '\\b(?:https?|ftp|wss?|file)\\s*:?\\s*\\/\\/\\S+',                      // http://… (รวมแบบเว้นวรรค)
+    '\\bwww\\s*\\.\\s*[a-z0-9-]+(?:\\s*\\.\\s*[a-z0-9-]+)+\\S*',            // www . x . com
+    '\\b[a-z0-9-]{2,}(?:\\s*(?:\\.|\\[\\.\\]|\\(dot\\)|\\sdot\\s)\\s*)(?:com|net|org|io|co|th|me|ly|gg|tv|xyz|top|ru|cn|info|biz|app|dev|link|click|live|shop|site|online)\\b(?:\\/\\S*)?',
+    '\\b(?:bit\\.ly|t\\.co|tinyurl\\.com|discord\\.gg|line\\.me|lin\\.ee|t\\.me|wa\\.me)\\/\\S*',
+    '\\b\\d{1,3}(?:\\.\\d{1,3}){3}(?::\\d+)?(?:\\/\\S*)?',                      // IPv4
+    '(?:^|\\s)@[a-z0-9_.]{3,}\\b.*\\b(?:ig|fb|line|tele|ไลน์)\\b'                // ชวนทักไปช่องอื่น
+  ].join('|'), 'gi');
+  function linkConfig(store) {
+    let c = {}; try { c = JSON.parse((store && store.getItem('rzc_guard_links')) || '{}') || {}; } catch (e) { /* ok */ }
+    const allow = String(c.allow || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+    return { on: c.on !== false, mode: c.mode === 'drop' ? 'drop' : 'block', allow: allow.length ? allow : DEFAULT_LINK.allow };
+  }
+  function hasLink(text, cfg) {
+    cfg = cfg || DEFAULT_LINK; if (!cfg.on) return false;
+    const t = cleanText(text);
+    URLISH.lastIndex = 0;
+    let m = t.match(URLISH);
+    if (!m) { // กันแบบแยกตัวอักษรทีละตัว: "h t t p : / / x . y" → เทียบรูปที่บีบช่องว่างออก (เฉพาะเมื่อมีสัญญาณ scheme/จุด)
+      const sq = t.replace(/\s+/g, '');
+      if (/(?:https?|ftp|wss?)[:;]\/\//i.test(sq) || /www\.[a-z0-9-]+\./i.test(sq)) { URLISH.lastIndex = 0; m = sq.match(URLISH); }
+    }
+    if (!m) return false;
+    return m.some(x => !cfg.allow.some(a => x.toLowerCase().includes(a)));
+  }
+  function stripLinks(text, cfg) {
+    cfg = cfg || DEFAULT_LINK; const t = cleanText(text);
+    if (!cfg.on) return t;
+    URLISH.lastIndex = 0;
+    if (cfg.mode === 'drop' && hasLink(t, cfg)) return '';
+    if (hasLink(t, cfg) && !URLISH.test(t)) { URLISH.lastIndex = 0; return '[ลิงก์ถูกซ่อน]'; } // ลิงก์ที่ซ่อนด้วยช่องว่าง: ทิ้งทั้งข้อความแทนเดา
+    URLISH.lastIndex = 0;
+    return t.replace(URLISH, x => (cfg.allow.some(a => x.toLowerCase().includes(a)) ? x : '[ลิงก์ถูกซ่อน]')).replace(/\s+/g, ' ').trim();
+  }
+
+  /* ---------- 3) ตัวเลขยอดเงิน ---------- */
+  const AMT = { min: 1, max: 1000000, decimals: 2 };
+  function parseAmount(v, opt) {
+    const o = Object.assign({}, AMT, opt || {});
+    if (typeof v === 'number') { if (!Number.isFinite(v)) return { ok: false, why: 'ไม่ใช่ตัวเลข' }; }
+    else if (typeof v === 'string') {
+      const t = v.trim();
+      const plain = /^\d{1,9}(?:\.\d{1,2})?$/.test(t), grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?$/.test(t); // คอมมาต้องเป็นหลักพันจริงเท่านั้น
+      if (!plain && !grouped) return { ok: false, why: 'รูปแบบตัวเลขไม่ถูกต้อง' };
+    }
+    else return { ok: false, why: 'ไม่ใช่ตัวเลข' };
+    const n = typeof v === 'number' ? v : Number(v.replace(/,/g, ''));
+    if (!(n >= o.min)) return { ok: false, why: 'ขั้นต่ำ ' + o.min };
+    if (n > o.max) return { ok: false, why: 'สูงสุด ' + o.max };
+    const k = Math.pow(10, o.decimals);
+    if (Math.abs(n * k - Math.round(n * k)) > 1e-6) return { ok: false, why: 'ทศนิยมไม่เกิน ' + o.decimals + ' ตำแหน่ง' };
+    return { ok: true, value: Math.round(n * k) / k };
+  }
+
+  /* ---------- 4) token / honeypot / เวลากรอก ---------- */
+  function rand(len) {
+    const a = new Uint8Array(len), c = root.crypto;
+    if (c && c.getRandomValues) c.getRandomValues(a); else for (let i = 0; i < len; i++) a[i] = Math.floor(Math.random() * 256);
+    return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+  }
+  // CSRF-style token: สุ่มใหม่ทุกครั้งที่โหลดฟอร์ม ใช้ได้ครั้งเดียว หมดอายุ 30 นาที เก็บใน sessionStorage (ผูกกับแท็บ)
+  const CSRF_KEY = 'rzc_csrf', CSRF_TTL = 30 * 60 * 1000;
+  function issueToken(store, now) {
+    const t = { v: rand(16), at: now || Date.now() };
+    try { store.setItem(CSRF_KEY, JSON.stringify(t)); } catch (e) { /* ok */ }
+    return t.v;
+  }
+  function consumeToken(store, presented, now) {
+    let t = null; try { t = JSON.parse(store.getItem(CSRF_KEY) || 'null'); } catch (e) { /* ok */ }
+    try { store.removeItem(CSRF_KEY); } catch (e) { /* ok */ }              // ใช้ได้ครั้งเดียวไม่ว่าผลเป็นอย่างไร
+    if (!t || typeof presented !== 'string' || presented.length !== 32) return false;
+    if (((now || Date.now()) - t.at) > CSRF_TTL) return false;
+    let d = 0; for (let i = 0; i < 32; i++) d |= presented.charCodeAt(i) ^ t.v.charCodeAt(i);   // constant-time
+    return d === 0;
+  }
+  // honeypot: ช่องที่คนมองไม่เห็น ถ้ามีค่า = บอท ; MIN_FILL = กรอกเร็วเกินคนจริง
+  const MIN_FILL_MS = 1200;
+  function botCheck(o, now) {
+    o = o || {}; now = now || Date.now();
+    if (o.honeypot && String(o.honeypot).trim() !== '') return { bot: true, why: 'honeypot' };
+    if (o.shownAt && now - o.shownAt < MIN_FILL_MS) return { bot: true, why: 'too-fast' };
+    return { bot: false };
+  }
+
+  /* ---------- 5) cooldown เสริม (client) — คนละ key กับ SPAM เดิม ไม่แก้ของเดิม ---------- */
+  const CD_KEY = 'rzc_guard_cd';
+  function cooldown(store, now, ms, burst, windowMs) {
+    ms = ms || 8000; burst = burst || 5; windowMs = windowMs || 600000; now = now || Date.now();
+    let a = []; try { a = JSON.parse(store.getItem(CD_KEY) || '[]') || []; } catch (e) { /* ok */ }
+    a = a.filter(t => typeof t === 'number' && now - t < windowMs);
+    if (a.length && now - a[a.length - 1] < ms) return { ok: false, wait: Math.ceil((ms - (now - a[a.length - 1])) / 1000) };
+    if (a.length >= burst) return { ok: false, wait: Math.ceil((windowMs - (now - a[0])) / 1000) };
+    return { ok: true, mark() { a.push(now); try { store.setItem(CD_KEY, JSON.stringify(a)); } catch (e) { /* ok */ } } };
+  }
+
+  /* ---------- 6) payload integrity ก่อนขึ้นจอ ----------
+     ไม่มี secret ฝั่งเบราว์เซอร์ที่ปลอดภัยจริง (ซอร์สเป็นสาธารณะ) → ใช้ "โครงสร้าง + ขอบเขต + fingerprint"
+     ป้องกัน payload เพี้ยน/ถูกยัดฟิลด์แปลก/เกินขอบเขต ส่วนการพิสูจน์ต้นทาง (admin-only alert) ทำที่ relay */
+  const ALLOWED = ['name', 'amount', 'message', 'force', 'ed', 'tier', 'ts', 'id'];
+  function fnv(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }
+  const fingerprint = d => fnv([cleanText(d.name, 40), Number(d.amount), cleanText(d.message, 200)].join('\u241F'));
+  function verifyAlert(d, opt) {
+    opt = opt || {};
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return { ok: false, why: 'not-object' };
+    if (Object.getPrototypeOf(d) !== Object.prototype && Object.getPrototypeOf(d) !== null) return { ok: false, why: 'bad-proto' };
+    for (const k of Object.keys(d)) if (k === '__proto__' || k === 'constructor' || k === 'prototype') return { ok: false, why: 'proto-key' };
+    for (const k of ['name', 'message']) if (d[k] != null && typeof d[k] !== 'string') return { ok: false, why: 'bad-type:' + k };
+    const a = parseAmount(d.amount, { min: 0.01, max: 99999999, decimals: 2 });
+    if (!a.ok) return { ok: false, why: 'amount' };
+    if (String(d.name || '').length > 400 || String(d.message || '').length > 2000) return { ok: false, why: 'too-long' };
+    if (opt.maxAgeMs && d.ts && Math.abs((opt.now || Date.now()) - Number(d.ts)) > opt.maxAgeMs) return { ok: false, why: 'stale' };
+    const clean = {
+      name: cleanText(d.name, 40) || 'ANONYMOUS', amount: a.value,
+      message: cleanText(d.message, 200)
+    };
+    for (const k of ALLOWED) if (!(k in clean) && d[k] !== undefined && (k === 'force' || k === 'ed')) clean[k] = !!d[k];
+    return { ok: true, clean, fp: fingerprint(clean) };
+  }
+  // เทียบ fingerprint ที่ฝั่งส่งแนบมา (ถ้ามี) กับที่คำนวณซ้ำ — ไม่ตรง = ถูกแก้กลางทาง
+  const matches = (d, fp) => typeof fp !== 'string' || fingerprint(d) === fp;
+
+  /* ---------- 7) tier สำหรับ alert (ตั้งค่าได้) ---------- */
+  const TIERS = { mega: 1000, big: 300 };
+  const tierFor = (amount, t) => { t = t || TIERS; const n = Number(amount) || 0; return n >= t.mega ? 'mega' : n >= t.big ? 'big' : 'std'; };
+
+  const API = { cleanText, escapeHtml, hasLink, stripLinks, linkConfig, parseAmount, issueToken, consumeToken, botCheck, cooldown,
+                verifyAlert, fingerprint, matches, tierFor, MIN_FILL_MS, TIERS, AMT, CSRF_TTL };
+  root.DonationGuard = API;
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+// @guard-end
+</script>
+<!-- @guard-js:end -->
+<!-- @p5-js:start -->
+<script id="p5-js">
+// @p5-start — Persona skin runtime: cursor-reactive shadows, ransom title, intro loader, Three.js scene, cinematic alert layer,
+// and the form-side wiring for DonationGuard. ไม่แก้ play()/SHIELD/SPAM/socket/TTS/queue/SLIPH — สังเกตการเปลี่ยนคลาส/DOM เท่านั้น
+(function (root) {
+  'use strict';
+  const doc = root.document;
+
+  /* ================= ค่าที่ปรับได้ (ลบ/แก้ที่นี่ที่เดียว) ================= */
+  const CONFIG = {
+    intro:  { enabled: true, durationMs: 1700, skipIfSeenMs: 6 * 3600e3, wordA: 'TAKE YOUR', wordB: 'HEART' },
+    scene:  { enabled: true, cdn: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', shards: 26, stars: 5,
+              parallax: 0.55, spin: 0.35, maxPixelRatio: 1.5, targetFps: 60, lowPowerShards: 10 },
+    shake:  { perThousand: 0.35, max: 1.6, decay: 0.9 },       // กล้องสั่นตามยอดที่พิมพ์
+    burst:  { particles: 90, speed: 0.55, life: 1.1 },         // ระเบิดตอนกดส่ง
+    alert:  { enabled: true, megaAt: 1000, bigAt: 300, slashMs: 420, letterStaggerMs: 38, particles: { std: 18, big: 36, mega: 70 },
+            tierMap: { 'RECRUIT': 'std', 'SOLDIER': 'std', 'ELITE': 'big', 'LEGEND': 'mega', 'GOD TIER': 'mega' } },
+    splatter: true,
+    form:   { minFillMs: true, extraCooldown: false }   // extraCooldown: ด่านถี่เสริม (ค่าเริ่มต้นปิด เพราะ SPAM เดิม 20 วิ + จำกัด pending 3 มีอยู่แล้ว)
+  };
+
+  const skin = () => doc.documentElement.getAttribute('data-skin');
+  const isOverlay = () => /^#(overlay|obs)/.test(root.location.hash);
+  const isAdmin = () => /^#admin/.test(root.location.hash);
+  const isDonor = () => !isOverlay() && !isAdmin();
+  const reduced = () => !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches) || doc.documentElement.getAttribute('data-u-motion') === 'off';
+  const el = (tag, cls, txt) => { const e = doc.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+  /* ================= 1) เงา/ปุ่มตอบสนองเมาส์ (ตัวแปร CSS ล้วน ไม่ re-layout) ================= */
+  const mouse = { x: 0, y: 0 };
+  function bindPointer() {
+    if (bindPointer.done) return; bindPointer.done = true;
+    let raf = 0;
+    const set = (cx, cy) => { mouse.x = (cx / root.innerWidth) * 2 - 1; mouse.y = (cy / root.innerHeight) * 2 - 1;
+      if (!raf) raf = root.requestAnimationFrame(() => { raf = 0; const s = doc.documentElement.style;
+        s.setProperty('--p5-mx', mouse.x.toFixed(3)); s.setProperty('--p5-my', mouse.y.toFixed(3)); }); };
+    root.addEventListener('pointermove', e => set(e.clientX, e.clientY), { passive: true });
+    root.addEventListener('touchmove', e => { const t = e.touches[0]; if (t) set(t.clientX, t.clientY); }, { passive: true });
+  }
+
+  /* ================= 2) ransom-note title ================= */
+  function ransomize(node) {
+    if (!node || node.dataset.p5r) return; node.dataset.p5r = '1';
+    const txt = (node.textContent || '').trim(); if (!txt) return;
+    node.setAttribute('aria-label', txt);
+    const wrap = el('span', 'p5-ransom'); wrap.setAttribute('aria-hidden', 'true');
+    for (const ch of Array.from(txt)) wrap.append(ch === ' ' ? el('span', '', '\u00A0') : el('span', '', ch));
+    node.textContent = ''; node.append(wrap);
+  }
+  function titles() { if (skin() === 'persona' && isDonor()) doc.querySelectorAll('#vDonor h1 .glitch').forEach(ransomize); }
+
+  /* ================= 3) INTRO LOADER ================= */
+  const INTRO_KEY = 'p5_intro_seen';
+  function shouldIntro() {
+    if (!CONFIG.intro.enabled || skin() !== 'persona' || !isDonor() || reduced()) return false;
+    try { const t = +root.sessionStorage.getItem(INTRO_KEY) || 0; if (t && Date.now() - t < CONFIG.intro.skipIfSeenMs) return false; } catch (e) { /* ok */ }
+    return true;
+  }
+  function runIntro(done) {
+    if (doc.getElementById('p5-intro')) return;
+    const box = el('div'); box.id = 'p5-intro'; box.setAttribute('role', 'status'); box.setAttribute('aria-label', 'Loading');
+    const dur = CONFIG.intro.durationMs;
+    for (let i = 0; i < 7; i++) { const s = el('div', 'p5-stripe'); s.style.top = (i * 15 - 6) + '%'; s.style.setProperty('--d', (i * 0.06).toFixed(2) + 's'); box.append(s); }
+    [[-14, 22, 0.15], [9, 70, 0.3]].forEach(([a, top, d]) => { const c = el('div', 'p5-chain'); c.style.setProperty('--a', a + 'deg'); c.style.top = top + '%'; c.style.setProperty('--d', d + 's'); box.append(c); });
+    const word = el('div', 'p5-word'); word.append(doc.createTextNode(CONFIG.intro.wordA + ' '), el('em', '', CONFIG.intro.wordB)); box.append(word);
+    const bar = el('div', 'p5-bar'), fill = el('i'); fill.style.setProperty('--dur', (dur / 1000 - 0.35).toFixed(2) + 's'); bar.append(fill); box.append(bar);
+    const pct = el('div', 'p5-pct', '0%'); box.append(pct);
+    box.append(el('div', 'p5-half a'), el('div', 'p5-half b'));
+    box.classList.add('on'); doc.body.append(box);
+    const t0 = performance.now();
+    (function tick() { const p = Math.min(1, Math.max(0, (performance.now() - t0 - 350) / (dur - 350))); pct.textContent = Math.round(p * 100) + '%'; if (p < 1 && box.isConnected) root.requestAnimationFrame(tick); })();
+    const finish = () => { box.classList.add('slash'); setTimeout(() => { box.remove(); try { root.sessionStorage.setItem(INTRO_KEY, String(Date.now())); } catch (e) { /* ok */ } done && done(); }, 620); };
+    setTimeout(finish, dur);
+    box.addEventListener('click', finish, { once: true });   // แตะข้ามได้
+    root.__p5IntroFinish = finish;
+  }
+
+  /* ================= 4) THREE.JS SCENE (donor page เท่านั้น) ================= */
+  let S = null;        // scene state
+  let loadingThree = null;
+  function loadThree() {
+    if (root.THREE) return Promise.resolve(root.THREE);
+    if (loadingThree) return loadingThree;
+    loadingThree = new Promise((res, rej) => {
+      const s = doc.createElement('script'); s.src = CONFIG.scene.cdn; s.async = true; s.crossOrigin = 'anonymous';
+      s.onload = () => (root.THREE ? res(root.THREE) : rej(new Error('no THREE'))); s.onerror = () => rej(new Error('load failed'));
+      doc.head.append(s);
+    });
+    return loadingThree;
+  }
+  function webglOK() { try { const c = doc.createElement('canvas'); return !!(root.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } }
+
+  async function startScene() {
+    if (S || !CONFIG.scene.enabled || skin() !== 'persona' || !isDonor() || reduced() || !webglOK()) return;
+    let THREE; try { THREE = await loadThree(); } catch (e) { return; }     // CDN ล่ม = ไม่มี 3D เฉยๆ ฟอร์มไม่กระทบ
+    if (S || skin() !== 'persona' || !isDonor()) return;
+    const cv = doc.createElement('canvas'); cv.id = 'p5-3d'; cv.setAttribute('aria-hidden', 'true'); doc.body.prepend(cv);
+    const low = (root.navigator.hardwareConcurrency || 4) <= 4 || /Mobi|Android/i.test(root.navigator.userAgent);
+    let renderer; try { renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: !low, powerPreference: 'high-performance' }); } catch (e) { cv.remove(); return; }
+    renderer.setPixelRatio(Math.min(root.devicePixelRatio || 1, CONFIG.scene.maxPixelRatio)); renderer.setClearColor(0x000000, 0);
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(55, 1, 0.1, 100); cam.position.z = 9;
+    const RED = 0xe60012, WHITE = 0xffffff, BLACK = 0x0a0a0a;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55)); const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(3, 4, 6); scene.add(key);
+    const rim = new THREE.PointLight(RED, 1.4, 30); rim.position.set(-5, -2, 4); scene.add(rim);
+
+    // ดาวห้าแฉก 3 มิติ (สัญลักษณ์การ์ดโจร) — extrude จากรูป 2D
+    function starGeo(R, r) { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, rad = i % 2 ? r : R; const x = Math.cos(a) * rad, y = Math.sin(a) * rad; i ? sh.lineTo(x, y) : sh.moveTo(x, y); } sh.closePath();
+      return new THREE.ExtrudeGeometry(sh, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 1 }); }
+    const sGeo = starGeo(1, 0.45), shardGeo = new THREE.TetrahedronGeometry(0.5), cardGeo = new THREE.BoxGeometry(2.6, 1.5, 0.08);
+    const mats = [new THREE.MeshStandardMaterial({ color: RED, roughness: 0.4, metalness: 0.2, flatShading: true }),
+                  new THREE.MeshStandardMaterial({ color: WHITE, roughness: 0.5, flatShading: true }),
+                  new THREE.MeshStandardMaterial({ color: BLACK, roughness: 0.6, flatShading: true })];
+    const items = [], rnd = (a, b) => a + Math.random() * (b - a);
+    for (let i = 0; i < CONFIG.scene.stars; i++) { const m = new THREE.Mesh(sGeo, mats[i % 2]); m.position.set(rnd(-7, 7), rnd(-4, 4), rnd(-4, 1)); m.scale.setScalar(rnd(0.5, 1.1)); items.push({ m, vr: new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-.5, .5)).multiplyScalar(.5), vy: rnd(.1, .3), ph: rnd(0, 6.28), z: m.position.z }); scene.add(m); }
+    const nShard = low ? CONFIG.scene.lowPowerShards : CONFIG.scene.shards;
+    for (let i = 0; i < nShard; i++) { const m = new THREE.Mesh(shardGeo, mats[i % 3]); m.position.set(rnd(-9, 9), rnd(-5, 5), rnd(-6, 0)); m.scale.setScalar(rnd(0.3, 1)); items.push({ m, vr: new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)), vy: rnd(.1, .4), ph: rnd(0, 6.28), z: m.position.z }); scene.add(m); }
+    // Calling card (กลาง) เอียงตามเมาส์
+    const card = new THREE.Mesh(cardGeo, [mats[1], mats[1], mats[1], mats[1], mats[1], mats[0]]); card.position.set(0, 0.2, -2.5); scene.add(card);
+    // อนุภาคระเบิด
+    const N = CONFIG.burst.particles, pGeo = new THREE.BufferGeometry(), pPos = new Float32Array(N * 3), pVel = new Float32Array(N * 3), pLife = new Float32Array(N);
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: WHITE, size: 0.11, transparent: true, opacity: 0.95, depthWrite: false })); pts.frustumCulled = false; scene.add(pts);
+
+    S = { THREE, renderer, scene, cam, cv, items, card, pts, pPos, pVel, pLife, shake: 0, boost: 0, spin: 0, raf: 0, running: true, last: 0, low, burstN: N };
+    function size() { const w = root.innerWidth, h = root.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+    size(); root.addEventListener('resize', size, { passive: true });
+    cv.classList.add('on');
+    const frameMs = 1000 / CONFIG.scene.targetFps, clock = new THREE.Clock();
+    function loop(now) {
+      if (!S || !S.running) { if (S) S.raf = 0; return; }
+      S.raf = root.requestAnimationFrame(loop);
+      if (now - S.last < frameMs - 1) return; S.last = now;
+      const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+      cam.position.x += (mouse.x * CONFIG.scene.parallax - cam.position.x) * 0.06;
+      cam.position.y += (-mouse.y * CONFIG.scene.parallax * 0.7 - cam.position.y) * 0.06;
+      if (S.shake > 0.01) { cam.position.x += (Math.random() - .5) * S.shake * .3; cam.position.y += (Math.random() - .5) * S.shake * .3; S.shake *= CONFIG.shake.decay; } else S.shake = 0;
+      cam.lookAt(0, 0, -1);
+      const spin = CONFIG.scene.spin + S.boost; S.boost *= 0.94;
+      for (const it of items) { it.m.rotation.x += it.vr.x * dt * spin; it.m.rotation.y += it.vr.y * dt * spin; it.m.rotation.z += it.vr.z * dt * spin;
+        it.m.position.y += Math.sin(t * it.vy + it.ph) * 0.004; }
+      card.rotation.y += (mouse.x * 0.6 - card.rotation.y) * 0.08; card.rotation.x += (mouse.y * 0.4 - card.rotation.x) * 0.08;
+      card.rotation.z = Math.sin(t * .6) * .05 + S.spin; S.spin *= 0.92;
+      for (let i = 0; i < S.burstN; i++) {
+        if (pLife[i] > 0) { pLife[i] -= dt / CONFIG.burst.life; pPos[i * 3] += pVel[i * 3] * dt; pPos[i * 3 + 1] += pVel[i * 3 + 1] * dt; pPos[i * 3 + 2] += pVel[i * 3 + 2] * dt; pVel[i * 3 + 1] -= dt * 1.2; }
+        else pPos[i * 3 + 2] = -999;
+      }
+      pGeo.attributes.position.needsUpdate = true;
+      renderer.render(scene, cam);
+    }
+    S.loop = loop; S.raf = root.requestAnimationFrame(loop);
+    // หยุดวาดเมื่อแท็บถูกซ่อน (ประหยัดแบตเตอรี่) แล้วเริ่มใหม่เมื่อกลับมา — ไม่มีลูปซ้อน
+    doc.addEventListener('visibilitychange', () => {
+      if (!S) return;
+      if (doc.hidden) { S.running = false; if (S.raf) root.cancelAnimationFrame(S.raf); S.raf = 0; }
+      else if (!S.running) { S.running = true; S.last = 0; clock.getDelta(); if (!S.raf) S.raf = root.requestAnimationFrame(S.loop); }
+    });
+  }
+  function stopScene() { if (!S) return; S.running = false; root.cancelAnimationFrame(S.raf); try { S.renderer.dispose(); } catch (e) { /* ok */ } S.cv.remove(); S = null; }
+
+  // API ที่ฟอร์มเรียก: สั่นกล้องตามยอด / ระเบิด / หมุนเร็ว
+  const scene3d = {
+    typing(amount) { if (!S) return; const a = Number(amount) || 0; S.shake = Math.min(CONFIG.shake.max, Math.max(S.shake, (a / 1000) * CONFIG.shake.perThousand)); S.boost = Math.min(6, S.boost + Math.min(2, a / 1500)); },
+    burst(power) { if (!S) return; const n = S.burstN, v = CONFIG.burst.speed * (power || 1);
+      for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, b = Math.acos(2 * Math.random() - 1), sp = (0.4 + Math.random()) * v * 6;
+        S.pPos[i * 3] = 0; S.pPos[i * 3 + 1] = 0; S.pPos[i * 3 + 2] = -2; S.pVel[i * 3] = Math.sin(b) * Math.cos(a) * sp; S.pVel[i * 3 + 1] = Math.sin(b) * Math.sin(a) * sp; S.pVel[i * 3 + 2] = Math.cos(b) * sp; S.pLife[i] = 1; }
+      S.shake = Math.max(S.shake, 1.2 * (power || 1)); S.boost += 4 * (power || 1); S.spin += 6.283; },
+    get active() { return !!S; }
+  };
+
+  /* ================= 5) FORM WIRING + GUARD ================= */
+  function wireForm() {
+    const G = root.DonationGuard, form = doc.getElementById('dForm'); if (!G || !form || form.dataset.p5g) return; form.dataset.p5g = '1';
+    // honeypot: มองไม่เห็นสำหรับคน, tabindex=-1, autocomplete=off, ไม่ใช้ชื่อ "website/url" ที่ autofill ชอบเติม
+    const hp = el('div'); hp.setAttribute('aria-hidden', 'true'); hp.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden';
+    const hpIn = el('input'); hpIn.type = 'text'; hpIn.name = 'p5_trap_' + Math.random().toString(36).slice(2, 7); hpIn.tabIndex = -1; hpIn.autocomplete = 'off'; hpIn.id = 'p5Trap'; hp.append(hpIn);
+    const tok = el('input'); tok.type = 'hidden'; tok.id = 'p5Csrf'; form.append(hp, tok);
+    let shownAt = Date.now(); const store = root.sessionStorage;
+    // เวลากรอกวัดจาก "การโต้ตอบของคนจริง" (event.isTrusted) ไม่ใช่เวลาโหลดหน้า: บอทที่ยิง event เองไม่มี isTrusted
+    // และคนที่เปิดหน้าค้างไว้นานก็ไม่ถูกปฏิเสธ (วัดจากการแตะครั้งแรกในฟอร์ม)
+    let humanAt = 0, humanTouches = 0;
+    const touch = e => { if (e.isTrusted) { if (!humanAt) humanAt = Date.now(); humanTouches++; } };
+    ['keydown', 'pointerdown', 'input', 'focusin'].forEach(t => form.addEventListener(t, touch, true));
+    const newToken = () => { try { tok.value = G.issueToken(store); } catch (e) { tok.value = ''; } shownAt = Date.now(); };
+    newToken();
+
+    // ด่านเสริมก่อน handler เดิม (capture): ถ้าไม่ผ่านจะ stopImmediatePropagation → submit เดิม/openPay ไม่ถูกเรียก
+    form.addEventListener('submit', e => {
+      const stop = (msg) => { e.preventDefault(); e.stopImmediatePropagation(); const t = doc.getElementById('toast'); if (t) { t.textContent = '!! ' + msg; t.classList.remove('good'); t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2600); } };
+      const bot = G.botCheck({ honeypot: hpIn.value, shownAt: CONFIG.form.minFillMs && humanAt ? humanAt : 0 });
+      if (bot.bot) return stop(bot.why === 'honeypot' ? 'ตรวจพบพฤติกรรมอัตโนมัติ' : 'กรอกเร็วเกินไป ลองใหม่อีกครั้ง');
+      if (!G.consumeToken(store, tok.value)) { newToken(); return stop('เซสชันหมดอายุ กรุณากดส่งอีกครั้ง'); }
+      newToken();
+      const amtEl = doc.getElementById('dAmt'), nameEl = doc.getElementById('dName'), msgEl = doc.getElementById('dMsg');
+      const a = G.parseAmount(amtEl && amtEl.value); if (!a.ok) return stop('ยอดเงินไม่ถูกต้อง: ' + a.why);
+      const cd = CONFIG.form.extraCooldown ? G.cooldown(store) : { ok: true };
+      if (!cd.ok) return stop('ส่งถี่เกินไป รออีก ' + cd.wait + ' วินาที');
+      const cfg = G.linkConfig(root.localStorage);
+      if (nameEl && G.hasLink(nameEl.value, cfg)) return stop('ชื่อห้ามมีลิงก์');
+      if (msgEl) { if (cfg.mode === 'drop' && G.hasLink(msgEl.value, cfg)) return stop('ข้อความห้ามมีลิงก์'); msgEl.value = G.stripLinks(msgEl.value, cfg); }
+      if (nameEl) nameEl.value = G.cleanText(nameEl.value, 24);
+      if (msgEl) msgEl.value = G.cleanText(msgEl.value, 120);
+      cd.mark && cd.mark(); scene3d.burst(Math.min(2.2, 0.8 + a.value / 1500));
+    }, true);
+
+    const amt = doc.getElementById('dAmt'); if (amt) amt.addEventListener('input', () => scene3d.typing(amt.value));
+  }
+
+  /* ================= 6) CINEMATIC ALERT LAYER (OBS + preview) =================
+     เพิ่มชั้นตกแต่งเป็นลูกของ #stage (pointer-events:none, absolute) → ไม่แตะ #card ขนาด/ตำแหน่งเดิม
+     ขับด้วย MutationObserver บน #card.in และ #stage.active ; ข้อความถูกอ่านผ่าน textContent เท่านั้น */
+  function alertLayer() {
+    const stage = doc.getElementById('stage'), card = doc.getElementById('card'); if (!stage || !card || stage.dataset.p5a) return; stage.dataset.p5a = '1';
+    const layer = el('div'); layer.id = 'p5-alert'; layer.setAttribute('aria-hidden', 'true'); stage.append(layer);
+    const css = doc.createElement('style'); css.id = 'p5-alert-css'; css.textContent = ALERT_CSS; doc.head.append(css);
+    layer.style.setProperty('--p5-slash', (CONFIG.alert.slashMs / 1000).toFixed(2) + 's');
+    let lastIn = false;
+    const G = root.DonationGuard;
+    const fire = () => {
+      if (!CONFIG.alert.enabled || skin() !== 'persona' || reduced()) return;
+      // #aAmt ยังเป็น '0' ตอนการ์ดเด้ง (ตัวเลขนับขึ้นทีหลัง) จึงอ่านระดับจากชื่อ tier ที่ play() ตั้งไว้ก่อนแล้ว
+      // (ตารางระดับเดิมของระบบเป็นแหล่งความจริงเดียว) ถ้าไม่รู้จักชื่อ ค่อย fallback ไปใช้ตัวเลขยอด
+      const tierName = String((doc.getElementById('aTier') || {}).textContent || '').trim().toUpperCase();
+      const amtN = Number(String((doc.getElementById('aAmt') || {}).textContent || '0').replace(/,/g, '')) || 0;
+      const tier = CONFIG.alert.tierMap[tierName] || (G ? G.tierFor(amtN, { mega: CONFIG.alert.megaAt, big: CONFIG.alert.bigAt }) : 'std');
+      layer.className = 't-' + tier; layer.replaceChildren();
+      layer.append(el('i', 'slash a'), el('i', 'slash b'));
+      const n = CONFIG.alert.particles[tier] || 18;
+      for (let i = 0; i < n; i++) { const p = el('b', 'bit'); const ang = Math.random() * 6.283, d = 120 + Math.random() * (tier === 'mega' ? 520 : 320);
+        p.style.setProperty('--dx', Math.cos(ang) * d + 'px'); p.style.setProperty('--dy', Math.sin(ang) * d + 'px'); p.style.setProperty('--s', (4 + Math.random() * (tier === 'mega' ? 16 : 10)).toFixed(1) + 'px');
+        p.style.setProperty('--r', Math.round(Math.random() * 720 - 360) + 'deg'); p.style.animationDelay = (Math.random() * 0.12).toFixed(2) + 's'; if (i % 3 === 0) p.classList.add('w'); layer.append(p); }
+      if (tier !== 'std') layer.append(el('u', 'flashbang'));
+      if (tier === 'mega') { stage.classList.add('p5-mega'); setTimeout(() => stage.classList.remove('p5-mega'), 1200); }
+      kinetic();
+    };
+    // ตัวอักษรเด้งทีละตัว: ห่อ node ที่มีอยู่ด้วย span โดยไม่เปลี่ยนค่า textContent ของ #aName (การทดสอบเดิม/TTS อ่านค่านี้)
+    function kinetic() {
+      for (const id of ['aName', 'aAmt']) { const n = doc.getElementById(id); if (!n || n.dataset.p5k === n.textContent) continue; n.dataset.p5k = n.textContent; n.classList.remove('p5-k'); void n.offsetWidth; n.classList.add('p5-k');
+        n.style.setProperty('--stag', CONFIG.alert.letterStaggerMs + 'ms'); }
+      const msg = doc.getElementById('aMsg'); if (msg) { msg.classList.remove('p5-k2'); void msg.offsetWidth; msg.classList.add('p5-k2'); }
+    }
+    const mo = new MutationObserver(() => { const nowIn = card.classList.contains('in') && !card.classList.contains('out'); if (nowIn && !lastIn) fire(); lastIn = nowIn; });
+    mo.observe(card, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { if (!stage.classList.contains('active')) { layer.replaceChildren(); layer.className = ''; stage.classList.remove('p5-mega'); } }).observe(stage, { attributes: true, attributeFilter: ['class'] });
+  }
+  // อนุญาตเฉพาะคุณสมบัติที่ไม่ขยับ/ไม่ย่อขยายการ์ด: ทุกอย่างอยู่ใน #p5-alert (absolute, inset:0, pointer-events:none)
+  const ALERT_CSS = String.raw`
+#p5-alert{position:absolute;inset:0;pointer-events:none;z-index:8;overflow:visible}
+#p5-alert .slash{position:absolute;left:-30%;width:160%;height:11vh;top:calc(50% - 5.5vh);transform:rotate(-17deg) translateX(-130%);opacity:0}
+html[data-skin="persona"] #p5-alert .slash.a{background:#e60012;animation:p5s var(--p5-slash,.42s) cubic-bezier(.6,0,.2,1) forwards}
+html[data-skin="persona"] #p5-alert .slash.b{background:#000;top:calc(50% - 1.8vh);height:3.6vh;box-shadow:0 0 0 .5vh #fff;animation:p5s var(--p5-slash,.42s) cubic-bezier(.6,0,.2,1) .06s forwards}
+@keyframes p5s{0%{opacity:1;transform:rotate(-17deg) translateX(-130%)}55%{opacity:1}100%{opacity:0;transform:rotate(-17deg) translateX(130%)}}
+#p5-alert .bit{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);background:#e60012;transform:translate(-50%,-50%);opacity:0;
+  clip-path:polygon(50% 0,100% 100%,0 100%);animation:p5b 1s cubic-bezier(.12,.7,.3,1) forwards}
+#p5-alert .bit.w{background:#fff}
+@keyframes p5b{0%{opacity:1;transform:translate(-50%,-50%) rotate(0)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--r))}}
+#p5-alert .flashbang{position:absolute;inset:-20%;background:#fff;opacity:0;animation:p5f .35s ease-out forwards}
+#p5-alert.t-mega .flashbang{background:radial-gradient(circle,#fff,#e60012 70%)}
+@keyframes p5f{0%{opacity:.85}100%{opacity:0}}
+html[data-skin="persona"] #stage.p5-mega #shaker{animation:p5m .6s cubic-bezier(.36,.07,.19,.97) 2}
+@keyframes p5m{10%,90%{transform:translate3d(-3px,1px,0)}20%,80%{transform:translate3d(6px,-2px,0)}30%,50%,70%{transform:translate3d(-10px,3px,0)}40%,60%{transform:translate3d(10px,-3px,0)}}
+html[data-skin="persona"] #aName.p5-k,html[data-skin="persona"] #aAmt.p5-k{animation:p5k .5s cubic-bezier(.2,1.9,.35,1) both}
+@keyframes p5k{0%{opacity:0;letter-spacing:.5em;transform:scale(2.2) skewX(-14deg)}100%{opacity:1;letter-spacing:inherit;transform:scale(1) skewX(0)}}
+html[data-skin="persona"] #aMsg.p5-k2{animation:p5k2 .45s ease-out .25s both}
+@keyframes p5k2{0%{opacity:0;transform:translateY(14px) skewX(-10deg)}100%{opacity:1;transform:none}}
+html[data-skin="persona"] #card.in:not(.out){animation-name:p5pop!important;animation-timing-function:cubic-bezier(.2,1.7,.35,1)!important}
+@keyframes p5pop{0%{opacity:0;transform:scale(.4) rotate(-9deg)}60%{opacity:1;transform:scale(1.07) rotate(1.5deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@media (prefers-reduced-motion:reduce){#p5-alert{display:none}}
+`;
+
+  /* ================= boot ================= */
+  function boot() {
+    bindPointer();
+    const run = () => {
+      titles();
+      if (isDonor()) { wireForm(); if (skin() === 'persona') startScene(); } else stopScene();
+      alertLayer();
+    };
+    run();
+    root.addEventListener('hashchange', run);
+    new MutationObserver(() => { if (skin() !== 'persona') stopScene(); else run(); }).observe(doc.documentElement, { attributes: true, attributeFilter: ['data-skin'] });
+    if (shouldIntro()) runIntro();
+  }
+  if (!root.__P5) {
+    root.__P5 = { CONFIG, scene3d, runIntro, shouldIntro, ransomize };
+    if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot); else boot();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+// @p5-end
+</script>
+<!-- @p5-js:end -->
 </body>
 </html>
