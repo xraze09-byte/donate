@@ -11,7 +11,7 @@
               parallax: 0.55, spin: 0.35, maxPixelRatio: 1.5, targetFps: 60, lowPowerShards: 10 },
     shake:  { perThousand: 0.35, max: 1.6, decay: 0.9 },       // กล้องสั่นตามยอดที่พิมพ์
     burst:  { particles: 90, speed: 0.55, life: 1.1 },         // ระเบิดตอนกดส่ง
-    alert:  { enabled: true, megaAt: 1000, bigAt: 300, slashMs: 420, letterStaggerMs: 38, particles: { std: 18, big: 36, mega: 70 },
+    alert:  { enabled: true, megaAt: 1000, bigAt: 300, letterStaggerMs: 38, particles: { std: 14, big: 22, mega: 34 },
             tierMap: { 'RECRUIT': 'std', 'SOLDIER': 'std', 'ELITE': 'big', 'LEGEND': 'mega', 'GOD TIER': 'mega' } },
     splatter: true,
     form:   { minFillMs: true, extraCooldown: false }   // extraCooldown: ด่านถี่เสริม (ค่าเริ่มต้นปิด เพราะ SPAM เดิม 20 วิ + จำกัด pending 3 มีอยู่แล้ว)
@@ -210,9 +210,11 @@
     const stage = doc.getElementById('stage'), card = doc.getElementById('card'); if (!stage || !card || stage.dataset.p5a) return; stage.dataset.p5a = '1';
     const layer = el('div'); layer.id = 'p5-alert'; layer.setAttribute('aria-hidden', 'true'); stage.append(layer);
     const css = doc.createElement('style'); css.id = 'p5-alert-css'; css.textContent = ALERT_CSS; doc.head.append(css);
-    layer.style.setProperty('--p5-slash', (CONFIG.alert.slashMs / 1000).toFixed(2) + 's');
-    let lastIn = false;
+        let lastIn = false;
     const G = root.DonationGuard;
+    // วางเลเยอร์ทับกรอบของ #card (อ่านขนาดอย่างเดียว ไม่เขียนอะไรลง #card)
+    const fit = () => { const r = card.getBoundingClientRect(), o = stage.getBoundingClientRect(); if (!r.width || !r.height) return;
+      layer.style.left = (r.left - o.left) + 'px'; layer.style.top = (r.top - o.top) + 'px'; layer.style.width = r.width + 'px'; layer.style.height = r.height + 'px'; layer.style.right = 'auto'; layer.style.bottom = 'auto'; };
     const fire = () => {
       if (!CONFIG.alert.enabled || skin() !== 'persona' || reduced()) return;
       // #aAmt ยังเป็น '0' ตอนการ์ดเด้ง (ตัวเลขนับขึ้นทีหลัง) จึงอ่านระดับจากชื่อ tier ที่ play() ตั้งไว้ก่อนแล้ว
@@ -221,13 +223,19 @@
       const amtN = Number(String((doc.getElementById('aAmt') || {}).textContent || '0').replace(/,/g, '')) || 0;
       const tier = CONFIG.alert.tierMap[tierName] || (G ? G.tierFor(amtN, { mega: CONFIG.alert.megaAt, big: CONFIG.alert.bigAt }) : 'std');
       layer.className = 't-' + tier; layer.replaceChildren();
-      layer.append(el('i', 'slash a'), el('i', 'slash b'));
-      const n = CONFIG.alert.particles[tier] || 18;
-      for (let i = 0; i < n; i++) { const p = el('b', 'bit'); const ang = Math.random() * 6.283, d = 120 + Math.random() * (tier === 'mega' ? 520 : 320);
-        p.style.setProperty('--dx', Math.cos(ang) * d + 'px'); p.style.setProperty('--dy', Math.sin(ang) * d + 'px'); p.style.setProperty('--s', (4 + Math.random() * (tier === 'mega' ? 16 : 10)).toFixed(1) + 'px');
+      // กรอบ "calling card" ติดขอบการ์ด: แผ่นหลัง 2 แผ่น + เส้นฟัน 2 เส้น + ป้ายระดับ (ไม่มีแถบเต็มจอ/แฟลช/จอสั่น)
+      layer.append(el('i', 'plate'), el('i', 'plate2'), el('i', 'sl t'), el('i', 'sl b'));
+      const tag = el('b', 'tag'); tag.textContent = (tier === 'mega' ? 'MEGA \u2605 ' : '') + (tierName || 'ALERT'); layer.append(tag);
+      fit(); void layer.offsetWidth;
+      const n = CONFIG.alert.particles[tier] || 14, reach = tier === 'mega' ? 220 : tier === 'big' ? 180 : 150;
+      for (let i = 0; i < n; i++) { const p = el('b', 'bit'); const side = i % 4, u = Math.random(), ang = Math.random() * 6.283, d = 60 + Math.random() * reach;
+        p.style.setProperty('--x', side === 0 ? u * 100 + '%' : side === 1 ? '100%' : side === 2 ? u * 100 + '%' : '0%');
+        p.style.setProperty('--y', side === 0 ? '0%' : side === 1 ? u * 100 + '%' : side === 2 ? '100%' : u * 100 + '%');
+        p.style.setProperty('--dx', Math.round(Math.cos(ang) * d) + 'px'); p.style.setProperty('--dy', Math.round(Math.sin(ang) * d) + 'px');
+        p.style.setProperty('--s', (4 + Math.random() * (tier === 'mega' ? 10 : 7)).toFixed(1) + 'px');
         p.style.setProperty('--r', Math.round(Math.random() * 720 - 360) + 'deg'); p.style.animationDelay = (Math.random() * 0.12).toFixed(2) + 's'; if (i % 3 === 0) p.classList.add('w'); layer.append(p); }
-      if (tier !== 'std') layer.append(el('u', 'flashbang'));
-      if (tier === 'mega') { stage.classList.add('p5-mega'); setTimeout(() => stage.classList.remove('p5-mega'), 1200); }
+      // การ์ดมี animation เข้า: วัดซ้ำสั้น ๆ ให้เฟรมตามตำแหน่งจริง (อ่านอย่างเดียว)
+      let k = 0; const iv = root.setInterval(() => { fit(); if (++k > 12) root.clearInterval(iv); }, 80);
       kinetic();
     };
     // ตัวอักษรเด้งทีละตัว: ห่อ node ที่มีอยู่ด้วย span โดยไม่เปลี่ยนค่า textContent ของ #aName (การทดสอบเดิม/TTS อ่านค่านี้)
@@ -238,24 +246,36 @@
     }
     const mo = new MutationObserver(() => { const nowIn = card.classList.contains('in') && !card.classList.contains('out'); if (nowIn && !lastIn) fire(); lastIn = nowIn; });
     mo.observe(card, { attributes: true, attributeFilter: ['class'] });
-    new MutationObserver(() => { if (!stage.classList.contains('active')) { layer.replaceChildren(); layer.className = ''; stage.classList.remove('p5-mega'); } }).observe(stage, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { if (!stage.classList.contains('active')) { layer.replaceChildren(); layer.className = ''; } }).observe(stage, { attributes: true, attributeFilter: ['class'] });
   }
   // อนุญาตเฉพาะคุณสมบัติที่ไม่ขยับ/ไม่ย่อขยายการ์ด: ทุกอย่างอยู่ใน #p5-alert (absolute, inset:0, pointer-events:none)
   const ALERT_CSS = String.raw`
-#p5-alert{position:absolute;inset:0;pointer-events:none;z-index:8;overflow:visible}
-#p5-alert .slash{position:absolute;left:-30%;width:160%;height:11vh;top:calc(50% - 5.5vh);transform:rotate(-17deg) translateX(-130%);opacity:0}
-html[data-skin="persona"] #p5-alert .slash.a{background:#e60012;animation:p5s var(--p5-slash,.42s) cubic-bezier(.6,0,.2,1) forwards}
-html[data-skin="persona"] #p5-alert .slash.b{background:#000;top:calc(50% - 1.8vh);height:3.6vh;box-shadow:0 0 0 .5vh #fff;animation:p5s var(--p5-slash,.42s) cubic-bezier(.6,0,.2,1) .06s forwards}
-@keyframes p5s{0%{opacity:1;transform:rotate(-17deg) translateX(-130%)}55%{opacity:1}100%{opacity:0;transform:rotate(-17deg) translateX(130%)}}
-#p5-alert .bit{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);background:#e60012;transform:translate(-50%,-50%);opacity:0;
-  clip-path:polygon(50% 0,100% 100%,0 100%);animation:p5b 1s cubic-bezier(.12,.7,.3,1) forwards}
+#p5-alert{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:8;overflow:visible}
+#p5-alert:empty{display:none}
+#p5-alert .plate,#p5-alert .plate2{position:absolute;inset:0;opacity:0}
+#p5-alert .plate{background:#e60012;clip-path:polygon(0 12%,8% 0,100% 0,100% 88%,92% 100%,0 100%);transform:translate(-9px,8px) rotate(-1.6deg)}
+#p5-alert .plate2{background:#000;border:3px solid #fff;box-sizing:border-box;clip-path:polygon(0 8%,6% 0,100% 0,100% 92%,94% 100%,0 100%);transform:translate(8px,-7px) rotate(1.2deg)}
+html[data-skin="persona"] #p5-alert .plate{animation:p5pl .42s cubic-bezier(.2,1.5,.35,1) forwards}
+html[data-skin="persona"] #p5-alert .plate2{animation:p5pl2 .42s .05s cubic-bezier(.2,1.5,.35,1) forwards}
+@keyframes p5pl{0%{opacity:0;transform:translate(60px,30px) rotate(-8deg) scale(.9)}100%{opacity:1;transform:translate(-9px,8px) rotate(-1.6deg) scale(1)}}
+@keyframes p5pl2{0%{opacity:0;transform:translate(-60px,-30px) rotate(8deg) scale(.9)}100%{opacity:1;transform:translate(8px,-7px) rotate(1.2deg) scale(1)}}
+#p5-alert .sl{position:absolute;height:7px;width:46%;opacity:0;transform:skewX(-35deg)}
+#p5-alert .sl.t{top:-14px;left:-4%;background:#e60012;border-bottom:3px solid #000}
+#p5-alert .sl.b{bottom:-14px;right:-4%;background:#fff;border-top:3px solid #000}
+html[data-skin="persona"] #p5-alert .sl.t{animation:p5st .34s .18s cubic-bezier(.2,.9,.1,1) forwards}
+html[data-skin="persona"] #p5-alert .sl.b{animation:p5sb .34s .24s cubic-bezier(.2,.9,.1,1) forwards}
+@keyframes p5st{from{opacity:0;transform:translateX(-80px) skewX(-35deg)}to{opacity:1;transform:translateX(0) skewX(-35deg)}}
+@keyframes p5sb{from{opacity:0;transform:translateX(80px) skewX(-35deg)}to{opacity:1;transform:translateX(0) skewX(-35deg)}}
+#p5-alert .tag{position:absolute;left:14px;top:-20px;background:#fff;color:#000;font:900 15px/1 var(--p5-display,Impact,sans-serif);letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 12px 4px;transform:skewX(-10deg) rotate(-2deg);border-left:6px solid #e60012;opacity:0;box-shadow:3px 3px 0 #000}
+html[data-skin="persona"] #p5-alert .tag{animation:p5tg .3s .3s cubic-bezier(.2,1.7,.3,1) forwards}
+@keyframes p5tg{from{opacity:0;transform:skewX(-10deg) rotate(-12deg) scale(1.8)}to{opacity:1;transform:skewX(-10deg) rotate(-2deg) scale(1)}}
+#p5-alert.t-mega .plate{background:linear-gradient(135deg,#e60012 55%,#fff 55% 62%,#e60012 62%)}
+#p5-alert.t-mega .tag{background:#e60012;color:#fff;border-left-color:#fff}
+#p5-alert .bit{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);background:#e60012;opacity:0;clip-path:polygon(50% 0,100% 100%,0 100%);
+  animation:p5b .8s cubic-bezier(.12,.7,.3,1) forwards}
 #p5-alert .bit.w{background:#fff}
-@keyframes p5b{0%{opacity:1;transform:translate(-50%,-50%) rotate(0)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--r))}}
-#p5-alert .flashbang{position:absolute;inset:-20%;background:#fff;opacity:0;animation:p5f .35s ease-out forwards}
-#p5-alert.t-mega .flashbang{background:radial-gradient(circle,#fff,#e60012 70%)}
-@keyframes p5f{0%{opacity:.85}100%{opacity:0}}
-html[data-skin="persona"] #stage.p5-mega #shaker{animation:p5m .6s cubic-bezier(.36,.07,.19,.97) 2}
-@keyframes p5m{10%,90%{transform:translate3d(-3px,1px,0)}20%,80%{transform:translate3d(6px,-2px,0)}30%,50%,70%{transform:translate3d(-10px,3px,0)}40%,60%{transform:translate3d(10px,-3px,0)}}
+@keyframes p5b{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}}
 html[data-skin="persona"] #aName.p5-k,html[data-skin="persona"] #aAmt.p5-k{animation:p5k .5s cubic-bezier(.2,1.9,.35,1) both}
 @keyframes p5k{0%{opacity:0;letter-spacing:.5em;transform:scale(2.2) skewX(-14deg)}100%{opacity:1;letter-spacing:inherit;transform:scale(1) skewX(0)}}
 html[data-skin="persona"] #aMsg.p5-k2{animation:p5k2 .45s ease-out .25s both}
