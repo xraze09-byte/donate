@@ -3188,6 +3188,10 @@ html[data-skin="persona"] .btn-x:active,html[data-skin="persona"] .u-btn:active,
 html[data-skin="persona"] .btn-x:focus-visible,html[data-skin="persona"] .chip:focus-visible,html[data-skin="persona"] .u-btn:focus-visible{
   outline:3px solid #fff;outline-offset:3px;transform:skewX(-6deg) scale(1.04)}
 html[data-skin="persona"] .chip.on{background:#fff;color:#000}
+/* fix: ข้อความไทยกว้างกว่าละติน — ลด letter-spacing ในปุ่ม/ชิป, ห้ามตัดบรรทัดชิป, ให้ปุ่มสร้าง QR ย่อฟอนต์ตามความกว้าง (ไม่ตัดข้อความ) */
+html[data-skin="persona"] .chip{white-space:nowrap;letter-spacing:.04em;padding-left:8px;padding-right:8px;font-size:clamp(.95rem,4.2vw,1.1rem);min-width:0}
+html[data-skin="persona"] #bGen{white-space:nowrap;letter-spacing:.04em;font-size:clamp(.95rem,5.4vw,1.7rem)!important;overflow:visible}
+html[data-skin="persona"] #bGen .lbl{white-space:nowrap}
 html[data-skin="persona"] .btn-x .lbl{color:inherit}
 
 /* ---------- splatter + halftone มุมการ์ด (ตกแต่ง ไม่รับ pointer) ---------- */
