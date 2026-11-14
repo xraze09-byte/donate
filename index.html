@@ -6757,7 +6757,7 @@ setInterval(function(){if(d.hidden)return;adminMount();patchDonLink()},1200);
   const SKINS = [...Object.keys(PRESETS), 'custom'];
   const NAMES = { universal: 'Universal', fps: 'FPS', rpg: 'RPG', roblox: 'Brick', block: 'Block', cyber: 'Cyber',
                   light: 'Light', horror: 'Horror', space: 'Space', persona: 'Persona', custom: 'Custom' };
-  const DEFAULT = { skin: 'universal', base: 'dark', a1: '#ffcc00', a2: '#00d1ff', depth: 4, radius: 0, bw: 3, motion: true, sfx: 'auto' };
+  const DEFAULT = { skin: 'persona', base: 'dark', a1: '#ffcc00', a2: '#00d1ff', depth: 4, radius: 0, bw: 3, motion: true, sfx: 'auto' };
 
   /* ---------- state ---------- */
   const num = (v, lo, hi, d) => ((typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) && Number.isFinite(+v)
