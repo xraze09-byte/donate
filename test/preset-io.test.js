@@ -22,5 +22,5 @@ check('ตัวเลขถูกจำกัดช่วง', () => {
   const o = T.importPreset('{"kind":"donate-theme","depth":99,"radius":-5,"bw":"x"}');
   assert.equal(o.depth, 8); assert.equal(o.radius, 0); assert.equal(o.bw, T.DEFAULT.bw);
 });
-check('ธีมที่ไม่รู้จัก → universal', () => assert.equal(T.importPreset('{"kind":"donate-theme","skin":"evil"}').skin, 'universal'));
+check('ธีมที่ไม่รู้จัก → ค่าเริ่มต้น (persona)', () => assert.equal(T.importPreset('{"kind":"donate-theme","skin":"evil"}').skin, 'persona'));
 console.log(`preset-io: ${n} checks passed`);
